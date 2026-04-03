@@ -23,7 +23,7 @@ class ResidentRequest {
 	}
 
 	to_string() {
-		return JSON.stringify(to_json)
+		return JSON.stringify(this.to_json())
 	}
 
 	to_json() {
