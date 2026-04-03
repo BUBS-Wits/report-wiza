@@ -10,7 +10,8 @@ class ResidentRequest {
 			return false
 		const image_media_types_suffix = ["jpeg", "jpg", "png"]
 		const image_data_uri_regex = new RegExp(
-			`^data:image/(${image_media_types_suffix.join("|")})([^,]*)?,.*$`
+			`^data:image/(${image_media_types_suffix.join("|")})(;[^,;]+)*,.*$`,
+			"i"
 		)
 		return image_data_uri_regex.test(this.image)
 	}
