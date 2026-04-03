@@ -21,6 +21,18 @@ class ResidentRequest {
 			this.description.trim() &&
 			this.image
 	}
+
+	to_string() {
+		return JSON.stringify(to_json)
+	}
+
+	to_json() {
+		return {
+			"category": this.category,
+			"description": this.description,
+			"image": this.image
+		}
+	}
 }
 
 module.exports = {ResidentRequest}
