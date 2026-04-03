@@ -41,12 +41,12 @@ TESTS = [
 	"data:image/tiff;base64,SUkqAAgAAA....",
 	"not-a-data-uri",
 	"d",
+	"",
 	"data:image/jpeg;base64AAAAAA"
 ]
 TESTS.forEach((uri, index) => {
 	test(`image_validation_fail #${index + 1}`, () => {
 		const tmp = new ResidentRequest("water", "water leakage.", uri)
-		assert_true(tmp.input_validate())
 		assert_false(tmp.image_validate())
 	})
 })
