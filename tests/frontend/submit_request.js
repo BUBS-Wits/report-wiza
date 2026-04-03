@@ -9,12 +9,12 @@ test("input validation pass", () => {
 
 test("input validation fail", () => {
 	const tmp = new ResidentRequest("Water", "water leakage.")
-	assert_true(tmp.input_validate())
-	assert_true(tmp.image_validate())
+	assert_false(tmp.input_validate())
+	assert_false(tmp.image_validate())
 })
 
 test("image validation pass", () => {
-	tests = [
+	const tests = [
 		"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...",
 		"data:image/jpg,....",
 		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
@@ -24,7 +24,7 @@ test("image validation pass", () => {
 		"data:image/png,....",
 		"data:image/JPEG;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
 	]
-	for (test of tests) {
+	for (const test of tests) {
 		const tmp = new ResidentRequest("water", "water leakage.", test)
 		assert_true(tmp.input_validate())
 		assert_true(tmp.image_validate())
@@ -32,7 +32,7 @@ test("image validation pass", () => {
 })
 
 test("image validation fail", () => {
-	tests = [
+	const tests = [
 		"data:image/gif;base64,R0lGODlhPQBEAPeoAJosM....",
 		"data:image/png;base64iVBORw0KGgoAAAANSUhEUgAA...",
 		"data:imge/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...",
@@ -42,9 +42,9 @@ test("image validation fail", () => {
 		"",
 		"data:image/jpeg;base64AAAAAA"
 	]
-	for (test of tests) {
+	for (const test of tests) {
 		const tmp = new ResidentRequest("water", "water leakage.", test)
 		assert_true(tmp.input_validate())
-		assert_fail(tmp.image_validate())
+		assert_false(tmp.image_validate())
 	}
 })
