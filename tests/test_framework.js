@@ -6,15 +6,21 @@ function assert_equal(actual, expected) {
 	}
 }
 
+function assert_not_equal(actual, expected) {
+	if (actual === expected) {
+		throw new Error(`Not equal assertion failed: ${actual} === ${expected}`)
+	}
+}
+
 function assert_less_than(actual, expected) {
 	if (actual < expected) {
-		throw new Error(`Less than assertion failed: ${actual} < ${expected}`)
+		throw new Error(`Less than assertion failed: ${actual} >= ${expected}`)
 	}
 }
 
 function assert_greater_than(actual, expected) {
 	if (actual > expected) {
-		throw new Error(`Greater than assertion failed: ${actual} > ${expected}`)
+		throw new Error(`Greater than assertion failed: ${actual} <= ${expected}`)
 	}
 }
 
@@ -57,6 +63,7 @@ async function run_tests() {
 module.exports = {
 	run_tests,
 	test,
+	assert_not_equal,
 	assert_equal,
 	assert_less_than,
 	assert_greater_than,

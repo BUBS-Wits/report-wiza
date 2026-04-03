@@ -1,4 +1,4 @@
-const {assert_true, assert_false, test} = require("../test_framework.js")
+const {assert_not_equal, assert_equal, assert_true, assert_false, test} = require("../test_framework.js")
 const {ResidentRequest} = require("../../src/frontend/request.js")
 
 let TESTS = []
@@ -49,4 +49,18 @@ TESTS.forEach((uri, index) => {
 		const tmp = new ResidentRequest("water", "water leakage.", uri)
 		assert_false(tmp.image_validate())
 	})
+})
+
+test("request_stringify_pass", () => {
+	const tmp = new ResidentRequest("Water", "water leakage.", "data:image/jpeg;base64,/9j/4AAQ...")
+	assert_true(tmp.input_validate())
+	assert_true(tmp.image_validate())
+	assert_equal(tmp.to_string(), '{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ..."}')
+})
+
+test("request_stringify_fail", () => {
+	const tmp = new ResidentRequest("Water", "water leakage.", "data:image/jpeg;base64,/9j/4AAQ...")
+	assert_true(tmp.input_validate())
+	assert_true(tmp.image_validate())
+	assert_not_equal(tmp.to_string(), ' {"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ..."} ')
 })
