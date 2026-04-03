@@ -1,8 +1,8 @@
 class ResidentRequest {
 	constructor(category, description, image) {
-		this.category = category
-		this.description = description
-		this.image = image
+		this.category = category ? category.trim() : null
+		this.description = description ? description.trim() : null
+		this.image = image ? image.trim() : null 
 	}
 
 	image_validate() {

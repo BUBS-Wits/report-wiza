@@ -25,13 +25,13 @@ TESTS = [
 	"data:image/png,....",
 	"data:image/JPEG;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
 ]
-for (let i = 1; i <= TESTS.length; i++) {
-	test(`image_validation_pass #${i}`, () => {
-		const tmp = new ResidentRequest("water", "water leakage.", TESTS[i])
+TESTS.forEach((uri, index) => {
+	test(`image_validation_pass #${index + 1}`, () => {
+		const tmp = new ResidentRequest("water", "water leakage.", uri)
 		assert_true(tmp.input_validate())
 		assert_true(tmp.image_validate())
 	})
-}
+})
 
 TESTS = [
 	"data:image/gif;base64,R0lGODlhPQBEAPeoAJosM....",
@@ -40,13 +40,13 @@ TESTS = [
 	"data:;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...",
 	"data:image/tiff;base64,SUkqAAgAAA....",
 	"not-a-data-uri",
-	"",
+	"d",
 	"data:image/jpeg;base64AAAAAA"
 ]
-for (let i = 1; i <= TESTS.length; i++) {
-	test(`image_validation_fail #${i}`, () => {
-		const tmp = new ResidentRequest("water", "water leakage.", TESTS[i])
+TESTS.forEach((uri, index) => {
+	test(`image_validation_fail #${index + 1}`, () => {
+		const tmp = new ResidentRequest("water", "water leakage.", uri)
 		assert_true(tmp.input_validate())
 		assert_false(tmp.image_validate())
 	})
-}
+})
