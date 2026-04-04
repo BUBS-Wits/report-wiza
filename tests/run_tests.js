@@ -15,11 +15,15 @@ function find_tests(dir) {
 }
 
 function load_tests() {
-	const src_tests = find_tests(resolve(__dirname, "../src"))
-	src_tests.forEach(file => {
+	const app_tests = find_tests(resolve(__dirname, "../app"))
+	const packages_tests = find_tests(resolve(__dirname, "../packages"))
+
+	const all_tests = app_tests.concat(packages_tests)
+
+	all_tests.forEach(file => {
 		require(file)
 	})
-	return src_tests.length
+	return all_tests.length
 }
 
 async function run_all() {
