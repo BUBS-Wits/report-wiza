@@ -1,0 +1,30 @@
+<!doctype html3>
+<html>
+<head>
+	<title>Service Request</title>
+	<link rel="stylesheet" href="./main.css"></style>
+	<link rel="stylesheet" href="./service_request.css"></style>
+</head>
+<body>
+	<header>
+		<img id="logo" src="../../../public/logo192.png"></input>
+		<h1>Service Request</h1>
+	</header>
+	<main>
+		<form>
+			<select id="category" name="category">
+				<option value="">--Please choose a category--</option> 
+			</select>
+			<textarea id="description" required cols=30 rows=10></textarea>
+			<img id="preview" src="../../../public/logo192.png"></input>
+			<label for="image">Choose an image to upload (PNG, JPEG, JPG)</label>
+			<input id="image" required type="file" accept="image/png, image/jpeg, image/jpg"/>
+		</form>
+	</main>
+	<footer>
+		<p>© 2026 BUBS-Wits.</p>
+		<a href="https://github.com/BUBS-Wits">Github</a>
+	</footer>
+	<script defer src="../service_request.js" fetchpriority="high"></script>
+</body>
+</html>
