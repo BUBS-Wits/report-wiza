@@ -30,6 +30,18 @@ test("categories_addition_fail", () => {
 	assert_not_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
 })
 
+test("get_data_uri_pass", async () => {
+	const dom = new JSDOM()
+	const file = create_mock_image_file("test.png", dom.window)
+	assert_equal(await get_data_uri(file), "data:image/png;base64,iVBORw==")
+})
+
+test("get_data_uri_fail", async () => {
+	const dom = new JSDOM()
+	const file = create_mock_image_file("test.png", dom.window)
+	assert_not_equal(await get_data_uri(file), "data:image/png;base64,iVBORw=")
+})
+
 test("input_fetch_pass", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
