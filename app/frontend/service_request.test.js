@@ -45,7 +45,7 @@ test("get_data_uri_fail", async () => {
 test("input_fetch_pass", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
-		'<textarea id="description" name="desc">Hello, world!</textarea>' + 
+		'<textarea id="description" name="desc">Hello, world!  </textarea>' + 
 		'<input id="image" type="file"></img>',
 		{runScripts: "dangerously"}
 	)
@@ -62,3 +62,46 @@ test("input_fetch_pass", async () => {
 	}))
 })
 
+test("input_fetch_failed #1", async () => {
+	const dom = new JSDOM(
+		'<select id="category"><option value="">Test 1</option><option value="test">Test 2</option></select>' +
+		'<textarea id="description" name="desc">Hello, world!  </textarea>' + 
+		'<input id="image" type="file"></img>',
+		{runScripts: "dangerously"}
+	)
+	const files_input = dom.window.document.querySelector("input#image")
+	Object.defineProperty(files_input, "files", {
+		value: [create_mock_image_file("test.png", dom.window)],
+		writable: false
+	})
+	const res_request = await get_request_input(dom.window.document)
+	assert_equal(res_request, null)
+})
+
+test("input_fetch_failed #2", async () => {
+	const dom = new JSDOM(
+		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
+		'<textarea id="description" name="desc"></textarea>' + 
+		'<input id="image" type="file"></img>',
+		{runScripts: "dangerously"}
+	)
+	const files_input = dom.window.document.querySelector("input#image")
+	Object.defineProperty(files_input, "files", {
+		value: [create_mock_image_file("test.png", dom.window)],
+		writable: false
+	})
+	const res_request = await get_request_input(dom.window.document)
+	assert_equal(res_request, null)
+})
+
+test("input_fetch_failed #3", async () => {
+	const dom = new JSDOM(
+		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
+		'<textarea id="description" name="desc">Hello, world!  </textarea>' + 
+		'<input id="image" type="file"></img>',
+		{runScripts: "dangerously"}
+	)
+	const files_input = dom.window.document.querySelector("input#image")
+	const res_request = await get_request_input(dom.window.document)
+	assert_equal(res_request, null)
+})

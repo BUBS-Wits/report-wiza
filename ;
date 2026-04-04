@@ -60,7 +60,8 @@ export async function get_request_input(dom) {
 	const select = dom.querySelector("select")
 	const textarea = dom.querySelector("textarea")
 	const files_input = dom.querySelector("input#image")
-	if (!select.selectedOptions[0].value || !textarea ||
+	console.debug(select.selectedOptions)
+	if (select.selectedOptions.length <= 0 || !textarea ||
 			!textarea.textContent || !files_input ||
 			files_input.files.length <= 0)
 		return null
