@@ -1,5 +1,4 @@
 import {REQUEST_CATEGORIES} from "../../packages/shared/constants.js"
-import {ResidentRequest} from "../../packages/shared/request.js"
 // const {REQUEST_CATEGORIES} = require("../../packages/shared/constants.js")
 
 let categories_select, file_input, preview

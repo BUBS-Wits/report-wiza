@@ -13,3 +13,31 @@ main form {
 main form > * {
 	margin-bottom: 1rem;
 }
+
+main form > button {
+	font-size: 1.3rem;
+	background: linear-gradient(rgba(0, 0, 0, 0.05), transparent);
+	border-radius: 1rem;
+}
+
+main form > button:hover {
+	color: #61DAFB;
+	border: 4px ridge #61DAFB;
+}
+
+main form > button:not(:hover) {
+	color: rgb(0, 0, 0);
+	border: 2px solid black;
+}
+
+@keyframes waterfall {
+	0% {
+		background: linear-gradient(rgba(0, 0, 0, 0.05), transparent);
+	},
+	50% {
+		background: linear-gradient(transparent, rgba(0, 0, 0, 0.05));
+	},
+	100% {
+		background: linear-gradient(rgba(0, 0, 0, 0.05), transparent);
+	}
+}
