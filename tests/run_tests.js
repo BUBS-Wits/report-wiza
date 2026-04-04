@@ -1,3 +1,4 @@
+const process = require("node:process")
 const { resolve } = require("path")
 const { readdirSync, statSync } = require("fs")
 
@@ -31,7 +32,8 @@ async function run_all() {
 
 	const total_tests = load_tests()
 	console.log(`Found test files: ${total_tests}`)
-	await run_tests()
+	const ret = await run_tests()
+	process.exit(ret)
 }
 
 run_all()

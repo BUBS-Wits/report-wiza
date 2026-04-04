@@ -15,4 +15,7 @@ for req in "${reqs[@]}"; do
 done
 
 node --trace-warnings ./tests/run_tests.js
-node node_modules/serve/build/main.js
+ret=$?
+echo -e "\e[0;32mReturn Code\e[0m: ${ret}"
+
+exit ${ret}

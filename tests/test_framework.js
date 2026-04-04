@@ -58,6 +58,7 @@ async function run_tests() {
 	console.log(`Passed Tests: ${passed}`)
 	console.log(`Failed Tests: ${tests.length - passed}`)
 	console.log(`Percentage Passed: ${percantage_pass}%`)
+	return percantage_pass == 100 ? 0 : 1
 }
 
 module.exports = {

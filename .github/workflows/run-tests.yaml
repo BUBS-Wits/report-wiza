@@ -1,0 +1,32 @@
+name:
+
+on:
+  push:
+    branches:
+      - feature/**
+  pull-request:
+    branches:
+      - feature/**
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      # 2. Set up Node
+      #- name: Setup Node
+      #  uses: actions/setup-node@v3
+      #  with:
+      #    node-version: '20' # or whatever version you use
+
+      # 3. Install dependencies if needed
+      - name: Install dependencies
+        run: ./setup-requirements.sh
+
+      # 4. Run your Node script
+      - name: Run validation script
+        run: ./run-tests.sh 
