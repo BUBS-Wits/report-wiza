@@ -1,4 +1,5 @@
 import {REQUEST_CATEGORIES} from "../../packages/shared/constants.js"
+import {ResidentRequest} from "../../packages/shared/request.js"
 // const {REQUEST_CATEGORIES} = require("../../packages/shared/constants.js")
 
 let categories_select, file_input, preview
@@ -32,6 +33,39 @@ export function fill_select_options(dom, select, options) {
 		)
 		select.append(tmp)
 	})
+}
+
+export async function get_data_uri(file) {
+	if (typeof window !== "undefined") {
+		// native browser
+		return new Promise(resolve => {
+			const reader = new FileReader()
+			reader.onload = e => {
+				const data_uri = e.target.result
+				resolve(data_uri)
+			}
+			reader.readAsDataURL(file)
+		})
+	} else {
+		// nodejs
+		const buffer = Buffer.from(await file.arrayBuffer())
+		const data_uri = `data:${file.type};base64,${buffer.toString("base64")}`
+		return data_uri
+	}
+}
+
+export async function get_request_input(dom) {
+	if (typeof dom === "undefined")
+		return
+	const select = dom.querySelector("select")
+	const textarea = dom.querySelector("textarea")
+	const files_input = dom.querySelector("input#image")
+	const request = new ResidentRequest(
+		select.selectedOptions[0].value,
+		textarea.value,
+		await get_data_uri(files_input.files[0])
+	)
+	return request
 }
 
 file_input?.addEventListener("change", e => {

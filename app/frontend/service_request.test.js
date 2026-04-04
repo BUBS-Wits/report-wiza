@@ -1,6 +1,6 @@
 const {JSDOM} = require("jsdom")
 const {assert_equal, assert_not_equal, test} = require("../../tests/test_framework.js")
-const {fill_select_options} = require("./service_request.js")
+const {fill_select_options, get_request_input, get_data_uri} = require("./service_request.js")
 const {REQUEST_CATEGORIES} = require("../../packages/shared/constants.js")
 const {ResidentRequest} = require("../../packages/shared/request.js")
 
@@ -30,21 +30,22 @@ test("categories_addition_fail", () => {
 	assert_not_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
 })
 
-test("input_fetch_pass", () => {
+test("input_fetch_pass", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
-		'<textaread id="description">Hello, world!</textarea>' + 
-		'<input id="image"></img>'
+		'<textarea id="description" name="desc">Hello, world!</textarea>' + 
+		'<input id="image"></img>',
+		{runScripts: "dangerously"}
 	)
 	const files_input = dom.window.document.querySelector("input#image")
 	Object.defineProperty(files_input, "files", {
-		values: [create_mock_image_file("test.png")],
+		value: [create_mock_image_file("test.png")],
 		writable: false
 	})
-	const res_request = get_request_input(dom.window.document)
+	const res_request = await get_request_input(dom.window.document)
 	assert_equal(res_request.to_string(), JSON.stringify({
 		category: "test",
 		description: "Hello, world!",
-		image: URL.createObjectURL(files_input.files[0])
+		image: await get_data_uri(files_input.files[0])
 	}))
 })
