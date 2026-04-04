@@ -4,8 +4,8 @@ const {fill_select_options, get_request_input, get_data_uri} = require("./servic
 const {REQUEST_CATEGORIES} = require("../../packages/shared/constants.js")
 const {ResidentRequest} = require("../../packages/shared/request.js")
 
-function create_mock_image_file(name) {
-	return new File(
+function create_mock_image_file(name, win) {
+	return new win.File(
 		// PNG Magic Number: `89 50 4E 47 0D 0A 1A 0A`
 		// Only the first four sets of 2 are important for pngs for a minimal png
 		[Uint8Array.from([137, 80, 78, 71])],
@@ -34,12 +34,12 @@ test("input_fetch_pass", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
 		'<textarea id="description" name="desc">Hello, world!</textarea>' + 
-		'<input id="image"></img>',
+		'<input id="image" type="file"></img>',
 		{runScripts: "dangerously"}
 	)
 	const files_input = dom.window.document.querySelector("input#image")
 	Object.defineProperty(files_input, "files", {
-		value: [create_mock_image_file("test.png")],
+		value: [create_mock_image_file("test.png", dom.window)],
 		writable: false
 	})
 	const res_request = await get_request_input(dom.window.document)
@@ -49,3 +49,4 @@ test("input_fetch_pass", async () => {
 		image: await get_data_uri(files_input.files[0])
 	}))
 })
+
