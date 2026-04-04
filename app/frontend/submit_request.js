@@ -1,4 +1,4 @@
-const {ResidentRequest} = require("./submit_request.js")
+const {ResidentRequest} = require("../../packages/shared/request.js")
 
 async function send_request(uri, data) {
 	if (!URL.canParse(uri))
