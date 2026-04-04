@@ -2,6 +2,17 @@ const {JSDOM} = require("jsdom")
 const {assert_equal, assert_not_equal, test} = require("../../tests/test_framework.js")
 const {fill_select_options} = require("./service_request.js")
 const {REQUEST_CATEGORIES} = require("../../packages/shared/constants.js")
+const {ResidentRequest} = require("../../packages/shared/request.js")
+
+function create_mock_image_file(name) {
+	return new File(
+		// PNG Magic Number: `89 50 4E 47 0D 0A 1A 0A`
+		// Only the first four sets of 2 are important for pngs for a minimal png
+		[Uint8Array.from([137, 80, 78, 71])],
+		name,
+		{type: "image/png"}
+	)
+}
 
 test("categories_addition_pass", () => {
 	const dom = new JSDOM('<select id="category"><option value="">Test</option></select>')
@@ -17,4 +28,23 @@ test("categories_addition_fail", () => {
 	fill_select_options(dom.window.document, select, REQUEST_CATEGORIES)
 	const options = [...select.children].filter(e => e.value).map(e => "*" + e.value)
 	assert_not_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
+})
+
+test("input_fetch_pass", () => {
+	const dom = new JSDOM(
+		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
+		'<textaread id="description">Hello, world!</textarea>' + 
+		'<input id="image"></img>'
+	)
+	const files_input = dom.window.document.querySelector("input#image")
+	Object.defineProperty(files_input, "files", {
+		values: [create_mock_image_file("test.png")],
+		writable: false
+	})
+	const res_request = get_request_input(dom.window.document)
+	assert_equal(res_request.to_string(), JSON.stringify({
+		category: "test",
+		description: "Hello, world!",
+		image: URL.createObjectURL(files_input.files[0])
+	}))
 })
