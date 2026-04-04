@@ -1,4 +1,4 @@
-class ResidentRequest {
+export class ResidentRequest {
 	constructor(category, description, image) {
 		this.category = category ? category.trim() : null
 		this.description = description ? description.trim() : null
@@ -34,5 +34,3 @@ class ResidentRequest {
 		}
 	}
 }
-
-module.exports = {ResidentRequest}
