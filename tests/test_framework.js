@@ -49,9 +49,9 @@ async function run_tests() {
 			console.log(`\u2705 ${name}`)
 		} catch (err) {
 			console.log(`\u274C ${name}`)
-			console.error(`======`);
-			console.error(err);
-			console.error(`======`);
+			console.error(`======`)
+			console.error(err)
+			console.error(`======`)
 		}
 	}
 	const percantage_pass = Math.round((passed / tests.length) * 10000, 2) / 100
