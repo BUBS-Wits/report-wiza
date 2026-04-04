@@ -1,4 +1,4 @@
 # used to launch a server on localhost
-serve
+serve@14.2.6
 # used to mock DOM and DOM elements for testing
-jsdom
+jsdom@29.0.1
