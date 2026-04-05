@@ -37,7 +37,7 @@ async function run_all() {
 	const total_tests = await load_tests()
 	console.log(`Found test files: ${total_tests}`)
 	const ret = await run_tests()
-	process.exit(ret)
+	process.exit(ret) 
 }
 
 run_all()
