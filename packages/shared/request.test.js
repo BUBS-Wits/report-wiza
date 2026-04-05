@@ -1,5 +1,5 @@
-const {assert_not_equal, assert_equal, assert_true, assert_false, test} = require("../../tests/test_framework.js")
-const {ResidentRequest} = require("./request.js")
+import {assert_not_equal, assert_equal, assert_true, assert_false, test} from "../../tests/test_framework.js"
+import {ResidentRequest} from "./request.js"
 
 let TESTS = []
 

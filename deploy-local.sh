@@ -1,3 +1,7 @@
 #!/bin/sh
 
-node node_modules/serve/build/main.js
+./run-tests.sh
+if [[ $? -eq 0 ]]; then
+	npm run build:frontend 
+	npm run serve:frontend
+fi

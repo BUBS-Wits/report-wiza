@@ -4,3 +4,5 @@ serve@14.2.6
 jsdom@29.0.1
 # used to return a signal to node.js scripts
 process@0.11.10
+# used to build/package the frontend along with the shared packages
+vite@8.0.3

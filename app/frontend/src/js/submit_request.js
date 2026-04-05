@@ -1,6 +1,6 @@
-const {ResidentRequest} = require("../../packages/shared/request.js")
+import {ResidentRequest} from "@bubs-wits/shared"
 
-async function send_request(uri, data) {
+export async function send_request(uri, data) {
 	if (!URL.canParse(uri))
 		return null
 	let body = JSON.stringify(data)
@@ -13,8 +13,4 @@ async function send_request(uri, data) {
 		},
 		body
 	})
-}
-
-module.exports = {
-	send_request
 }

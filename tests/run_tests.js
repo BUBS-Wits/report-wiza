@@ -1,6 +1,12 @@
-const process = require("node:process")
-const { resolve } = require("path")
-const { readdirSync, statSync } = require("fs")
+import process from "node:process"
+import { resolve } from "path"
+import { readdirSync, statSync } from "fs"
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+import { run_tests } from "./test_framework.js"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 function find_tests(dir) {
 	let files = []
@@ -15,22 +21,20 @@ function find_tests(dir) {
 	return files
 }
 
-function load_tests() {
+async function load_tests() {
 	const app_tests = find_tests(resolve(__dirname, "../app"))
 	const packages_tests = find_tests(resolve(__dirname, "../packages"))
 
 	const all_tests = app_tests.concat(packages_tests)
 
-	all_tests.forEach(file => {
-		require(file)
-	})
+	for (const file of all_tests) {
+		await import(file)
+	}
 	return all_tests.length
 }
 
 async function run_all() {
-	const { run_tests } = require("./test_framework.js")
-
-	const total_tests = load_tests()
+	const total_tests = await load_tests()
 	console.log(`Found test files: ${total_tests}`)
 	const ret = await run_tests()
 	process.exit(ret)

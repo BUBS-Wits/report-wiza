@@ -1,6 +1,6 @@
-const {assert_equal, test} = require("../../tests/test_framework.js")
-const {ResidentRequest} = require("../../packages/shared/request.js")
-const {send_request} = require("./submit_request.js")
+import {assert_equal, test} from "../../../../tests/test_framework.js"
+import {ResidentRequest} from "../../../../packages/shared/request.js"
+import {send_request} from "./submit_request.js"
 
 const ECHO_TEST = "https://httpbin.org/post"
 let TESTS = []

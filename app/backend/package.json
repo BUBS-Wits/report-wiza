@@ -1,0 +1,11 @@
+{
+	"name": "backend",
+	"version": "1.0.0",
+	"type": "module",
+	"dependencies": {
+		"@bubs-wits/shared": "file:../../packages/shared"
+	},
+	"scripts": {
+		"start": ""
+	}
+}

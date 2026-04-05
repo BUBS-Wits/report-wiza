@@ -1,8 +1,8 @@
-const {JSDOM} = require("jsdom")
-const {assert_equal, assert_not_equal, test} = require("../../tests/test_framework.js")
-const {fill_select_options, get_request_input, get_data_uri} = require("./service_request.js")
-const {REQUEST_CATEGORIES} = require("../../packages/shared/constants.js")
-const {ResidentRequest} = require("../../packages/shared/request.js")
+import {JSDOM} from "jsdom"
+import {assert_equal, assert_not_equal, test} from "../../../../tests/test_framework.js"
+import {REQUEST_CATEGORIES} from "../../../../packages/shared/constants.js"
+import {ResidentRequest} from "../../../../packages/shared/request.js"
+import {fill_select_options, get_request_input, get_data_uri} from "./service_request.js"
 
 function create_mock_image_file(name, win) {
 	return new win.File(
