@@ -1,203 +1,60 @@
 /* src/pages/admin/admin_dashboard.css */
 
 .admin_page {
+	display: flex;
 	min-height: 100vh;
-	background: #f8fafc;
-	padding: 48px 24px;
 	font-family: 'DM Sans', sans-serif;
 }
 
-.admin_container {
-	max-width: 680px;
-	margin: 0 auto;
+.admin_main {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	background: #f8fafc;
+	min-width: 0;
 }
 
-.admin_header {
-	margin-bottom: 32px;
+.admin_content {
+	padding: 24px 28px;
+	flex: 1;
 }
 
-.admin_title {
-	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 36px;
-	font-weight: 700;
-	color: #0f1f3d;
-	margin: 0 0 4px;
-}
-
-.admin_sub {
-	font-size: 14px;
-	color: #64748b;
-	margin: 0;
-}
-
-.admin_card {
+.admin_placeholder {
 	background: #ffffff;
 	border: 1px solid #e2e8f0;
 	border-radius: 16px;
-	padding: 32px;
+	padding: 48px;
+	text-align: center;
 }
 
-.admin_card_title {
+.admin_placeholder p {
 	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 22px;
+	font-size: 20px;
 	font-weight: 700;
 	color: #0f1f3d;
 	margin: 0 0 8px;
 }
 
-.admin_card_desc {
-	font-size: 13px;
-	color: #64748b;
-	line-height: 1.6;
-	margin: 0 0 24px;
-}
-
-.admin_form {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.admin_field {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-
-.admin_label {
+.admin_placeholder span {
 	font-size: 12px;
-	font-weight: 500;
-	color: #475569;
-}
-
-.admin_input {
-	padding: 10px 14px;
-	border: 1px solid #e2e8f0;
-	border-radius: 10px;
-	font-size: 14px;
-	font-family: 'DM Sans', sans-serif;
-	color: #0f172a;
-	background: #f8fafc;
-	outline: none;
-	transition: border-color 0.15s;
-}
-
-.admin_input:focus {
-	border-color: #0f1f3d;
-}
-
-.admin_input:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
+	color: #94a3b8;
 }
 
 .admin_message {
 	padding: 10px 14px;
 	border-radius: 8px;
 	font-size: 13px;
+	margin-top: 16px;
 }
 
-.admin_message_success {
+.admin_message.success {
 	background: #f0fdf4;
 	border: 1px solid #bbf7d0;
 	color: #16a34a;
 }
 
-.admin_message_error {
+.admin_message.error {
 	background: #fef2f2;
 	border: 1px solid #fecaca;
 	color: #dc2626;
-}
-
-.admin_btn {
-	padding: 12px 20px;
-	background: #0f1f3d;
-	color: #ffffff;
-	border: none;
-	border-radius: 10px;
-	font-family: 'DM Sans', sans-serif;
-	font-size: 14px;
-	font-weight: 500;
-	cursor: pointer;
-	transition: all 0.15s;
-	align-self: flex-start;
-}
-
-.admin_btn:hover:not(:disabled) {
-	background: #1a3260;
-	transform: translateY(-1px);
-}
-
-.admin_btn:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-}
-
-/* Workers list */
-.admin_workers_list {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-}
-
-.admin_worker_row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 12px 0;
-	border-bottom: 1px solid #e2e8f0;
-}
-
-.admin_worker_row:last-child {
-	border-bottom: none;
-}
-
-.admin_worker_info {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-}
-
-.admin_worker_email {
-	font-size: 14px;
-	color: #0f172a;
-}
-
-.admin_worker_badge {
-	font-size: 11px;
-	font-weight: 500;
-	padding: 2px 8px;
-	border-radius: 99px;
-	background: #eff6ff;
-	color: #1d4ed8;
-}
-
-.admin_revoke_btn {
-	padding: 6px 14px;
-	background: #fef2f2;
-	color: #dc2626;
-	border: 1px solid #fecaca;
-	border-radius: 8px;
-	font-family: 'DM Sans', sans-serif;
-	font-size: 13px;
-	font-weight: 500;
-	cursor: pointer;
-	transition: all 0.15s;
-}
-
-.admin_revoke_btn:hover:not(:disabled) {
-	background: #dc2626;
-	color: #fff;
-	border-color: #dc2626;
-}
-
-.admin_revoke_btn:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-}
-
-.admin_empty {
-	font-size: 13px;
-	color: #94a3b8;
-	padding: 16px 0;
 }
