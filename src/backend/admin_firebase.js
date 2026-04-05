@@ -1,7 +1,17 @@
 // src/backend/admin_firebase.js
+// src/backend/admin_firebase.js
 import { auth, db } from '../firebase_config.js'
 import { sendSignInLinkToEmail } from 'firebase/auth'
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import {
+	doc,
+	setDoc,
+	updateDoc,
+	collection,
+	query,
+	where,
+	getDocs,
+	serverTimestamp,
+} from 'firebase/firestore'
 
 // Email link settings — tells Firebase where to redirect
 // the worker after they click the link
@@ -56,5 +66,33 @@ export const confirm_worker_role = async (uid, email, personal_details) => {
 	} catch (error) {
 		console.error('Error confirming worker role:', error)
 		throw new Error('Could not complete registration. Try again.')
+	}
+}
+
+// Fetches all users with role 'worker' from Firestore
+export const fetch_workers = async () => {
+	try {
+		const q = query(
+			collection(db, 'users'),
+			where('role', '==', 'worker')
+		)
+		const snapshot = await getDocs(q)
+		return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+	} catch (error) {
+		console.error('Error fetching workers:', error)
+		throw new Error('Could not load workers. Try again later.')
+	}
+}
+
+// Revokes worker role by setting their role back to resident
+export const revoke_worker_role = async (uid) => {
+	try {
+		await updateDoc(doc(db, 'users', uid), {
+			role: 'resident',
+		})
+		return { success: true }
+	} catch (error) {
+		console.error('Error revoking worker role:', error)
+		throw new Error('Could not revoke worker role. Try again.')
 	}
 }

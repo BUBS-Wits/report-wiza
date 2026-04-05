@@ -132,3 +132,72 @@
 	opacity: 0.6;
 	cursor: not-allowed;
 }
+
+/* Workers list */
+.admin_workers_list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.admin_worker_row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 0;
+	border-bottom: 1px solid #e2e8f0;
+}
+
+.admin_worker_row:last-child {
+	border-bottom: none;
+}
+
+.admin_worker_info {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.admin_worker_email {
+	font-size: 14px;
+	color: #0f172a;
+}
+
+.admin_worker_badge {
+	font-size: 11px;
+	font-weight: 500;
+	padding: 2px 8px;
+	border-radius: 99px;
+	background: #eff6ff;
+	color: #1d4ed8;
+}
+
+.admin_revoke_btn {
+	padding: 6px 14px;
+	background: #fef2f2;
+	color: #dc2626;
+	border: 1px solid #fecaca;
+	border-radius: 8px;
+	font-family: 'DM Sans', sans-serif;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.15s;
+}
+
+.admin_revoke_btn:hover:not(:disabled) {
+	background: #dc2626;
+	color: #fff;
+	border-color: #dc2626;
+}
+
+.admin_revoke_btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.admin_empty {
+	font-size: 13px;
+	color: #94a3b8;
+	padding: 16px 0;
+}
