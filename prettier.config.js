@@ -4,7 +4,7 @@ const config = {
 	trailingComma: 'es5',
 	tabWidth: 4,
 	bracketSpacing: true,
-	htmlWhitespaceSensitivity: 'ignored',
+	htmlWhitespaceSensitivity: 'ignore',
 	useTabs: true
 };
 
