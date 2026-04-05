@@ -6,3 +6,9 @@ jsdom@29.0.1
 process@0.11.10
 # used to build/package the frontend along with the shared packages
 vite@8.0.3
+# formatter
+prettier@3.8.1
+# linter
+eslint@10.2.0
+eslint-config-prettier@10.1.8
+globals@17.4.0

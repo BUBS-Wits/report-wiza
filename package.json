@@ -7,8 +7,12 @@
 		"tests"
 	],
 	"dependencies": {
+		"eslint": "^10.2.0",
+		"eslint-config-prettier": "^10.1.8",
 		"express": "^4.18.2",
+		"globals": "^17.4.0",
 		"jsdom": "^29.0.1",
+		"prettier": "^3.8.1",
 		"process": "^0.11.10",
 		"serve": "^14.2.6",
 		"vite": "^8.0.3"
@@ -16,6 +20,9 @@
 	"scripts": {
 		"dev:frontend": "npm run dev --prefix app/frontend",
 		"build:frontend": "npm run build --prefix app/frontend",
-		"serve:frontend": "npm exec -- serve app/frontend/dist -l 3000"
+		"serve:frontend": "npm exec -- serve app/frontend/dist -l 3000",
+		"lint": "eslint .",
+		"format": "prettier --write **/*.js **/*.html **/*.css",
+		"format:check": "prettier --check **/*.js **/*.html **/*.css"
 	}
 }

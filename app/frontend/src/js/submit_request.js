@@ -1,8 +1,7 @@
-import {ResidentRequest} from "@bubs-wits/shared"
-
 export async function send_request(uri, data) {
-	if (!URL.canParse(uri))
+	if (!URL.canParse(uri)) {
 		return null
+	}
 	let body = JSON.stringify(data)
 	body = body ? body : ""
 	return await fetch(uri, {

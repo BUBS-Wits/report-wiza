@@ -1,9 +1,12 @@
-import {REQUEST_CATEGORIES} from "@bubs-wits/shared"
-import {ResidentRequest} from "@bubs-wits/shared"
+import {
+	REQUEST_CATEGORIES
+} from "@bubs-wits/shared"
+import {
+	ResidentRequest
+} from "@bubs-wits/shared"
 
-let categories_select, file_input, preview, submit, form
+let categories_select, file_input, preview, submit
 if (typeof window !== "undefined" && typeof document !== "undefined") {
-	form = document.body.querySelector("main form")
 	categories_select = document.body.querySelector("main form select#category")
 	file_input = document.body.querySelector("main form input#image")
 	preview = document.body.querySelector("main form img#preview")
@@ -12,7 +15,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 	if (file_input.files.length > 0 && file_input.files[0]) {
 		const img_uri = URL.createObjectURL(file_input.files[0])
 		preview.style.display = "block"
-		preview.src = img_uri 
+		preview.src = img_uri
 		preview.onload = () => {
 			URL.revokeObjectURL(img_uri)
 		}
@@ -25,7 +28,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
 function preview_image(img) {
 	const img_uri = URL.createObjectURL(img)
-	preview.src = img_uri 
+	preview.src = img_uri
 	preview.style.display = "block"
 	preview.onload = () => {
 		URL.revokeObjectURL(img_uri)
@@ -33,8 +36,9 @@ function preview_image(img) {
 }
 
 export function fill_select_options(dom, select, options) {
-	if (!select || typeof dom === "undefined")
+	if (!select || typeof dom === "undefined") {
 		return
+	}
 	select.replaceChildren()
 	const default_option = dom.createElement("option")
 	default_option.setAttribute("value", "")
@@ -71,14 +75,15 @@ export async function get_data_uri(file) {
 }
 
 export async function get_request_input(dom) {
-	if (typeof dom === "undefined")
+	if (typeof dom === "undefined") {
 		return null
+	}
 	const select = dom.querySelector("select")
 	const textarea = dom.querySelector("textarea")
 	const files_input = dom.querySelector("input#image")
 	if (!select.selectedOptions[0].value || !textarea ||
-			!textarea.value || !files_input ||
-			files_input.files.length <= 0) {
+		!textarea.value || !files_input ||
+		files_input.files.length <= 0) {
 		return null
 	}
 	const request = new ResidentRequest(

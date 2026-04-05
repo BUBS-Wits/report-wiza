@@ -6,8 +6,9 @@ export class ResidentRequest {
 	}
 
 	image_validate() {
-		if (!this.input_validate())
+		if (!this.input_validate()) {
 			return false
+		}
 		const image_media_types_suffix = ["jpeg", "jpg", "png"]
 		const image_data_uri_regex = new RegExp(
 			`^data:image/(${image_media_types_suffix.join("|")})(;[^,;]+)*,.*$`,

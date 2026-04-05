@@ -1,15 +1,26 @@
-import {JSDOM} from "jsdom"
-import {assert_equal, assert_not_equal, test} from "@bubs-wits/tests"
-import {REQUEST_CATEGORIES, ResidentRequest} from "@bubs-wits/shared"
-import {fill_select_options, get_request_input, get_data_uri} from "./service_request.js"
+import {
+	JSDOM
+} from "jsdom"
+import {
+	assert_equal,
+	assert_not_equal,
+	test
+} from "@bubs-wits/tests"
+import {
+	REQUEST_CATEGORIES
+} from "@bubs-wits/shared"
+import {
+	fill_select_options,
+	get_request_input,
+	get_data_uri
+} from "./service_request.js"
 
 function create_mock_image_file(name, win) {
 	return new win.File(
-		// PNG Magic Number: `89 50 4E 47 0D 0A 1A 0A`
-		// Only the first four sets of 2 are important for pngs for a minimal png
 		[Uint8Array.from([137, 80, 78, 71])],
-		name,
-		{type: "image/png"}
+		name, {
+			type: "image/png"
+		}
 	)
 }
 
@@ -48,9 +59,10 @@ test("get_data_uri_fail", async () => {
 test("input_fetch_pass", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
-		'<textarea id="description" name="desc">Hello, world!  </textarea>' + 
-		'<input id="image" type="file"></img>',
-		{runScripts: "dangerously"}
+		'<textarea id="description" name="desc">Hello, world!  </textarea>' +
+		'<input id="image" type="file"></img>', {
+			runScripts: "dangerously"
+		}
 	)
 	const files_input = dom.window.document.querySelector("input#image")
 	Object.defineProperty(files_input, "files", {
@@ -69,9 +81,10 @@ test("input_fetch_pass", async () => {
 test("input_fetch_failed #1", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test">Test 2</option></select>' +
-		'<textarea id="description" name="desc">Hello, world!  </textarea>' + 
-		'<input id="image" type="file"></img>',
-		{runScripts: "dangerously"}
+		'<textarea id="description" name="desc">Hello, world!  </textarea>' +
+		'<input id="image" type="file"></img>', {
+			runScripts: "dangerously"
+		}
 	)
 	const files_input = dom.window.document.querySelector("input#image")
 	Object.defineProperty(files_input, "files", {
@@ -86,9 +99,10 @@ test("input_fetch_failed #1", async () => {
 test("input_fetch_failed #2", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
-		'<textarea id="description" name="desc"></textarea>' + 
-		'<input id="image" type="file"></img>',
-		{runScripts: "dangerously"}
+		'<textarea id="description" name="desc"></textarea>' +
+		'<input id="image" type="file"></img>', {
+			runScripts: "dangerously"
+		}
 	)
 	const files_input = dom.window.document.querySelector("input#image")
 	Object.defineProperty(files_input, "files", {
@@ -103,11 +117,11 @@ test("input_fetch_failed #2", async () => {
 test("input_fetch_failed #3", async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
-		'<textarea id="description" name="desc">Hello, world!  </textarea>' + 
-		'<input id="image" type="file"></img>',
-		{runScripts: "dangerously"}
+		'<textarea id="description" name="desc">Hello, world!  </textarea>' +
+		'<input id="image" type="file"></img>', {
+			runScripts: "dangerously"
+		}
 	)
-	const files_input = dom.window.document.querySelector("input#image")
 	const res_request = await get_request_input(dom.window.document)
 	assert_equal(res_request, null)
 	dom.window.close()
