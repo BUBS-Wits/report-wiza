@@ -72,10 +72,7 @@ export const confirm_worker_role = async (uid, email, personal_details) => {
 // Fetches all users with role 'worker' from Firestore
 export const fetch_workers = async () => {
 	try {
-		const q = query(
-			collection(db, 'users'),
-			where('role', '==', 'worker')
-		)
+		const q = query(collection(db, 'users'), where('role', '==', 'worker'))
 		const snapshot = await getDocs(q)
 		return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
 	} catch (error) {

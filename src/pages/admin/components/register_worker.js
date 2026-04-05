@@ -19,9 +19,9 @@ function RegisterWorker({ on_registered }) {
 			set_message(`Registration email sent to ${email}`)
 			set_is_error(false)
 			set_email('')
-            if (on_registered) {
-	on_registered()
-}
+			if (on_registered) {
+				on_registered()
+			}
 		} catch (err) {
 			set_message(err.message)
 			set_is_error(true)
@@ -58,7 +58,9 @@ function RegisterWorker({ on_registered }) {
 				</div>
 
 				{message && (
-					<div className={`register_worker_msg ${is_error ? 'error' : 'success'}`}>
+					<div
+						className={`register_worker_msg ${is_error ? 'error' : 'success'}`}
+					>
 						{message}
 					</div>
 				)}

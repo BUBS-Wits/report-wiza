@@ -3,7 +3,10 @@
 // Teammates plug their sections in where the placeholders are.
 
 import React, { useState, useEffect } from 'react'
-import { fetch_workers, revoke_worker_role } from '../../backend/admin_firebase.js'
+import {
+	fetch_workers,
+	revoke_worker_role,
+} from '../../backend/admin_firebase.js'
 import Sidebar from './components/sidebar.js'
 import TopBar from './components/top_bar.js'
 import StatCards from './components/stat_cards.js'
@@ -68,7 +71,9 @@ function AdminDashboard() {
 							on_revoke={handle_revoke}
 						/>
 						{message && (
-							<div className={`admin_message ${is_error ? 'error' : 'success'}`}>
+							<div
+								className={`admin_message ${is_error ? 'error' : 'success'}`}
+							>
 								{message}
 							</div>
 						)}
@@ -116,15 +121,10 @@ function AdminDashboard() {
 
 	return (
 		<div className="admin_page">
-			<Sidebar
-				active={active_section}
-				on_change={set_active_section}
-			/>
+			<Sidebar active={active_section} on_change={set_active_section} />
 			<div className="admin_main">
 				<TopBar active_section={active_section} />
-				<div className="admin_content">
-					{render_section()}
-				</div>
+				<div className="admin_content">{render_section()}</div>
 			</div>
 		</div>
 	)

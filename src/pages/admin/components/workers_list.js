@@ -19,15 +19,23 @@ function WorkersList({ workers, loading, revoking_uid, on_revoke }) {
 					{workers.map((worker) => (
 						<div className="workers_list_row" key={worker.id}>
 							<div className="workers_list_info">
-								<span className="workers_list_email">{worker.email}</span>
-								<span className="workers_list_badge">Worker</span>
+								<span className="workers_list_email">
+									{worker.email}
+								</span>
+								<span className="workers_list_badge">
+									Worker
+								</span>
 							</div>
 							<button
 								className="workers_list_revoke"
-								onClick={() => on_revoke(worker.id, worker.email)}
+								onClick={() =>
+									on_revoke(worker.id, worker.email)
+								}
 								disabled={revoking_uid === worker.id}
 							>
-								{revoking_uid === worker.id ? 'Revoking...' : 'Revoke'}
+								{revoking_uid === worker.id
+									? 'Revoking...'
+									: 'Revoke'}
 							</button>
 						</div>
 					))}

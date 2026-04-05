@@ -6,10 +6,22 @@ import { useNavigate } from 'react-router-dom'
 import './top_bar.css'
 
 const section_titles = {
-	workers: { title: 'Workers', sub: 'Manage worker registrations and access' },
-	requests: { title: 'Requests', sub: 'Assign, prioritise and close requests' },
-	messaging: { title: 'Messaging', sub: 'View all resident and worker conversations' },
-	residents: { title: 'Residents', sub: 'Manage resident access and feedback' },
+	workers: {
+		title: 'Workers',
+		sub: 'Manage worker registrations and access',
+	},
+	requests: {
+		title: 'Requests',
+		sub: 'Assign, prioritise and close requests',
+	},
+	messaging: {
+		title: 'Messaging',
+		sub: 'View all resident and worker conversations',
+	},
+	residents: {
+		title: 'Residents',
+		sub: 'Manage resident access and feedback',
+	},
 	analytics: { title: 'Analytics', sub: 'Reports and performance insights' },
 	settings: { title: 'Settings', sub: 'Configure platform settings' },
 }

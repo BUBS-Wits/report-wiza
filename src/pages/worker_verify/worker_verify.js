@@ -20,13 +20,17 @@ function WorkerVerify() {
 			// Check if this is a valid email sign-in link
 			if (!isSignInWithEmailLink(auth, window.location.href)) {
 				set_status('error')
-				set_error_msg('Invalid or expired link. Please contact your admin.')
+				set_error_msg(
+					'Invalid or expired link. Please contact your admin.'
+				)
 				return
 			}
 
 			try {
 				// Get email saved when admin sent the link
-				let email = window.localStorage.getItem('worker_email_for_sign_in')
+				let email = window.localStorage.getItem(
+					'worker_email_for_sign_in'
+				)
 
 				// If on a different device, prompt for email
 				if (!email) {
@@ -34,7 +38,11 @@ function WorkerVerify() {
 				}
 
 				// Sign in with the email link
-				const result = await signInWithEmailLink(auth, email, window.location.href)
+				const result = await signInWithEmailLink(
+					auth,
+					email,
+					window.location.href
+				)
 
 				// Clear email from localStorage
 				window.localStorage.removeItem('worker_email_for_sign_in')
@@ -46,7 +54,6 @@ function WorkerVerify() {
 
 				// Redirect to worker dashboard after short delay
 				setTimeout(() => navigate('/worker'), 1500)
-
 			} catch (err) {
 				console.error(err)
 				set_status('error')
@@ -60,7 +67,6 @@ function WorkerVerify() {
 	return (
 		<div className="verify_page">
 			<div className="verify_container">
-
 				{/* Shield icon — changes color based on state */}
 				{status === 'verifying' && (
 					<svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -100,13 +106,19 @@ function WorkerVerify() {
 							strokeWidth="1.5"
 						/>
 						<line
-							x1="19" y1="19" x2="29" y2="29"
+							x1="19"
+							y1="19"
+							x2="29"
+							y2="29"
 							stroke="#A32D2D"
 							strokeWidth="2.5"
 							strokeLinecap="round"
 						/>
 						<line
-							x1="29" y1="19" x2="19" y2="29"
+							x1="29"
+							y1="19"
+							x2="19"
+							y2="29"
 							stroke="#A32D2D"
 							strokeWidth="2.5"
 							strokeLinecap="round"
@@ -117,8 +129,12 @@ function WorkerVerify() {
 				{status === 'verifying' && (
 					<>
 						<div className="verify_spinner" />
-						<h1 className="verify_title">Verifying your account...</h1>
-						<p className="verify_sub">Please wait while we confirm your registration.</p>
+						<h1 className="verify_title">
+							Verifying your account...
+						</h1>
+						<p className="verify_sub">
+							Please wait while we confirm your registration.
+						</p>
 					</>
 				)}
 
@@ -126,7 +142,10 @@ function WorkerVerify() {
 					<>
 						<div className="verify_success_icon">&#10003;</div>
 						<h1 className="verify_title">You are all set!</h1>
-						<p className="verify_sub">Your worker account has been confirmed. Redirecting you now...</p>
+						<p className="verify_sub">
+							Your worker account has been confirmed. Redirecting
+							you now...
+						</p>
 					</>
 				)}
 
@@ -137,7 +156,6 @@ function WorkerVerify() {
 						<p className="verify_sub">{error_msg}</p>
 					</>
 				)}
-
 			</div>
 		</div>
 	)
