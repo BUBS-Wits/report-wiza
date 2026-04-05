@@ -7,6 +7,7 @@ import Contact from './pages/contact_page/contact.js'
 import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/request_page.js'
 import AdminDashboard from './pages/admin/admin_dashboard.js'
+import WorkerVerify from './pages/worker_verify/worker_verify.js'
 import './app.css'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
 				<Route path="/request" element={<RequestPage />} />
 				<Route path="/login" element={<Login />} />
 				<Route path="/admin" element={<AdminDashboard />} />
+				<Route path="/worker-verify" element={<WorkerVerify />} />
 			</Routes>
 		</BrowserRouter>
 	)
