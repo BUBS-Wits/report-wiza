@@ -19,6 +19,7 @@ test("categories_addition_pass", () => {
 	fill_select_options(dom.window.document, select, REQUEST_CATEGORIES)
 	const options = [...select.children].filter(e => e.value).map(e => e.value)
 	assert_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
+	dom.window.close()
 })
 
 test("categories_addition_fail", () => {
@@ -27,18 +28,21 @@ test("categories_addition_fail", () => {
 	fill_select_options(dom.window.document, select, REQUEST_CATEGORIES)
 	const options = [...select.children].filter(e => e.value).map(e => "*" + e.value)
 	assert_not_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
+	dom.window.close()
 })
 
 test("get_data_uri_pass", async () => {
 	const dom = new JSDOM()
 	const file = create_mock_image_file("test.png", dom.window)
 	assert_equal(await get_data_uri(file), "data:image/png;base64,iVBORw==")
+	dom.window.close()
 })
 
 test("get_data_uri_fail", async () => {
 	const dom = new JSDOM()
 	const file = create_mock_image_file("test.png", dom.window)
 	assert_not_equal(await get_data_uri(file), "data:image/png;base64,iVBORw=")
+	dom.window.close()
 })
 
 test("input_fetch_pass", async () => {
@@ -59,6 +63,7 @@ test("input_fetch_pass", async () => {
 		description: "Hello, world!",
 		image: await get_data_uri(files_input.files[0])
 	}))
+	dom.window.close()
 })
 
 test("input_fetch_failed #1", async () => {
@@ -75,6 +80,7 @@ test("input_fetch_failed #1", async () => {
 	})
 	const res_request = await get_request_input(dom.window.document)
 	assert_equal(res_request, null)
+	dom.window.close()
 })
 
 test("input_fetch_failed #2", async () => {
@@ -91,6 +97,7 @@ test("input_fetch_failed #2", async () => {
 	})
 	const res_request = await get_request_input(dom.window.document)
 	assert_equal(res_request, null)
+	dom.window.close()
 })
 
 test("input_fetch_failed #3", async () => {
@@ -103,4 +110,5 @@ test("input_fetch_failed #3", async () => {
 	const files_input = dom.window.document.querySelector("input#image")
 	const res_request = await get_request_input(dom.window.document)
 	assert_equal(res_request, null)
+	dom.window.close()
 })

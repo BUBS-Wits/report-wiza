@@ -14,36 +14,65 @@ There are 2 dependencies for the testing framework I am currently building and e
 
 ---
 
-## Running Tests
-Tests are automatically discovered and executed from both the `app` and `packages` directories. Any JavaScript file ending in `.test.js` will be executed and are assumed to be ES Modules and not CommonJS.
-
-You have two options to run tests:
-1. Setup First, Then Run:
-```
-$ ./setup-requirements.sh
-$ ./run-tests.sh
-```
-
-2. Run Directly:
-```
-$ ./run-tests.sh
-```
-> Note: `run-tests.sh` will still try to check if the dependencies exist before continuing with the tests, and execute `setup-requirements.sh` if any are missing.
-
-After the tests finish, you will see:
-* Number of passed tests
-* Number of failed tests
-* Pass rate as a percentage
-
-> Tip: Aim for 100% pass rate
-
-
----
-
 ## Local Deployment
 
-Once testing is complete, you can deploy the webapp locally. Run:
+You can deploy the webapp locally by run:
 ```
 $ ./deploy-local.sh
 ```
 This will start a local server using serve so you can view the application in your browser at localhost.
+
+---
+
+## Using Framework
+The testing framework provides a minimal and flexible API for writing and running JavaScript tests across your `app` and `packages` directories. All tests are automatically discovered by `run-tests.js` if the file ends with `.test.js`.
+
+### Core Functions
+| Function                                | Description                                                                                                                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test(name, func)`                      | Registers a test. `name` is a string describing the test. `func` is the test function (can be `async`). Example: `test("adds correctly", () => { assert_equal(1+1, 2) })`. |
+| `assert_equal(actual, expected)`        | Throws an error if `actual !== expected`.                                                                                                                                  |
+| `assert_not_equal(actual, expected)`    | Throws an error if `actual === expected`.                                                                                                                                  |
+| `assert_less_than(actual, expected)`    | Throws an error if `actual >= expected`.                                                                                                                                   |
+| `assert_greater_than(actual, expected)` | Throws an error if `actual <= expected`.                                                                                                                                   |
+| `assert_true(value)`                    | Throws an error if `value` is falsy.                                                                                                                                       |
+| `assert_false(value)`                   | Throws an error if `value` is truthy.                                                                                                                                      |
+| `run_tests()`                           | Runs all registered tests and prints a summary. Returns `0` if all tests pass, otherwise `1`. Usually called internally by `run-tests.js`.                                 |
+
+### Example Test File
+Create a file named `example.test.js`:
+
+```
+import { test, assert_equal, assert_true } from '@bubs-wits/tests';
+
+test("simple addition", () => {
+  assert_equal(1 + 1, 2);
+});
+
+test("truthy check", () => {
+  assert_true(true);
+});
+
+test("async fetch", async () => {
+  const result = await fetchData();
+  assert_equal(result.status, 200);
+});
+```
+
+---
+
+## Running Tests
+Run:
+```
+$ ./run-tests.sh
+```
+The framework will:
+1. Recursively find all .test.js files in app and packages.
+2. Import each test module using ESM dynamic imports.
+3. Execute all registered tests.
+4. Print a summary with:
+	* Number of passed tests
+	* Number of failed tests
+	* Pass percentage
+
+> Exit code 0 indicates all tests passed; any failures return 1.
