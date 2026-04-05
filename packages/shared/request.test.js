@@ -1,4 +1,4 @@
-import {assert_not_equal, assert_equal, assert_true, assert_false, test} from "../../tests/test_framework.js"
+import {assert_not_equal, assert_equal, assert_true, assert_false, test} from "@bubs-wits/tests"
 import {ResidentRequest} from "./request.js"
 
 let TESTS = []

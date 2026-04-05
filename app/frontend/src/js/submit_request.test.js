@@ -1,5 +1,5 @@
-import {assert_equal, test} from "../../../../tests/test_framework.js"
-import {ResidentRequest} from "../../../../packages/shared/request.js"
+import {assert_equal, test} from "@bubs-wits/tests"
+import {ResidentRequest} from "@bubs-wits/shared"
 import {send_request} from "./submit_request.js"
 
 const ECHO_TEST = "https://httpbin.org/post"

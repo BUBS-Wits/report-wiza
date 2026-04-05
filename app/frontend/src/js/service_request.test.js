@@ -1,7 +1,6 @@
 import {JSDOM} from "jsdom"
-import {assert_equal, assert_not_equal, test} from "../../../../tests/test_framework.js"
-import {REQUEST_CATEGORIES} from "../../../../packages/shared/constants.js"
-import {ResidentRequest} from "../../../../packages/shared/request.js"
+import {assert_equal, assert_not_equal, test} from "@bubs-wits/tests"
+import {REQUEST_CATEGORIES, ResidentRequest} from "@bubs-wits/shared"
 import {fill_select_options, get_request_input, get_data_uri} from "./service_request.js"
 
 function create_mock_image_file(name, win) {
