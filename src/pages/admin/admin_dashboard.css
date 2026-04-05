@@ -1,0 +1,134 @@
+/* src/pages/admin/admin_dashboard.css */
+
+.admin_page {
+	min-height: 100vh;
+	background: #f8fafc;
+	padding: 48px 24px;
+	font-family: 'DM Sans', sans-serif;
+}
+
+.admin_container {
+	max-width: 680px;
+	margin: 0 auto;
+}
+
+.admin_header {
+	margin-bottom: 32px;
+}
+
+.admin_title {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 36px;
+	font-weight: 700;
+	color: #0f1f3d;
+	margin: 0 0 4px;
+}
+
+.admin_sub {
+	font-size: 14px;
+	color: #64748b;
+	margin: 0;
+}
+
+.admin_card {
+	background: #ffffff;
+	border: 1px solid #e2e8f0;
+	border-radius: 16px;
+	padding: 32px;
+}
+
+.admin_card_title {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 22px;
+	font-weight: 700;
+	color: #0f1f3d;
+	margin: 0 0 8px;
+}
+
+.admin_card_desc {
+	font-size: 13px;
+	color: #64748b;
+	line-height: 1.6;
+	margin: 0 0 24px;
+}
+
+.admin_form {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.admin_field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.admin_label {
+	font-size: 12px;
+	font-weight: 500;
+	color: #475569;
+}
+
+.admin_input {
+	padding: 10px 14px;
+	border: 1px solid #e2e8f0;
+	border-radius: 10px;
+	font-size: 14px;
+	font-family: 'DM Sans', sans-serif;
+	color: #0f172a;
+	background: #f8fafc;
+	outline: none;
+	transition: border-color 0.15s;
+}
+
+.admin_input:focus {
+	border-color: #0f1f3d;
+}
+
+.admin_input:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.admin_message {
+	padding: 10px 14px;
+	border-radius: 8px;
+	font-size: 13px;
+}
+
+.admin_message_success {
+	background: #f0fdf4;
+	border: 1px solid #bbf7d0;
+	color: #16a34a;
+}
+
+.admin_message_error {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	color: #dc2626;
+}
+
+.admin_btn {
+	padding: 12px 20px;
+	background: #0f1f3d;
+	color: #ffffff;
+	border: none;
+	border-radius: 10px;
+	font-family: 'DM Sans', sans-serif;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.15s;
+	align-self: flex-start;
+}
+
+.admin_btn:hover:not(:disabled) {
+	background: #1a3260;
+	transform: translateY(-1px);
+}
+
+.admin_btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}

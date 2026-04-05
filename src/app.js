@@ -6,6 +6,7 @@ import About from './pages/about_page/about.js'
 import Contact from './pages/contact_page/contact.js'
 import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/request_page.js'
+import AdminDashboard from './pages/admin/admin_dashboard.js'
 import './app.css'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
 				<Route path="/dashboard" element={<PublicDashboard />} />
 				<Route path="/request" element={<RequestPage />} />
 				<Route path="/login" element={<Login />} />
+				<Route path="/admin" element={<AdminDashboard />} />
 			</Routes>
 		</BrowserRouter>
 	)
