@@ -10,7 +10,7 @@ There are 2 dependencies for the testing framework I am currently building and e
 * `process`: Used to return status signals from scripts.
 * `vite`: Builds and/or tests the frontend deployment.
 
-> Note: All dependencies can be found in `requirements.txt`. You can install them by running `setup-requirements.sh`, or `run-tests.sh`, which will check if the dependencies exist in the repo, and install them, before continuing.
+> Note: All dependencies can be found in `requirements.txt`. You can install them by running `setup-requirements.sh`, or `run_tests.sh`, which will check if the dependencies exist in the repo, and install them, before continuing.
 
 ---
 
@@ -18,14 +18,14 @@ There are 2 dependencies for the testing framework I am currently building and e
 
 You can deploy the webapp locally by run:
 ```
-$ ./deploy-local.sh
+$ ./deploy_local.sh
 ```
 This will start a local server using serve so you can view the application in your browser at localhost.
 
 ---
 
 ## Using Framework
-The testing framework provides a minimal and flexible API for writing and running JavaScript tests across your `app` and `packages` directories. All tests are automatically discovered by `run-tests.js` if the file ends with `.test.js`.
+The testing framework provides a minimal and flexible API for writing and running JavaScript tests across your `app` and `packages` directories. All tests are automatically discovered by `run_tests.js` if the file ends with `.test.js`.
 
 ### Core Functions
 | Function                                | Description                                                                                                                                                                |
@@ -37,7 +37,7 @@ The testing framework provides a minimal and flexible API for writing and runnin
 | `assert_greater_than(actual, expected)` | Throws an error if `actual <= expected`.                                                                                                                                   |
 | `assert_true(value)`                    | Throws an error if `value` is falsy.                                                                                                                                       |
 | `assert_false(value)`                   | Throws an error if `value` is truthy.                                                                                                                                      |
-| `run_tests()`                           | Runs all registered tests and prints a summary. Returns `0` if all tests pass, otherwise `1`. Usually called internally by `run-tests.js`.                                 |
+| `run_tests()`                           | Runs all registered tests and prints a summary. Returns `0` if all tests pass, otherwise `1`. Usually called internally by `run_tests.js`.                                 |
 
 ### Example Test File
 Create a file named `example.test.js`:
@@ -64,7 +64,7 @@ test("async fetch", async () => {
 ## Running Tests
 Run:
 ```
-$ ./run-tests.sh
+$ ./run_tests.sh
 ```
 The framework will:
 1. Recursively find all .test.js files in app and packages.
