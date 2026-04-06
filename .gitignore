@@ -1,3 +1,6 @@
 # NODE.js
 node_modules
 dist
+
+# c8
+coverage

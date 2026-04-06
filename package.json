@@ -7,6 +7,7 @@
 		"tests"
 	],
 	"dependencies": {
+		"c8": "^11.0.0",
 		"eslint": "^10.2.0",
 		"eslint-config-prettier": "^10.1.8",
 		"express": "^4.18.2",
@@ -23,6 +24,8 @@
 		"serve:frontend": "npm exec -- serve app/frontend/dist -l 3000",
 		"lint": "eslint .",
 		"format": "prettier --write **/*.js **/*.html **/*.css",
-		"format:check": "prettier --check **/*.js **/*.html **/*.css"
+		"format:check": "prettier --check **/*.js **/*.html **/*.css",
+		"test": "node --trace-warnings ./tests/run_tests.js",
+		"test:coverage": "npm exec c8 -- --reporter=text --reporter=lcov --check-coverage --branches=80 --functions=80 --lines=80 --statements=80 --per-file node ./tests/run_tests.js"
 	}
 }
