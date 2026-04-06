@@ -29,6 +29,6 @@ test('service_request_send_fail#2', async () => {
 })
 
 test('service_request_send_fail#2', async () => {
-	const response = await send_request(ECHO_TEST, {"test": 10n})
+	const response = await send_request(ECHO_TEST, {'test': 10n})
 	assert_equal(response, null)
 })

@@ -9,10 +9,10 @@ export class ResidentRequest {
 		if (!this.input_validate()) {
 			return false
 		}
-		const image_media_types_suffix = ["jpeg", "jpg", "png"]
+		const image_media_types_suffix = ['jpeg', 'jpg', 'png']
 		const image_data_uri_regex = new RegExp(
-			`^data:image/(${image_media_types_suffix.join("|")})(;[^,;]+)*,.*$`,
-			"i"
+			`^data:image/(${image_media_types_suffix.join('|')})(;[^,;]+)*,.*$`,
+			'i'
 		)
 		return image_data_uri_regex.test(this.image)
 	}
@@ -32,9 +32,9 @@ export class ResidentRequest {
 
 	to_json() {
 		return {
-			"category": this.category,
-			"description": this.description,
-			"image": this.image
+			'category': this.category,
+			'description': this.description,
+			'image': this.image
 		}
 	}
 }

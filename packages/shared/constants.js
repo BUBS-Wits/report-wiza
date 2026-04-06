@@ -1,7 +1,7 @@
 export const REQUEST_CATEGORIES = [
-	"water",
-	"sewage",
-	"electricity",
-	"road"
+	'water',
+	'sewage',
+	'electricity',
+	'road'
 ]
 
