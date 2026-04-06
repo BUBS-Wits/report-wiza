@@ -10,7 +10,7 @@ test("input_validation_pass", () => {
 })
 
 test("input_validation_fail", () => {
-	const tmp = new ResidentRequest("Water", "water leakage.")
+	const tmp = new ResidentRequest(undefined, undefined, undefined)
 	assert_false(tmp.input_validate())
 	assert_false(tmp.image_validate())
 })

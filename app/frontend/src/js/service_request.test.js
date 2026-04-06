@@ -1,94 +1,132 @@
 import {
 	JSDOM
-} from "jsdom"
+} from 'jsdom'
 import {
 	assert_equal,
 	assert_not_equal,
 	test
-} from "@bubs-wits/tests"
+} from '@bubs-wits/tests'
 import {
 	REQUEST_CATEGORIES
-} from "@bubs-wits/shared"
+} from '@bubs-wits/shared'
 import {
+	reset_preview,
+	add_event_listeners,
 	fill_select_options,
 	get_request_input,
 	get_data_uri
-} from "./service_request.js"
+} from './service_request.js'
 
 function create_mock_image_file(name, win) {
 	return new win.File(
 		[Uint8Array.from([137, 80, 78, 71])],
 		name, {
-			type: "image/png"
+			type: 'image/png'
 		}
 	)
 }
 
-test("categories_addition_pass", () => {
+test('find_input_elements#1', async () => {
+	const dom = new JSDOM(
+		'<main><form><img id="preview"/>' +
+		'<input id="image" type="file"><input></form></main>', {
+			runScripts: 'dangerously'
+		}
+	)
+	reset_preview(dom.window.document)
+	dom.window.close()
+})
+
+test('add_event_listeners_pass#1', async () => {
+	const dom = new JSDOM(
+		'<main><select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
+		'<textarea id="description" name="desc">Hello, world!  </textarea>' +
+		'<input id="image" type="file"></input>' +
+		'<button>Submit</button></main>', {
+			runScripts: 'dangerously'
+		}
+	)
+	const submit = dom.window.document.querySelector('button')
+	add_event_listeners(dom.window.document)
+	submit.click()
+	const files_input = dom.window.document.querySelector('input#image')
+	Object.defineProperty(files_input, 'files', {
+		value: [create_mock_image_file('test.png', dom.window)],
+		writable: false
+	})
+	dom.window.close()
+})
+
+test('categories_addition_pass', () => {
 	const dom = new JSDOM('<select id="category"><option value="">Test</option></select>')
-	const select = dom.window.document.querySelector("select")
+	const select = dom.window.document.querySelector('select')
 	fill_select_options(dom.window.document, select, REQUEST_CATEGORIES)
 	const options = [...select.children].filter(e => e.value).map(e => e.value)
 	assert_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
 	dom.window.close()
 })
 
-test("categories_addition_fail", () => {
+test('categories_addition_pass', () => {
+	fill_select_options(undefined, undefined, undefined)
+})
+
+test('categories_addition_fail', () => {
 	const dom = new JSDOM('<select id="category"><option value="">Test</option></select>')
-	const select = dom.window.document.querySelector("select")
+	const select = dom.window.document.querySelector('select')
 	fill_select_options(dom.window.document, select, REQUEST_CATEGORIES)
-	const options = [...select.children].filter(e => e.value).map(e => "*" + e.value)
+	const options = [...select.children].filter(e => e.value).map(e => '*' + e.value)
 	assert_not_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
 	dom.window.close()
 })
 
-test("get_data_uri_pass", async () => {
+test('get_data_uri_pass', async () => {
 	const dom = new JSDOM()
-	const file = create_mock_image_file("test.png", dom.window)
-	assert_equal(await get_data_uri(file), "data:image/png;base64,iVBORw==")
+	const file = create_mock_image_file('test.png', dom.window)
+	assert_equal(await get_data_uri(file), 'data:image/png;base64,iVBORw==')
 	dom.window.close()
 })
 
-test("get_data_uri_fail", async () => {
+test('get_data_uri_fail', async () => {
 	const dom = new JSDOM()
-	const file = create_mock_image_file("test.png", dom.window)
-	assert_not_equal(await get_data_uri(file), "data:image/png;base64,iVBORw=")
+	const file = create_mock_image_file('test.png', dom.window)
+	assert_not_equal(await get_data_uri(file), 'data:image/png;base64,iVBORw=')
 	dom.window.close()
 })
 
-test("input_fetch_pass", async () => {
+test('input_fetch_pass', async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
 		'<textarea id="description" name="desc">Hello, world!  </textarea>' +
-		'<input id="image" type="file"></img>', {
-			runScripts: "dangerously"
+		'<input id="image" type="file"></input>' +
+		'<button>Submit</button>', {
+			runScripts: 'dangerously'
 		}
 	)
-	const files_input = dom.window.document.querySelector("input#image")
-	Object.defineProperty(files_input, "files", {
-		value: [create_mock_image_file("test.png", dom.window)],
+	const files_input = dom.window.document.querySelector('input#image')
+	Object.defineProperty(files_input, 'files', {
+		value: [create_mock_image_file('test.png', dom.window)],
 		writable: false
 	})
 	const res_request = await get_request_input(dom.window.document)
 	assert_equal(res_request.to_string(), JSON.stringify({
-		category: "test",
-		description: "Hello, world!",
+		category: 'test',
+		description: 'Hello, world!',
 		image: await get_data_uri(files_input.files[0])
 	}))
 	dom.window.close()
 })
 
-test("input_fetch_failed #1", async () => {
+test('input_fetch_failed #1', async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test">Test 2</option></select>' +
 		'<textarea id="description" name="desc">Hello, world!  </textarea>' +
-		'<input id="image" type="file"></img>', {
-			runScripts: "dangerously"
+		'<input id="image" type="file"></input>', {
+			runScripts: 'dangerously'
 		}
 	)
-	const files_input = dom.window.document.querySelector("input#image")
-	Object.defineProperty(files_input, "files", {
-		value: [create_mock_image_file("test.png", dom.window)],
+	const files_input = dom.window.document.querySelector('input#image')
+	Object.defineProperty(files_input, 'files', {
+		value: [create_mock_image_file('test.png', dom.window)],
 		writable: false
 	})
 	const res_request = await get_request_input(dom.window.document)
@@ -96,17 +134,17 @@ test("input_fetch_failed #1", async () => {
 	dom.window.close()
 })
 
-test("input_fetch_failed #2", async () => {
+test('input_fetch_failed #2', async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
 		'<textarea id="description" name="desc"></textarea>' +
-		'<input id="image" type="file"></img>', {
-			runScripts: "dangerously"
+		'<input id="image" type="file"></input>', {
+			runScripts: 'dangerously'
 		}
 	)
-	const files_input = dom.window.document.querySelector("input#image")
-	Object.defineProperty(files_input, "files", {
-		value: [create_mock_image_file("test.png", dom.window)],
+	const files_input = dom.window.document.querySelector('input#image')
+	Object.defineProperty(files_input, 'files', {
+		value: [create_mock_image_file('test.png', dom.window)],
 		writable: false
 	})
 	const res_request = await get_request_input(dom.window.document)
@@ -114,15 +152,20 @@ test("input_fetch_failed #2", async () => {
 	dom.window.close()
 })
 
-test("input_fetch_failed #3", async () => {
+test('input_fetch_failed #3', async () => {
 	const dom = new JSDOM(
 		'<select id="category"><option value="">Test 1</option><option value="test" selected>Test 2</option></select>' +
 		'<textarea id="description" name="desc">Hello, world!  </textarea>' +
-		'<input id="image" type="file"></img>', {
-			runScripts: "dangerously"
+		'<input id="image" type="file"></input>', {
+			runScripts: 'dangerously'
 		}
 	)
 	const res_request = await get_request_input(dom.window.document)
 	assert_equal(res_request, null)
 	dom.window.close()
+})
+
+test('input_fetch_failed #1', async () => {
+	const res_request = await get_request_input(undefined)
+	assert_equal(res_request, null)
 })

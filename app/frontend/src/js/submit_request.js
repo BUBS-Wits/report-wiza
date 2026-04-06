@@ -2,13 +2,20 @@ export async function send_request(uri, data) {
 	if (!URL.canParse(uri)) {
 		return null
 	}
-	let body = JSON.stringify(data)
-	body = body ? body : ""
+	let body
+	try {
+		body = JSON.stringify(data)
+		if (typeof body === 'undefined') {
+			return null
+		}
+	} catch {
+		return null
+	}
 	return await fetch(uri, {
-		mode: "cors",
-		method: "POST",
+		mode: 'cors',
+		method: 'POST',
 		headers: {
-			"Content-Type": "application/json"
+			'Content-Type': 'application/json'
 		},
 		body
 	})

@@ -4,10 +4,9 @@ import prettier from 'eslint-config-prettier'
 
 export default defineConfig([
 	prettier,
+	globalIgnores(['**/node_modules/', '**/dist/', '**/coverage/']),
 	{
 		files: ['app/frontend/**/*.js'],
-		ignores: ['node_modules/**', 'dist/**', 'app/*/dist/**/*', 'app/*/node_modules/**/*', 'tests/dist/**/*', 'tests/node_modules/**/*', 'packages/*/dist/**/*', 'packages/*/node_modules/**/*'],
-
 		languageOptions: {
 			ecmaVersion: 'latest',
 			sourceType: 'module',
@@ -21,13 +20,13 @@ export default defineConfig([
 			'no-unused-vars': 'warn',
 			'no-undef': 'error',
 			'no-console': 'off',
+			'comma-spacing': 2,
 			'eqeqeq': ['error', 'always'],
 			'curly': 'error',
 		}
 	},
 	{
 		files: ['packages/**/*.js', 'app/backend/**/*.js'],
-		ignores: ['node_modules/**', 'dist/**', 'app/*/dist/**/*', 'app/*/node_modules/**/*', 'tests/dist/**/*', 'tests/node_modules/**/*', 'packages/*/dist/**/*', 'packages/*/node_modules/**/*'],
 		languageOptions: {
 			globals: {
 				...globals.node

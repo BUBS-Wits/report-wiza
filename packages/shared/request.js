@@ -18,7 +18,10 @@ export class ResidentRequest {
 	}
 
 	input_validate() {
-		return this.category.trim() &&
+		return this.category &&
+			this.description &&
+			this.image &&
+			this.category.trim() &&
 			this.description.trim() &&
 			this.image
 	}
