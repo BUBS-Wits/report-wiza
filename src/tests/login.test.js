@@ -5,7 +5,12 @@ import Login from '../pages/login_page/login.js'
 
 jest.mock('../firebase_config.js', () => ({ auth: {}, db: {} }))
 jest.mock('../pages/login_page/login.css', () => ({}))
-jest.mock('../components/nav_bar/nav_bar.js', () => () => <div data-testid="navbar" />)
+jest.mock('../components/nav_bar/nav_bar.js', () => {
+	function MockNavBar() {
+		return <div data-testid="navbar" />
+	}
+	return MockNavBar
+})
 
 jest.mock('firebase/auth', () => ({
 	GoogleAuthProvider: jest.fn().mockImplementation(() => ({})),
@@ -25,10 +30,14 @@ jest.mock('../pages/login_page/login.js', () => {
 	return actual
 })
 
-jest.mock('react-router-dom', () => ({
-	useNavigate: () => mock_navigate,
-	BrowserRouter: ({ children }) => <div>{children}</div>,
-}), { virtual: true })
+jest.mock(
+	'react-router-dom',
+	() => ({
+		useNavigate: () => mock_navigate,
+		BrowserRouter: ({ children }) => <div>{children}</div>,
+	}),
+	{ virtual: true }
+)
 
 import { signInWithPopup } from 'firebase/auth'
 import { getDoc, setDoc } from 'firebase/firestore'
@@ -42,17 +51,21 @@ describe('Login page', () => {
 		describe('When it loads', () => {
 			it('Then it should show the sign in button', () => {
 				render_login()
-				expect(screen.getByText(/sign in with google/i)).toBeInTheDocument()
+				expect(
+					screen.getByText(/sign in with google/i)
+				).toBeInTheDocument()
 			})
 
 			it('Then it should show the logo', () => {
-	            render_login()
-	            expect(screen.getByText(/WIZA/)).toBeInTheDocument()
-            })
+				render_login()
+				expect(screen.getByText(/WIZA/)).toBeInTheDocument()
+			})
 
 			it('Then it should show the tagline', () => {
 				render_login()
-				expect(screen.getByText(/municipal service/i)).toBeInTheDocument()
+				expect(
+					screen.getByText(/municipal service/i)
+				).toBeInTheDocument()
 			})
 
 			it('Then it should show the footer', () => {
@@ -71,7 +84,11 @@ describe('Login page', () => {
 		describe('When sign in succeeds and user is a resident', () => {
 			it('Then it should navigate to /resident', async () => {
 				signInWithPopup.mockResolvedValueOnce({
-					user: { uid: 'uid-123', displayName: 'Test', email: 'test@gmail.com' },
+					user: {
+						uid: 'uid-123',
+						displayName: 'Test',
+						email: 'test@gmail.com',
+					},
 				})
 				getDoc.mockResolvedValueOnce({
 					exists: () => true,
@@ -79,14 +96,20 @@ describe('Login page', () => {
 				})
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
-				await waitFor(() => expect(mock_navigate).toHaveBeenCalledWith('/resident'))
+				await waitFor(() =>
+					expect(mock_navigate).toHaveBeenCalledWith('/resident')
+				)
 			})
 		})
 
 		describe('When sign in succeeds and user is an admin', () => {
 			it('Then it should navigate to /admin', async () => {
 				signInWithPopup.mockResolvedValueOnce({
-					user: { uid: 'uid-456', displayName: 'Admin', email: 'admin@gmail.com' },
+					user: {
+						uid: 'uid-456',
+						displayName: 'Admin',
+						email: 'admin@gmail.com',
+					},
 				})
 				getDoc.mockResolvedValueOnce({
 					exists: () => true,
@@ -94,14 +117,20 @@ describe('Login page', () => {
 				})
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
-				await waitFor(() => expect(mock_navigate).toHaveBeenCalledWith('/admin'))
+				await waitFor(() =>
+					expect(mock_navigate).toHaveBeenCalledWith('/admin')
+				)
 			})
 		})
 
 		describe('When sign in succeeds and user is a worker', () => {
 			it('Then it should navigate to /worker', async () => {
 				signInWithPopup.mockResolvedValueOnce({
-					user: { uid: 'uid-789', displayName: 'Worker', email: 'worker@gmail.com' },
+					user: {
+						uid: 'uid-789',
+						displayName: 'Worker',
+						email: 'worker@gmail.com',
+					},
 				})
 				getDoc.mockResolvedValueOnce({
 					exists: () => true,
@@ -109,42 +138,60 @@ describe('Login page', () => {
 				})
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
-				await waitFor(() => expect(mock_navigate).toHaveBeenCalledWith('/worker'))
+				await waitFor(() =>
+					expect(mock_navigate).toHaveBeenCalledWith('/worker')
+				)
 			})
 		})
 
 		describe('When the user is new', () => {
 			it('Then it should create a profile and navigate to /resident', async () => {
 				signInWithPopup.mockResolvedValueOnce({
-					user: { uid: 'uid-new', displayName: 'New', email: 'new@gmail.com' },
+					user: {
+						uid: 'uid-new',
+						displayName: 'New',
+						email: 'new@gmail.com',
+					},
 				})
 				getDoc.mockResolvedValueOnce({ exists: () => false })
 				setDoc.mockResolvedValueOnce()
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
 				await waitFor(() => expect(setDoc).toHaveBeenCalled())
-				await waitFor(() => expect(mock_navigate).toHaveBeenCalledWith('/resident'))
+				await waitFor(() =>
+					expect(mock_navigate).toHaveBeenCalledWith('/resident')
+				)
 			})
 		})
 
 		describe('When sign in fails', () => {
 			it('Then it should show an error message', async () => {
-				signInWithPopup.mockRejectedValueOnce({ code: 'auth/network-request-failed' })
+				signInWithPopup.mockRejectedValueOnce({
+					code: 'auth/network-request-failed',
+				})
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
 				await waitFor(() =>
-					expect(screen.getByText(/sign-in failed/i)).toBeInTheDocument()
+					expect(
+						screen.getByText(/sign-in failed/i)
+					).toBeInTheDocument()
 				)
 			})
 		})
 
 		describe('When the user closes the popup', () => {
 			it('Then it should not show an error', async () => {
-				signInWithPopup.mockRejectedValueOnce({ code: 'auth/popup-closed-by-user' })
+				signInWithPopup.mockRejectedValueOnce({
+					code: 'auth/popup-closed-by-user',
+				})
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
-				await waitFor(() => expect(mock_navigate).not.toHaveBeenCalled())
-				expect(screen.queryByText(/sign-in failed/i)).not.toBeInTheDocument()
+				await waitFor(() =>
+					expect(mock_navigate).not.toHaveBeenCalled()
+				)
+				expect(
+					screen.queryByText(/sign-in failed/i)
+				).not.toBeInTheDocument()
 			})
 		})
 	})

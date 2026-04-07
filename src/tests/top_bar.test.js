@@ -11,10 +11,14 @@ jest.mock('firebase/auth', () => ({
 }))
 
 const mock_navigate = jest.fn()
-jest.mock('react-router-dom', () => ({
-	useNavigate: () => mock_navigate,
-	BrowserRouter: ({ children }) => <div>{children}</div>,
-}), { virtual: true })
+jest.mock(
+	'react-router-dom',
+	() => ({
+		useNavigate: () => mock_navigate,
+		BrowserRouter: ({ children }) => <div>{children}</div>,
+	}),
+	{ virtual: true }
+)
 
 import { signOut } from 'firebase/auth'
 
@@ -32,7 +36,9 @@ describe('TopBar component', () => {
 
 		it('Then it should show the correct subtitle', () => {
 			render_topbar('workers')
-			expect(screen.getByText(/manage worker registrations/i)).toBeInTheDocument()
+			expect(
+				screen.getByText(/manage worker registrations/i)
+			).toBeInTheDocument()
 		})
 	})
 
@@ -55,7 +61,9 @@ describe('TopBar component', () => {
 			render_topbar('workers')
 			fireEvent.click(screen.getByText(/sign out/i))
 			await waitFor(() => expect(signOut).toHaveBeenCalled())
-			await waitFor(() => expect(mock_navigate).toHaveBeenCalledWith('/login'))
+			await waitFor(() =>
+				expect(mock_navigate).toHaveBeenCalledWith('/login')
+			)
 		})
 	})
 })
