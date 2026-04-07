@@ -45,12 +45,13 @@ function Login() {
 			const role = user_snap.exists() ? user_snap.data().role : 'resident'
 
 			if (role === 'admin') {
-				navigate('/admin')
-			} else if (role === 'worker') {
-				navigate('/')
-			} else {
-				navigate('/')
-			}
+	          navigate('/admin')
+            } else if (role === 'worker')
+		    {
+	navigate('/worker')
+            } else {
+	          navigate('/resident')
+            }
 		} catch (err) {
 			if (err.code !== 'auth/popup-closed-by-user') {
 				set_error('Sign-in failed. Please try again.')
