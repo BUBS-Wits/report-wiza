@@ -17,9 +17,11 @@
   "scripts": {
     "start": "node server.js",
     "build": "react-scripts build",
-    "test": "react-scripts test",  
+    "test": "react-scripts test --passWithNoTests",  
     "dev": "react-scripts start",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests"
+
   },
   "eslintConfig": {
     "extends": [
