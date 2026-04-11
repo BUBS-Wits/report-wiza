@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import {Routes, Route, useNavigate} from 'react-router-dom'
+import login_page from './pages/login/login_page.js'
 import { db } from './firebase_config.js'
 import { collection, getDocs, addDoc } from 'firebase/firestore'
 import './app.css'
@@ -6,6 +8,7 @@ import './app.css'
 function App() {
 	const [message, set_message] = useState('Connecting to Firebase...')
 	const [db_status, set_db_status] = useState('')
+	const navigate = useNavigate()
 
 	const seed_and_read = async (cancelled_ref) => {
 		try {
@@ -55,6 +58,13 @@ function App() {
 			<p className="stack_info">
 				React · Firebase Firestore · Deployed on Azure
 			</p>
+			<button onClick={() => navigate('/login')}>
+				Login
+			</button>
+			<Routes>
+				<Route path='/' element={null}/>
+				<Route path='/login' element={<login_page />}/>
+			</Routes>
 		</div>
 	)
 }

@@ -4,14 +4,14 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebase_config';
+import { auth, db } from '../../firebase_config.js';
 import { useNavigate } from 'react-router-dom';
-import './report_wiza.css';
+import './login_page.css';
 
 // Tells Firebase to use Google as the login provider
 const google_provider = new GoogleAuthProvider();
 
-function ReportWiza() {
+function login_page() {
   // True while the Google popup/sign-in is in progress
   const [loading, set_loading] = useState(false);
   // Holds any error message to display
@@ -167,4 +167,4 @@ function ReportWiza() {
   );
 }
 
-export default ReportWiza;
+export default login_page;
