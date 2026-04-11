@@ -1,18 +1,17 @@
-import {assert_not_equal, assert_equal, assert_true, assert_false, test} from '@bubs-wits/tests'
 import {ResidentRequest} from './request.js'
 
 let TESTS = []
 
 test('input_validation_pass', () => {
 	const tmp = new ResidentRequest('Water', 'water leakage.', 'data:image/jpeg;hello=world;that=joke,thisisanexample...')
-	assert_true(tmp.input_validate())
-	assert_true(tmp.image_validate())
+	expect(tmp.input_validate()).toEqual(true)
+	expect(tmp.image_validate()).toEqual(true)
 })
 
 test('input_validation_fail', () => {
 	const tmp = new ResidentRequest(undefined, undefined, undefined)
-	assert_false(tmp.input_validate())
-	assert_false(tmp.image_validate())
+	expect(tmp.input_validate()).not.toEqual(true)
+	expect(tmp.image_validate()).not.toEqual(true)
 })
 
 TESTS = [
@@ -28,8 +27,8 @@ TESTS = [
 TESTS.forEach((uri, index) => {
 	test(`image_validation_pass #${index + 1}`, () => {
 		const tmp = new ResidentRequest('water', 'water leakage.', uri)
-		assert_true(tmp.input_validate())
-		assert_true(tmp.image_validate())
+		expect(tmp.input_validate()).toEqual(true)
+		expect(tmp.image_validate()).toEqual(true)
 	})
 })
 
@@ -47,13 +46,13 @@ TESTS = [
 TESTS.forEach((uri, index) => {
 	test(`image_validation_fail #${index + 1}`, () => {
 		const tmp = new ResidentRequest('water', 'water leakage.', uri)
-		assert_false(tmp.image_validate())
+		expect(tmp.image_validate()).not.toEqual(true)
 	})
 })
 
 test('request_stringify_pass', () => {
 	const tmp = new ResidentRequest('Water', 'water leakage.', 'data:image/jpeg;base64,/9j/4AAQ...')
-	assert_true(tmp.input_validate())
-	assert_true(tmp.image_validate())
-	assert_equal(tmp.to_string(), '{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ..."}')
+	expect(tmp.input_validate()).toEqual(true)
+	expect(tmp.image_validate()).toEqual(true)
+	expect(tmp.to_string()).toEqual('{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ..."}')
 })

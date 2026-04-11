@@ -2,13 +2,8 @@ import {
 	JSDOM
 } from 'jsdom'
 import {
-	assert_equal,
-	assert_not_equal,
-	test
-} from '@bubs-wits/tests'
-import {
 	REQUEST_CATEGORIES
-} from '@bubs-wits/shared'
+} from './constants'
 import {
 	reset_preview,
 	add_event_listeners,
@@ -62,7 +57,7 @@ test('categories_addition_pass', () => {
 	const select = dom.window.document.querySelector('select')
 	fill_select_options(dom.window.document, select, REQUEST_CATEGORIES)
 	const options = [...select.children].filter(e => e.value).map(e => e.value)
-	assert_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
+	expect(JSON.stringify(options).trim()).toEqual(JSON.stringify(REQUEST_CATEGORIES).trim())
 	dom.window.close()
 })
 
@@ -75,21 +70,21 @@ test('categories_addition_fail', () => {
 	const select = dom.window.document.querySelector('select')
 	fill_select_options(dom.window.document, select, REQUEST_CATEGORIES)
 	const options = [...select.children].filter(e => e.value).map(e => '*' + e.value)
-	assert_not_equal(JSON.stringify(options).trim(), JSON.stringify(REQUEST_CATEGORIES).trim())
+	expect(JSON.stringify(options).trim()).not.toEqual(JSON.stringify(REQUEST_CATEGORIES).trim())
 	dom.window.close()
 })
 
 test('get_data_uri_pass', async () => {
 	const dom = new JSDOM()
 	const file = create_mock_image_file('test.png', dom.window)
-	assert_equal(await get_data_uri(file), 'data:image/png;base64,iVBORw==')
+	expect(await get_data_uri(file).toEqual('data:image/png;base64,iVBORw==')
 	dom.window.close()
 })
 
 test('get_data_uri_fail', async () => {
 	const dom = new JSDOM()
 	const file = create_mock_image_file('test.png', dom.window)
-	assert_not_equal(await get_data_uri(file), 'data:image/png;base64,iVBORw=')
+	expect(await get_data_uri(file)).not.toEqual('data:image/png;base64,iVBORw=')
 	dom.window.close()
 })
 
@@ -108,7 +103,7 @@ test('input_fetch_pass', async () => {
 		writable: false
 	})
 	const res_request = await get_request_input(dom.window.document)
-	assert_equal(res_request.to_string(), JSON.stringify({
+	expect(res_request.to_string()).toEqual(JSON.stringify({
 		category: 'test',
 		description: 'Hello, world!',
 		image: await get_data_uri(files_input.files[0])
@@ -130,7 +125,7 @@ test('input_fetch_failed #1', async () => {
 		writable: false
 	})
 	const res_request = await get_request_input(dom.window.document)
-	assert_equal(res_request, null)
+	expect(res_request).toEqual(null)
 	dom.window.close()
 })
 
@@ -148,7 +143,7 @@ test('input_fetch_failed #2', async () => {
 		writable: false
 	})
 	const res_request = await get_request_input(dom.window.document)
-	assert_equal(res_request, null)
+	expect(res_request).toEqual(null)
 	dom.window.close()
 })
 
@@ -161,11 +156,11 @@ test('input_fetch_failed #3', async () => {
 		}
 	)
 	const res_request = await get_request_input(dom.window.document)
-	assert_equal(res_request, null)
+	expect(res_request).toEqual(null)
 	dom.window.close()
 })
 
 test('input_fetch_failed #1', async () => {
 	const res_request = await get_request_input(undefined)
-	assert_equal(res_request, null)
+	expect(res_request).toEqual(null)
 })
