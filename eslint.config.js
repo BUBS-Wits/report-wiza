@@ -12,8 +12,8 @@ export default defineConfig([
 			sourceType: 'module',
 			globals: {
 				...globals.browser,
-				...globals.node
-			}
+				...globals.node,
+			},
 		},
 
 		rules: {
@@ -21,23 +21,23 @@ export default defineConfig([
 			'no-undef': 'error',
 			'no-console': 'off',
 			'comma-spacing': 2,
-			'eqeqeq': ['error', 'always'],
-			'curly': 'error',
-		}
+			eqeqeq: ['error', 'always'],
+			curly: 'error',
+		},
 	},
 	{
 		files: ['packages/**/*.js', 'app/backend/**/*.js'],
 		languageOptions: {
 			globals: {
-				...globals.node
-			}
+				...globals.node,
+			},
 		},
 		rules: {
 			'no-unused-vars': 'warn',
 			'no-undef': 'error',
 			'no-console': 'off',
-			'eqeqeq': ['error', 'always'],
-			'curly': 'error',
-		}
-	}
+			eqeqeq: ['error', 'always'],
+			curly: 'error',
+		},
+	},
 ])

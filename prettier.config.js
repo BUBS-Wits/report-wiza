@@ -5,7 +5,7 @@ const config = {
 	tabWidth: 4,
 	bracketSpacing: true,
 	htmlWhitespaceSensitivity: 'ignore',
-	useTabs: true
-};
+	useTabs: true,
+}
 
-export default config;
+export default config
