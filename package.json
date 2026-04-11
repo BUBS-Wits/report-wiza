@@ -17,6 +17,7 @@
 		"prettier": "^3.8.2",
 		"react": "^19.2.4",
 		"react-dom": "^19.2.4",
+		"react-router-dom": "^7.14.0",
 		"react-scripts": "^5.0.1",
 		"web-vitals": "^2.1.4"
 	},
@@ -27,8 +28,8 @@
 		"dev": "react-scripts start",
 		"eject": "react-scripts eject",
 		"lint": "eslint .",
-		"format": "prettier --write **/*.js **/*.html **/*.css *.js",
-		"format:check": "prettier --check **/*.js **/*.html **/*.css *.js",
+		"format": "prettier --write '**/*.js' '**/*.html' '**/*.css' '*.js'",
+		"format:check": "prettier --check '**/*.js' '**/*.html' '**/*.css' '*.js'",
 		"test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests"
 	},
 	"browserslist": {
