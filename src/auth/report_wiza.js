@@ -1,33 +1,92 @@
 import React, { useState } from 'react';
+import {
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithPopup
+} from 'firebase/auth';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '../firebase_config';
+import { useNavigate } from 'react-router-dom';
 import './report_wiza.css';
 
-function ReportWiza() {
-  const [loading_provider, set_loading_provider] = useState(null);
-  const [error, set_error] = useState(null);
+// These tell Firebase which login provider to use
+const google_provider = new GoogleAuthProvider();
+const microsoft_provider = new OAuthProvider('microsoft.com');
 
-  const handle_sign_in = (provider_name) => {
+function ReportWiza() {
+  // Tracks which button is loading (google or microsoft)
+  const [loading_provider, set_loading_provider] = useState(null);
+  // Tracks if there is an error message to show
+  const [error, set_error] = useState(null);
+  // Lets us send the user to a different page after login
+  const navigate = useNavigate();
+
+  // This runs when the user clicks either sign in button
+  const handle_sign_in = async (provider, provider_name) => {
     set_loading_provider(provider_name);
     set_error(null);
-    // Firebase logic will be added here later
-    setTimeout(() => set_loading_provider(null), 2000);
+
+    try {
+      // Opens the Google or Microsoft popup window
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Checks if this user already exists in our Firestore database
+      const user_ref = doc(db, 'users', user.uid);
+      const user_snap = await getDoc(user_ref);
+
+      // If they are new, create their profile in Firestore
+      if (!user_snap.exists()) {
+        await setDoc(user_ref, {
+          display_name: user.displayName,
+          email: user.email,
+          role: 'resident',
+          is_blocked: false,
+          created_at: serverTimestamp(),
+        });
+      }
+
+      // Check their role and send them to the right page
+      const role = user_snap.exists() ? user_snap.data().role : 'resident';
+
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'worker') navigate('/worker');
+      else navigate('/resident');
+
+    } catch (err) {
+      // If something goes wrong show an error message
+      set_error('Sign-in failed. Please try again.');
+      console.error(err);
+    } finally {
+      // Always stop the loading spinner when done
+      set_loading_provider(null);
+    }
   };
 
   return (
-    <div className="login_page">
+    // main wraps the whole page
+    <main className="login_page">
 
-      {/* Left panel */}
-      <div className="login_left">
+      {/* Left navy panel — branding and stats */}
+      <section className="login_left">
         <div className="login_left_inner">
+          {/* App name */}
           <div className="login_logo">
             REPORT-<span>WIZA</span>
           </div>
+
+          {/* Tagline */}
           <h2 className="login_tagline">
             Municipal Service<br />Delivery Portal
           </h2>
+
+          {/* Description */}
           <p className="login_desc">
             Report issues in your ward. Track progress.<br />
             Hold your municipality accountable.
           </p>
+
+          {/* Stats row — shows 3 numbers */}
           <div className="login_stats">
             <div className="login_stat">
               <span className="login_stat_val">2,841</span>
@@ -46,19 +105,21 @@ function ReportWiza() {
           </div>
         </div>
 
-        {/* Decorative animated map pins */}
+        {/* Decorative animated map pins in the background */}
         <div className="login_map_overlay">
           <div className="login_map_pin pin_1" />
           <div className="login_map_pin pin_2" />
           <div className="login_map_pin pin_3" />
           <div className="login_map_pin pin_4" />
         </div>
-      </div>
+      </section>
 
-      {/* Right panel */}
-      <div className="login_right">
-        <div className="login_card">
-          <div className="login_card_top">
+      {/* Right panel — the actual sign in card */}
+      <section className="login_right">
+        <article className="login_card">
+
+          {/* Top of card — RW logo mark and title */}
+          <header className="login_card_top">
             <div className="login_card_logo">RW</div>
             <div>
               <h1 className="login_card_title">Sign in</h1>
@@ -66,8 +127,9 @@ function ReportWiza() {
                 Use your institutional account to continue
               </p>
             </div>
-          </div>
+          </header>
 
+          {/* Only shows if there is an error */}
           {error && (
             <div className="login_error">
               <span className="login_error_icon">⚠</span>
@@ -75,11 +137,13 @@ function ReportWiza() {
             </div>
           )}
 
+          {/* Google sign in button */}
           <button
             className="login_btn login_btn_google"
-            onClick={() => handle_sign_in('google')}
+            onClick={() => handle_sign_in(google_provider, 'google')}
             disabled={loading_provider !== null}
           >
+            {/* Shows spinner while loading, Google icon otherwise */}
             {loading_provider === 'google' ? (
               <span className="login_spinner" />
             ) : (
@@ -93,11 +157,13 @@ function ReportWiza() {
             Sign in with Google
           </button>
 
+          {/* Microsoft sign in button */}
           <button
             className="login_btn login_btn_microsoft"
-            onClick={() => handle_sign_in('microsoft')}
+            onClick={() => handle_sign_in(microsoft_provider, 'microsoft')}
             disabled={loading_provider !== null}
           >
+            {/* Shows spinner while loading, Microsoft icon otherwise */}
             {loading_provider === 'microsoft' ? (
               <span className="login_spinner login_spinner_dark" />
             ) : (
@@ -111,22 +177,27 @@ function ReportWiza() {
             Sign in with Microsoft
           </button>
 
+          {/* Divider line with text */}
           <div className="login_divider">
             <span>Wits University accounts supported</span>
           </div>
 
+          {/* Small print notice */}
           <p className="login_notice">
             By signing in you agree to Report-Wiza's terms of use.
             Workers must be registered by an Admin before accessing
             the worker dashboard.
           </p>
-        </div>
 
-        <p className="login_footer">
+        </article>
+
+        {/* Bottom of right panel */}
+        <footer className="login_footer">
           City of Johannesburg · COMS3009A 2026
-        </p>
-      </div>
-    </div>
+        </footer>
+      </section>
+
+    </main>
   );
 }
 
