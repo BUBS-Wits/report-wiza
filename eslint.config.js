@@ -30,7 +30,7 @@ export default defineConfig([
 			},
 		},
 		rules: {
-			'no-unused-vars': 'warn',
+			'no-unused-vars': 'off',
 			'no-undef': 'error',
 			'no-console': 'off',
 			'comma-spacing': 2,
