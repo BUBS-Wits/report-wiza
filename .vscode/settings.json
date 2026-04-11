@@ -1,8 +1,0 @@
-{
-    "appService.defaultWebAppToDeploy": "/subscriptions/219b1913-1600-43b2-b52c-a88274ff9ad2/resourceGroups/report-wiza-rg/providers/Microsoft.Web/sites/Report-wiza",
-    "appService.deploySubpath": "build",
-    "appService.zipIgnorePattern": [
-        "node_modules{,/**}",
-        ".vscode{,/**}"
-    ]
-}
