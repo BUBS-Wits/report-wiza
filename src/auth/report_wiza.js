@@ -4,7 +4,7 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebase_config';
+import { auth, db } from '../firebase_config.js';
 import { useNavigate } from 'react-router-dom';
 import './report_wiza.css';
 
