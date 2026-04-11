@@ -30,7 +30,7 @@ function LandingPage() {
           </p>
           <div className="hero_actions">
             <Link to="/login" className="btn_primary">Report an Issue</Link>
-            <Link to="/" className="btn_secondary">View Public Dashboard</Link>
+            <Link to="/dashboard" className="btn_secondary">View Public Dashboard</Link>
           </div>
         </div>
         <div className="hero_stat_row">
