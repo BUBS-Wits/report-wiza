@@ -40,6 +40,7 @@ export default defineConfig([
 			...react_hooks.configs.recommended.rules,
 			'react/jsx-uses-react': 'error',
 			'react/jsx-uses-vars': 'error',
+			'react-hooks/set-state-in-effect': 'off',
 			'no-use-before-define': [
 				'warn',
 				{

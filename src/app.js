@@ -42,8 +42,7 @@ function App() {
 
 	useEffect(() => {
 		const cancelled_ref = { current: false }
-		// eslint-disable-next-line react-hooks/set-state-in-effect
-		seed_and_read()
+		seed_and_read(cancelled_ref)
 		return () => {
 			cancelled_ref.current = true
 		}

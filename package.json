@@ -31,12 +31,6 @@
 		"format:check": "prettier --check **/*.js **/*.html **/*.css *.js",
 		"test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests"
 	},
-	"eslintConfig": {
-		"extends": [
-			"react-app",
-			"react-app/jest"
-		]
-	},
 	"browserslist": {
 		"production": [
 			">0.2%",
