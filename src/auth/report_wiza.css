@@ -276,19 +276,6 @@
   box-shadow: 0 4px 12px rgba(15,31,61,0.25);
 }
 
-.login_btn_microsoft {
-  background: var(--white);
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.login_btn_microsoft:hover:not(:disabled) {
-  background: var(--bg);
-  border-color: var(--navy);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(15,31,61,0.08);
-}
-
 .login_btn_icon {
   width: 18px;
   height: 18px;
@@ -303,11 +290,6 @@
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   flex-shrink: 0;
-}
-
-.login_spinner_dark {
-  border-color: rgba(15,31,61,0.2);
-  border-top-color: var(--navy);
 }
 
 @keyframes spin {
