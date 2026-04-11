@@ -11,7 +11,7 @@ import './login_page.css';
 // Tells Firebase to use Google as the login provider
 const google_provider = new GoogleAuthProvider();
 
-function login_page() {
+function LoginPage() {
   // True while the Google popup/sign-in is in progress
   const [loading, set_loading] = useState(false);
   // Holds any error message to display
@@ -167,4 +167,4 @@ function login_page() {
   );
 }
 
-export default login_page;
+export default LoginPage;

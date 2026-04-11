@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import {Routes, Route, useNavigate} from 'react-router-dom'
-import login_page from './pages/login/login_page.js'
+import LoginPage from './pages/login/login_page.js'
 import { db } from './firebase_config.js'
 import { collection, getDocs, addDoc } from 'firebase/firestore'
 import './app.css'
@@ -52,20 +52,21 @@ function App() {
 	}, [])
 
 	return (
-		<div className="app_container">
-			<h1>{message}</h1>
-			<p className="db_status">{db_status}</p>
-			<p className="stack_info">
-				React · Firebase Firestore · Deployed on Azure
-			</p>
-			<button onClick={() => navigate('/login')}>
-				Login
-			</button>
-			<Routes>
-				<Route path='/' element={null}/>
-				<Route path='/login' element={<login_page />}/>
-			</Routes>
-		</div>
+		<Routes>
+			<Route path='/' element={
+				<div className="app_container">
+					<h1>{message}</h1>
+					<p className="db_status">{db_status}</p>
+					<p className="stack_info">
+						React · Firebase Firestore · Deployed on Azure
+					</p>
+					<button onClick={() => navigate('/login')}>
+						Login
+					</button>
+				</div>
+			}/>
+			<Route path='/login' element={<LoginPage />}/>
+		</Routes>
 	)
 }
 
