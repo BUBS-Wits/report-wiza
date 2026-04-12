@@ -4,14 +4,15 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../firebase_config.js';
+import { auth, db } from '../../firebase_config.js';
 import { useNavigate } from 'react-router-dom';
 import './report_wiza.css';
+import Navbar from '../../components/nav_bar/nav_bar.js';
 
 // Tells Firebase to use Google as the login provider
 const google_provider = new GoogleAuthProvider();
 
-function ReportWiza() {
+function Login() {
   // True while the Google popup/sign-in is in progress
   const [loading, set_loading] = useState(false);
   // Holds any error message to display
@@ -62,7 +63,7 @@ function ReportWiza() {
 
   return (
     <main className="login_page">
-
+      <Navbar />
       {/* Left navy panel — branding and stats */}
       <section className="login_left">
         <div className="login_left_inner">
@@ -167,4 +168,4 @@ function ReportWiza() {
   );
 }
 
-export default ReportWiza;
+export default Login;
