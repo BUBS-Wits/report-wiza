@@ -6,7 +6,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase_config.js';
 import { useNavigate } from 'react-router-dom';
-import './report_wiza.css';
+import './login.css';
 import Navbar from '../../components/nav_bar/nav_bar.js';
 
 // Tells Firebase to use Google as the login provider
