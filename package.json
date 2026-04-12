@@ -28,8 +28,8 @@
 		"dev": "react-scripts start",
 		"eject": "react-scripts eject",
 		"lint": "eslint .",
-		"format": "prettier --write **/*.js **/*.html **/*.css *.js",
-		"format:check": "prettier --check **/*.js **/*.html **/*.css *.js",
+		"format": "prettier --write '**/*.js' '**/*.html' '**/*.css' '*.js'",
+		"format:check": "prettier --check '**/*.js' '**/*.html' '**/*.css' '*.js'",
 		"test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests"
 	},
 	"browserslist": {
