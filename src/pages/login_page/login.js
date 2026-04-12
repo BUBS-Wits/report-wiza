@@ -44,9 +44,13 @@ function Login() {
 			// Route based on role
 			const role = user_snap.exists() ? user_snap.data().role : 'resident'
 
-			if (role === 'admin') {navigate('/admin')}
-			else if (role === 'worker') {navigate('/worker')}
-			else {navigate('/resident')}
+			if (role === 'admin') {
+				navigate('/admin')
+			} else if (role === 'worker') {
+				navigate('/worker')
+			} else {
+				navigate('/resident')
+			}
 		} catch (err) {
 			if (err.code !== 'auth/popup-closed-by-user') {
 				set_error('Sign-in failed. Please try again.')
@@ -168,9 +172,9 @@ function Login() {
 					</div>
 
 					<p className="login_notice">
-						By signing in you agree to Report-Wiza&apos;s terms of use.
-						Workers must be registered by an Admin before accessing
-						the worker dashboard.
+						By signing in you agree to Report-Wiza&apos;s terms of
+						use. Workers must be registered by an Admin before
+						accessing the worker dashboard.
 					</p>
 				</article>
 
