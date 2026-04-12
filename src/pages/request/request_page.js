@@ -18,28 +18,34 @@ function RequestPage() {
 	}, [])
 
 	async function on_submit(request) {
-		if (!request.input_validate() || !(await image_validate(request.image))){
+		if (
+			!request.input_validate() ||
+			!(await image_validate(request.image))
+		) {
 			return
 		}
-    	 try {
-        // 2. Upload the actual file (request.image) to Storage
-        const file_ref = ref(storage, `images/${Date.now()}_${request.image.name}`);
-        const upload_result = await uploadBytes(file_ref, request.image);
-        
-        // 3. Get the public URL
-        const download_url = await getDownloadURL(upload_result.ref);
+		try {
+			// 2. Upload the actual file (request.image) to Storage
+			const file_ref = ref(
+				storage,
+				`images/${Date.now()}_${request.image.name}`
+			)
+			const upload_result = await uploadBytes(file_ref, request.image)
 
-        // 4. Store ONLY the URL in Firestore
-        await addDoc(collection(db, 'photos'), {
-            description: request.description,
-            image_url: download_url, // Much smaller than a Base64 string!
-            timestamp: new Date()
-        });
+			// 3. Get the public URL
+			const download_url = await getDownloadURL(upload_result.ref)
 
-        alert("Upload successful!");
-    } catch (e) {
-        console.error("Error during upload:", e);
-    }
+			// 4. Store ONLY the URL in Firestore
+			await addDoc(collection(db, 'photos'), {
+				description: request.description,
+				image_url: download_url, // Much smaller than a Base64 string!
+				timestamp: new Date(),
+			})
+
+			alert('Upload successful!')
+		} catch (e) {
+			console.error('Error during upload:', e)
+		}
 	}
 
 	return (
