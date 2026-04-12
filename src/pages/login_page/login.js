@@ -148,7 +148,7 @@ function Login() {
           </button>
 
           <div className="login_divider">
-            <span>Wits University accounts supported</span>
+            <span>Powered by Google sign-in</span>
           </div>
 
           <p className="login_notice">
