@@ -20,6 +20,9 @@ function RequestPage() {
 	return (
 		<div className="service_request_page">
 			<Navbar />
+			<header>
+				<h1>Request Form</h1>
+			</header>
 			<main>
 				<RequestForm onSubmit={on_submit} />
 			</main>

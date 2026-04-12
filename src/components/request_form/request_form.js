@@ -3,6 +3,7 @@ import { Request } from '../../pages/request/js/request.js'
 import { get_data_uri, image_validate } from '../../js/utility.js'
 import CategorySelect from '../category_select/category_select.js'
 import YellowBtn from '../buttons/yellow_btn.js'
+import TransparentBtn from '../buttons/transparent_btn.js'
 
 function RequestForm({ onSubmit }) {
 	const [category, set_category] = useState('')

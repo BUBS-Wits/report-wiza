@@ -3,6 +3,8 @@ button {
 	padding: 0.6rem;
 	border-radius: 0.7rem;
 	cursor: pointer;
+	padding: 0.4rem 3rem;
+	border: 0;
 }
 
 button.yellow_button {
@@ -12,11 +14,7 @@ button.yellow_button {
 
 button.yellow_button:hover {
 	background: rgb(251, 191, 36);
-	transform: translateY(-2px);
-}
-
-button.yellow_button:not(:hover) {
-	background: rgb(245, 158, 11);
+	transform: translateY(-1px);
 }
 
 button.transparent_button {
@@ -25,5 +23,6 @@ button.transparent_button {
 }
 
 button.transparent_button:hover {
-	transform: translateY(-2px);
+	transform: translateY(-1px);
+	border: 0.3rem ridge rgb(148, 163, 184);
 }

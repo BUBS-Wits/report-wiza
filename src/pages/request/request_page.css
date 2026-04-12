@@ -8,8 +8,20 @@ div.service_request_page {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: space-around;
+	justify-content: space-evenly;
 	padding: 1rem 5rem;
+}
+
+header {
+	color: rgb(251, 191, 36);
+	text-align: center;
+}
+
+main {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-evenly;
 }
 
 main img {
@@ -21,6 +33,8 @@ main img {
 main form {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
+	justify-content: space-evenly;
 	margin: 0;
 }
 
@@ -28,19 +42,3 @@ main form > * {
 	margin-bottom: 1rem;
 }
 
-main form > button {
-	color: rgb(10, 22, 40);
-	font-size: 1.3rem;
-	background: rgb(245, 158, 11);
-	padding: 0.6rem;
-	border-radius: 0.7rem;
-}
-
-main form > button:hover {
-	background: rgb(251, 191, 36);
-	transform: translateY(-2px);
-}
-
-main form > button:not(:hover) {
-	background: rgb(245, 158, 11);
-}

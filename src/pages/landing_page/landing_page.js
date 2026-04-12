@@ -35,7 +35,7 @@ function LandingPage() {
 						request in real time.
 					</p>
 					<div className="hero_actions">
-						<Link to="/login" className="btn_primary">
+						<Link to="/request" className="btn_primary">
 							Report an Issue
 						</Link>
 						<Link to="/" className="btn_secondary">
