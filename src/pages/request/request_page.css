@@ -1,0 +1,46 @@
+div.service_request_page {
+	min-height: 100vh;
+	background: #0a1628;
+	color: rgb(148, 163, 184);
+	font-family:
+		DM Sans,
+		sans-serif;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-around;
+	padding: 1rem 5rem;
+}
+
+main img {
+	display: block;
+	border: 1em ridge rgb(10, 22, 40);
+	max-width: 300px;
+}
+
+main form {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+}
+
+main form > * {
+	margin-bottom: 1rem;
+}
+
+main form > button {
+	color: rgb(10, 22, 40);
+	font-size: 1.3rem;
+	background: rgb(245, 158, 11);
+	padding: 0.6rem;
+	border-radius: 0.7rem;
+}
+
+main form > button:hover {
+	background: rgb(251, 191, 36);
+	transform: translateY(-2px);
+}
+
+main form > button:not(:hover) {
+	background: rgb(245, 158, 11);
+}

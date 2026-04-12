@@ -15,8 +15,8 @@ export async function send_request(uri, data) {
 		mode: 'cors',
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json'
+			'Content-Type': 'application/json',
 		},
-		body
+		body,
 	})
 }

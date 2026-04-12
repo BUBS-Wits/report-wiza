@@ -67,7 +67,9 @@ function LandingPage() {
 				<div className="features_grid">
 					<div className="feature_card">
 						<div className="feature_icon">📍</div>
-						<h3>Submit a Request</h3>
+						<Link to="/request" className="btn_primary">
+							<h3>Submit a Request</h3>
+						</Link>
 						<p>
 							Pin your location, choose a category, and describe
 							the issue. Attach a photo for faster resolution.

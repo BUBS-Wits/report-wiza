@@ -1,0 +1,12 @@
+import React from 'react'
+import './button.css'
+
+function YellowBtn({ text, onClick }) {
+	return (
+		<button className="yellow_button" onClick={onClick}>
+			{text}
+		</button>
+	)
+}
+
+export default YellowBtn

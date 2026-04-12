@@ -1,0 +1,29 @@
+button {
+	font-size: 1.3rem;
+	padding: 0.6rem;
+	border-radius: 0.7rem;
+	cursor: pointer;
+}
+
+button.yellow_button {
+	color: rgb(10, 22, 40);
+	background: rgb(245, 158, 11);
+}
+
+button.yellow_button:hover {
+	background: rgb(251, 191, 36);
+	transform: translateY(-2px);
+}
+
+button.yellow_button:not(:hover) {
+	background: rgb(245, 158, 11);
+}
+
+button.transparent_button {
+	color: rgb(148, 163, 184);
+	background: transparent;
+}
+
+button.transparent_button:hover {
+	transform: translateY(-2px);
+}
