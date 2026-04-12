@@ -1,4 +1,4 @@
-import { Request } from '../../js/request.js'
+import { Request } from './request.js'
 import { send_request } from './submit_request.js'
 
 const ECHO_TEST = 'https://httpbin.org/post'

@@ -2,20 +2,20 @@ import { Request } from './request.js'
 
 let TESTS = []
 
-test('input_validation_pass', () => {
+test('input_validation_pass', async () => {
 	const tmp = new Request(
 		'Water',
 		'water leakage.',
 		'data:image/jpeg;hello=world;that=joke,thisisanexample...'
 	)
 	expect(tmp.input_validate()).toEqual(true)
-	expect(tmp.image_validate()).toEqual(true)
+	expect(await tmp.image_validate()).toEqual(true)
 })
 
-test('input_validation_fail', () => {
+test('input_validation_fail', async () => {
 	const tmp = new Request(undefined, undefined, undefined)
 	expect(tmp.input_validate()).not.toEqual(true)
-	expect(tmp.image_validate()).not.toEqual(true)
+	expect(await tmp.image_validate()).not.toEqual(true)
 })
 
 TESTS = [
@@ -29,10 +29,10 @@ TESTS = [
 	'data:image/JPEG;base64,/9j/4AAQSkZJRgABAQAAAQABAAD...',
 ]
 TESTS.forEach((uri, index) => {
-	test(`image_validation_pass #${index + 1}`, () => {
+	test(`image_validation_pass #${index + 1}`, async () => {
 		const tmp = new Request('water', 'water leakage.', uri)
 		expect(tmp.input_validate()).toEqual(true)
-		expect(tmp.image_validate()).toEqual(true)
+		expect(await tmp.image_validate()).toEqual(true)
 	})
 })
 
@@ -48,20 +48,20 @@ TESTS = [
 	'data:image/jpeg;base64AAAAAA',
 ]
 TESTS.forEach((uri, index) => {
-	test(`image_validation_fail #${index + 1}`, () => {
+	test(`image_validation_fail #${index + 1}`, async () => {
 		const tmp = new Request('water', 'water leakage.', uri)
-		expect(tmp.image_validate()).not.toEqual(true)
+		expect(await tmp.image_validate()).not.toEqual(true)
 	})
 })
 
-test('request_stringify_pass', () => {
+test('request_stringify_pass', async () => {
 	const tmp = new Request(
 		'Water',
 		'water leakage.',
 		'data:image/jpeg;base64,/9j/4AAQ...'
 	)
 	expect(tmp.input_validate()).toEqual(true)
-	expect(tmp.image_validate()).toEqual(true)
+	expect(await tmp.image_validate()).toEqual(true)
 	expect(tmp.to_string()).toEqual(
 		'{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ..."}'
 	)

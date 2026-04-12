@@ -15,13 +15,10 @@ export class Request {
 	}
 
 	input_validate() {
-		return (
-			this.category &&
-			this.description &&
-			this.image &&
-			this.category.trim() &&
-			this.description.trim()
-		)
+		if (this.category && this.description && this.image) {
+			return true
+		}
+		return false
 	}
 
 	to_string() {
