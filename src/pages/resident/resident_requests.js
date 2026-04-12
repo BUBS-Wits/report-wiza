@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { auth, db } from '../../firebase_config.js';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { auth } from '../../firebase_config.js';
+import { fetchResidentRequests } from '../../backend/resident_firebase.js';
 import './resident_requests.css';
 
 function ResidentRequests() {
@@ -16,25 +16,18 @@ function ResidentRequests() {
       return;
     }
 
-    const fetchRequests = async () => {
+    const loadRequests = async () => {
       try {
-        const q = query(
-          collection(db, 'requests'),
-          where('resident_uid', '==', user.uid),
-          orderBy('created_at', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const data = await fetchResidentRequests(user.uid);
         setRequests(data);
       } catch (err) {
-        console.error('Firestore error:', err);
-        setError('Could not load your requests. Try again later.');
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRequests();
+    loadRequests();
   }, []);
 
   if (loading) return <div className="loading">Loading your requests...</div>;
