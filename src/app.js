@@ -6,15 +6,15 @@ import Contact from './pages/contact_page/contact.js'
 import './app.css'
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-      </Routes>
-    </BrowserRouter>
-  )
+	return (
+		<BrowserRouter>
+			<Routes>
+				<Route path="/" element={<LandingPage />} />
+				<Route path="/about" element={<About />} />
+				<Route path="/contact" element={<Contact />} />
+			</Routes>
+		</BrowserRouter>
+	)
 }
 
 export default App
