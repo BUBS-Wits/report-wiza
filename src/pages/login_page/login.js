@@ -160,7 +160,7 @@ function Login() {
         </article>
 
         <footer className="login_footer">
-          City of Johannesburg · COMS3009A 2026
+          Report-Wiza · South Africa · 2026
         </footer>
       </section>
 
