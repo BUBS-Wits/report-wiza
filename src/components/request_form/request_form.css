@@ -16,6 +16,7 @@ form.request_form img {
 	display: block;
 	border: 1em ridge rgb(10, 22, 40);
 	max-width: 300px;
+	border-radius: 1rem;
 }
 
 form.request_form > * {
