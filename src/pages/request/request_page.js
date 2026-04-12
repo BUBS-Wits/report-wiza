@@ -25,20 +25,18 @@ function RequestPage() {
 			return
 		}
 		try {
-			// 2. Upload the actual file (request.image) to Storage
 			const file_ref = ref(
 				storage,
 				`images/${Date.now()}_${request.image.name}`
 			)
 			const upload_result = await uploadBytes(file_ref, request.image)
 
-			// 3. Get the public URL
 			const download_url = await getDownloadURL(upload_result.ref)
 
-			// 4. Store ONLY the URL in Firestore
 			await addDoc(collection(db, 'photos'), {
+				category: request.category,
 				description: request.description,
-				image_url: download_url, // Much smaller than a Base64 string!
+				image_url: download_url,
 				timestamp: new Date(),
 			})
 
