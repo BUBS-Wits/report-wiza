@@ -6,6 +6,12 @@ form.request_form {
 	margin: 0;
 }
 
+form.request_form textarea {
+	background-color: transparent;
+	border-radius: 1rem;
+	color: rgb(148, 163, 184);
+}
+
 form.request_form img {
 	display: block;
 	border: 1em ridge rgb(10, 22, 40);
