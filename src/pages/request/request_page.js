@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react'
+import { db } from '../../firebase_config.js'
+import { collection, addDoc } from 'firebase/firestore'
+import { storage } from '../../firebase_config.js'
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import Navbar from '../../components/nav_bar/nav_bar.js'
 import RequestForm from '../../components/request_form/request_form.js'
+import { get_data_uri, image_validate } from '../../js/utility.js'
 import './request_page.css'
 
 function RequestPage() {
@@ -12,9 +17,29 @@ function RequestPage() {
 		return () => window.removeEventListener('scroll', on_scroll)
 	}, [])
 
-	function on_submit(request) {
-		console.log('hi')
-		console.log(request)
+	async function on_submit(request) {
+		if (!request.input_validate() || !(await image_validate(request.image))){
+			return
+		}
+    	 try {
+        // 2. Upload the actual file (request.image) to Storage
+        const file_ref = ref(storage, `images/${Date.now()}_${request.image.name}`);
+        const upload_result = await uploadBytes(file_ref, request.image);
+        
+        // 3. Get the public URL
+        const download_url = await getDownloadURL(upload_result.ref);
+
+        // 4. Store ONLY the URL in Firestore
+        await addDoc(collection(db, 'photos'), {
+            description: request.description,
+            image_url: download_url, // Much smaller than a Base64 string!
+            timestamp: new Date()
+        });
+
+        alert("Upload successful!");
+    } catch (e) {
+        console.error("Error during upload:", e);
+    }
 	}
 
 	return (
