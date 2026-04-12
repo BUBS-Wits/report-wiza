@@ -1,4 +1,4 @@
-button {
+button.btn_components {
 	font-size: 1.3rem;
 	padding: 0.6rem;
 	border-radius: 0.7rem;
@@ -7,22 +7,22 @@ button {
 	border: 0;
 }
 
-button.yellow_button {
+button.btn_components.yellow_button {
 	color: rgb(10, 22, 40);
 	background: rgb(245, 158, 11);
 }
 
-button.yellow_button:hover {
+button.btn_components.yellow_button:hover {
 	background: rgb(251, 191, 36);
 	transform: translateY(-1px);
 }
 
-button.transparent_button {
+button.btn_components.transparent_button {
 	color: rgb(148, 163, 184);
 	background: transparent;
 }
 
-button.transparent_button:hover {
+button.btn_components.transparent_button:hover {
 	transform: translateY(-1px);
 	border: 0.3rem ridge rgb(148, 163, 184);
 }

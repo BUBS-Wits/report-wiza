@@ -1,0 +1,20 @@
+select.category_select {
+	font-size: 0.9rem;
+	padding: 0.1rem 2rem;
+	background: transparent;
+	border: 0.2rem ridge rgb(245, 158, 11);
+	border-radius: 0.6rem;
+	color: rgb(245, 158, 11);
+	text-align: center;
+	min-width: 250px;
+}
+
+select.category_select option:checked {
+	background: transparent;
+	color: rgb(148, 163, 184);
+	font-weight: bold
+}
+
+select.category_select option:hover {
+	background: rgb(200, 100, 11);
+}

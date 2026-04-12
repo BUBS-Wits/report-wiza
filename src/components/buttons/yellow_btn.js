@@ -3,7 +3,7 @@ import './button.css'
 
 function YellowBtn({ text, onClick }) {
 	return (
-		<button className="yellow_button" onClick={onClick}>
+		<button className='btn_components yellow_button' onClick={onClick}>
 			{text}
 		</button>
 	)

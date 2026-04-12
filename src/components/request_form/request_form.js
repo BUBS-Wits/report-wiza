@@ -4,6 +4,7 @@ import { get_data_uri, image_validate } from '../../js/utility.js'
 import CategorySelect from '../category_select/category_select.js'
 import YellowBtn from '../buttons/yellow_btn.js'
 import TransparentBtn from '../buttons/transparent_btn.js'
+import './request_form.css'
 
 function RequestForm({ onSubmit }) {
 	const [category, set_category] = useState('')
@@ -37,33 +38,33 @@ function RequestForm({ onSubmit }) {
 	}
 
 	return (
-		<form onSubmit={handle_submit}>
+		<form className='request_form' onSubmit={handle_submit}>
 			<CategorySelect value={category} onChange={set_category} />
 			<textarea
 				required
-				cols="30"
-				rows="10"
+				cols='30'
+				rows='10'
 				value={description}
 				onChange={(e) => set_description(e.target.value)}
 			></textarea>
 			{preview && (
 				<img
-					id="preview"
+					id='preview'
 					src={preview}
 					style={{ display: 'block', maxWidth: '300px' }}
 				/>
 			)}
-			<label htmlFor="image">
+			<label htmlFor='image'>
 				Choose an image to upload (PNG, JPEG, JPG)
 			</label>
 			<input
-				id="image"
+				id='image'
 				required
-				type="file"
-				accept="image/png, image/jpeg, image/jpg"
+				type='file'
+				accept='image/png, image/jpeg, image/jpg'
 				onChange={handle_image_change}
 			/>
-			<YellowBtn text="Submit" onClick={() => {}} />
+			<YellowBtn text='Submit' onClick={() => {}} />
 		</form>
 	)
 }
