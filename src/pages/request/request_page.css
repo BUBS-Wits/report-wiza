@@ -1,0 +1,25 @@
+div.service_request_page {
+	min-height: 100vh;
+	background: #0a1628;
+	color: rgb(148, 163, 184);
+	font-family:
+		DM Sans,
+		sans-serif;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-evenly;
+	padding: 1rem 5rem;
+}
+
+header {
+	color: rgb(251, 191, 36);
+	text-align: center;
+}
+
+main {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-evenly;
+}

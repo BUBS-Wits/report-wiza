@@ -1,0 +1,24 @@
+form.request_form {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-between;
+	margin: 0;
+}
+
+form.request_form textarea {
+	background-color: transparent;
+	border-radius: 1rem;
+	color: rgb(148, 163, 184);
+}
+
+form.request_form img {
+	display: block;
+	border: 1em ridge rgb(10, 22, 40);
+	max-width: 300px;
+	border-radius: 1rem;
+}
+
+form.request_form > * {
+	margin-bottom: 2rem;
+}

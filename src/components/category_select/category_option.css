@@ -1,0 +1,29 @@
+section.category_select ul.category_dropdown_list li {
+	color: rgb(148, 163, 184);
+	background: transparent;
+	min-width: 248px;
+	padding: 0;
+}
+
+section.category_select ul.category_dropdown_list li:checked {
+	background: transparent;
+	color: rgb(148, 163, 184);
+	font-weight: bold;
+}
+
+section.category_select ul.category_dropdown_list li:hover {
+	color: rgb(200, 210, 220) !important;
+	background: rgb(200, 100, 11);
+}
+
+section.category_select ul.category_dropdown_list li button {
+	color: rgb(148, 163, 184);
+	background: transparent;
+	min-width: 248px;
+	border: 0;
+	padding: 0;
+}
+
+section.category_select ul.category_dropdown_list li button:hover {
+	color: rgb(200, 210, 220) !important;
+}
