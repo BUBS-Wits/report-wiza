@@ -8,7 +8,7 @@ section.category_select ul.category_dropdown_list li {
 section.category_select ul.category_dropdown_list li:checked {
 	background: transparent;
 	color: rgb(148, 163, 184);
-	font-weight: bold
+	font-weight: bold;
 }
 
 section.category_select ul.category_dropdown_list li:hover {

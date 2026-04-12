@@ -7,22 +7,26 @@ function CategorySelect({ value, onChange }) {
 	const [expand, set_expand] = useState(false)
 
 	return (
-		<section className='category_select'>
+		<section className="category_select">
 			<button
-				type='button'
-				className='dropdown_trigger'
+				type="button"
+				className="dropdown_trigger"
 				onClick={() => set_expand(true)}
 			>
-				{value ?
-					value.replaceAll(/((^[a-z])|( [a-z]|_[a-z]))/g, (match) =>
-						match.replace('_', ' ').toUpperCase()
-					) :
-					'--Please choose a category--'
-				}
+				{value
+					? value.replaceAll(/((^[a-z])|( [a-z]|_[a-z]))/g, (match) =>
+							match.replace('_', ' ').toUpperCase()
+						)
+					: '--Please choose a category--'}
 			</button>
 			<ul className={`category_dropdown_list ${expand ? 'open' : ''}`}>
 				{REQUEST_CATEGORIES.map((opt) => (
-					<CategoryOption opt={opt} set_value={onChange} set_expand={set_expand}/>
+					<CategoryOption
+						opt={opt}
+						key={opt}
+						set_value={onChange}
+						set_expand={set_expand}
+					/>
 				))}
 			</ul>
 		</section>

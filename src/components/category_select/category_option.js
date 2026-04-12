@@ -5,8 +5,8 @@ function CategoryOption({ opt, set_value, set_expand }) {
 	return (
 		<li key={opt}>
 			<button
-				type='button'
-				className='category_option'
+				type="button"
+				className="category_option"
 				onClick={() => {
 					set_value(opt)
 					set_expand(false)
