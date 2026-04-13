@@ -30,7 +30,7 @@ export default defineConfig([
 			},
 		},
 		rules: {
-			'no-unused-vars': 'warn',
+			'no-unused-vars': 'off',
 			'no-undef': 'error',
 			'no-console': 'off',
 			'comma-spacing': 2,
@@ -41,6 +41,7 @@ export default defineConfig([
 			'react/jsx-uses-react': 'error',
 			'react/jsx-uses-vars': 'error',
 			'react-hooks/set-state-in-effect': 'off',
+			'react/prop-types': 'off',
 			'no-use-before-define': [
 				'warn',
 				{
@@ -52,6 +53,14 @@ export default defineConfig([
 		},
 		settings: {
 			react: { version: 'detect' },
+		},
+	},
+	{
+		files: ['**/*.test.{js,jsx}'],
+		languageOptions: {
+			globals: {
+				...globals.jest,
+			},
 		},
 	},
 ])
