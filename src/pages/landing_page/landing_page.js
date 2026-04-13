@@ -1,20 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import './landing_page.css'
 import Navbar from '../../components/nav_bar/nav_bar.js'
 
 function LandingPage() {
-	const [scrolled, set_scrolled] = useState(false)
-
-	useEffect(() => {
-		const on_scroll = () => set_scrolled(window.scrollY > 20)
-		window.addEventListener('scroll', on_scroll)
-		return () => window.removeEventListener('scroll', on_scroll)
-	}, [])
-
 	return (
 		<div className="landing_root">
 			<Navbar />
+
 			{/* HERO */}
 			<section className="landing_hero">
 				<div className="hero_grid_overlay" />
@@ -38,7 +31,7 @@ function LandingPage() {
 						<Link to="/request" className="btn_primary">
 							Report an Issue
 						</Link>
-						<Link to="/" className="btn_secondary">
+						<Link to="/dashboard" className="btn_secondary">
 							View Public Dashboard
 						</Link>
 					</div>
