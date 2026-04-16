@@ -54,18 +54,18 @@ export class Request {
 
 	get_municipality() {
 		return {
-			id: this.loc_info.m_id,
-			code: this.loc_info.m_code,
-			name: this.loc_info.m_name,
+			id: this.loc_info?.m_id,
+			code: this.loc_info?.m_code,
+			name: this.loc_info?.m_name,
 		}
 	}
 
 	get_ward() {
-		return this.loc_info.ward
+		return this.loc_info?.ward
 	}
 
 	get_province() {
-		return this.loc_info.province
+		return this.loc_info?.province
 	}
 
 	loc_validate() {
@@ -78,10 +78,6 @@ export class Request {
 			!municipality.code ||
 			!municipality.name
 		) {
-			console.error(
-				`Failed to get ward, province and/or municipality info from API: "${WARD_API}"`,
-				this.loc_info
-			)
 			return false
 		}
 		return true

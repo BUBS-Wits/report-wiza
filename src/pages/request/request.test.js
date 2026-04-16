@@ -21,6 +21,7 @@ test('input_validation_pass', async () => {
 	)
 	expect(tmp.input_validate()).toEqual(true)
 	expect(await tmp.image_validate()).toEqual(true)
+	expect(tmp.loc_validate()).toEqual(true)
 })
 
 test('input_validation_fail', async () => {
@@ -34,6 +35,7 @@ test('input_validation_fail', async () => {
 	)
 	expect(tmp.input_validate()).not.toEqual(true)
 	expect(await tmp.image_validate()).not.toEqual(true)
+	expect(tmp.loc_validate()).not.toEqual(true)
 })
 
 TESTS = [

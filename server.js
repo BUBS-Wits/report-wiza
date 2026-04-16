@@ -2,13 +2,14 @@ import express from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+/********************* Setup *********************/
+
 const app = express()
-const PORT = process.env.PORT || 3000
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-app.use(express.static(path.join(__dirname, 'build')))
+/********************* Backend *********************/
 
 app.get('/api/voting-district', async (req, res) => {
 	try {
@@ -40,10 +41,21 @@ app.get('/api/voting-district', async (req, res) => {
 	}
 })
 
+/********************* Frontend *********************/
+
+const build_path = path.resolve(path.join(__dirname, '../build'))
+app.use(express.static(build_path))
+
 app.get('/{*splat}', (req, res) => {
-	res.sendFile(path.join(__dirname, 'build', 'index.html'))
+	res.sendFile(path.join(build_path, 'index.html'))
 })
+
+/********************* Start *********************/
+
+const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () =>
 	console.log(`Server running on:\nhttp://localhost:${PORT}`)
 )
+
+/********************* End *********************/
