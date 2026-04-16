@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, addDoc, getDoc, doc } from 'firebase/firestore'
+import { collection, setDoc, getDoc, doc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { auth, db, storage } from '../../../firebase_config.js'
 import Navbar from '../../../components/nav_bar/nav_bar.js'
 import RequestForm from '../../../components/request_form/request_form.js'
-import { get_data_uri, image_validate } from '../../../js/utility.js'
+import { get_data_uri, image_validate, get_date } from '../../../js/utility.js'
 import './request_page.css'
 
 function RequestPage() {
@@ -33,11 +33,12 @@ function RequestPage() {
 		}
 		try {
 			// TODO: Add uploading of image to some storage bucket
-			const user_doc_ref = doc(db, `users`, auth.currentUser.uid)
-			if (!(await getDoc(user_doc_ref)).exists()) {
-				navigate('/')
-			}
-			await addDoc(collection(db, 'service_requests'), {
+			const now = new Date(Date.now())
+			const d = get_date(now)
+			const new_doc_ref = doc(collection(db, 'service_requests'))
+			const timestamp = `${d.year}${d.month}${d.day}${d.hours}${d.minutes}${d.seconds}`
+			const my_new_id = `${timestamp}_${new_doc_ref.id}`
+			await setDoc(doc(db, 'service_requests', my_new_id), {
 				user_id: auth.currentUser.uid,
 				category: request.category,
 				description: request.description,
@@ -45,7 +46,7 @@ function RequestPage() {
 				location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
 				sa_ward: request.get_ward(),
 				status: 'pending',
-				created_at: new Date(),
+				created_at: now.toUTCString(),
 			})
 
 			alert('Upload successful!')
