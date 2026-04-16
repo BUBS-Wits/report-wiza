@@ -1,31 +1,34 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
 import LandingPage from '../../pages/landing_page/landing_page.js'
 
 // ---------------------------------------------------------------------------
 // Module Mocks
 // ---------------------------------------------------------------------------
 
+// Mock react-router-dom so Link renders as a plain <a> — no package required
+jest.mock('react-router-dom', () => ({
+	Link: ({ to, className, children }) => (
+		<a href={to} className={className}>
+			{children}
+		</a>
+	),
+}))
+
 // Suppress CSS import — Jest cannot process raw CSS files
-jest.mock('./landing_page.css', () => ({}), { virtual: true })
+jest.mock('../../pages/landing_page/landing_page.css', () => ({}))
 
 // Mock Navbar so the test is isolated to LandingPage only
-jest.mock('../components/nav_bar/nav_bar.js', () => {
+jest.mock('../../components/nav_bar/nav_bar.js', () => {
 	const MockNavbar = () => <nav data-testid="mock-navbar" />
 	MockNavbar.displayName = 'MockNavbar'
 	return MockNavbar
 })
 
 // ---------------------------------------------------------------------------
-// Helper — renders LandingPage inside a router (required by <Link>)
+// Helper
 // ---------------------------------------------------------------------------
-const renderLandingPage = () =>
-	render(
-		<MemoryRouter>
-			<LandingPage />
-		</MemoryRouter>
-	)
+const renderLandingPage = () => render(<LandingPage />)
 
 // ---------------------------------------------------------------------------
 // Test Suite
@@ -75,9 +78,7 @@ describe('LandingPage', () => {
 		describe('When the hero section is inspected', () => {
 			it('Then it should render the hero section element', () => {
 				const { container } = renderLandingPage()
-				expect(
-					container.querySelector('.landing_hero')
-				).toBeInTheDocument()
+				expect(container.querySelector('.landing_hero')).toBeInTheDocument()
 			})
 
 			it('Then it should render the hero badge text', () => {
@@ -146,8 +147,7 @@ describe('LandingPage', () => {
 
 			it('Then it should render exactly two stat dividers', () => {
 				const { container } = renderLandingPage()
-				const dividers =
-					container.querySelectorAll('.hero_stat_divider')
+				const dividers = container.querySelectorAll('.hero_stat_divider')
 				expect(dividers).toHaveLength(2)
 			})
 		})
@@ -162,9 +162,7 @@ describe('LandingPage', () => {
 			it('Then it should render the "2,400+" requests submitted stat', () => {
 				renderLandingPage()
 				expect(screen.getByText('2,400+')).toBeInTheDocument()
-				expect(
-					screen.getByText('Requests Submitted')
-				).toBeInTheDocument()
+				expect(screen.getByText('Requests Submitted')).toBeInTheDocument()
 			})
 
 			it('Then it should render the "87%" resolution rate stat', () => {
@@ -313,9 +311,7 @@ describe('LandingPage', () => {
 			it('Then it should render the live-map description', () => {
 				renderLandingPage()
 				expect(
-					screen.getByText(
-						/View all requests in your ward on a live map/i
-					)
+					screen.getByText(/View all requests in your ward on a live map/i)
 				).toBeInTheDocument()
 			})
 		})
@@ -350,17 +346,13 @@ describe('LandingPage', () => {
 		describe('When the footer is inspected', () => {
 			it('Then it should render the footer element', () => {
 				const { container } = renderLandingPage()
-				expect(
-					container.querySelector('.landing_footer')
-				).toBeInTheDocument()
+				expect(container.querySelector('.landing_footer')).toBeInTheDocument()
 			})
 
 			it('Then it should render the copyright notice', () => {
 				renderLandingPage()
 				expect(
-					screen.getByText(
-						/© 2026 Report-wiza · COMS3009A · Wits University/i
-					)
+					screen.getByText(/© 2026 Report-wiza · COMS3009A · Wits University/i)
 				).toBeInTheDocument()
 			})
 
@@ -373,9 +365,7 @@ describe('LandingPage', () => {
 
 			it('Then it should render the "Contact" footer link pointing to /contact', () => {
 				renderLandingPage()
-				const contactLink = screen.getByRole('link', {
-					name: /^Contact$/i,
-				})
+				const contactLink = screen.getByRole('link', { name: /^Contact$/i })
 				expect(contactLink).toBeInTheDocument()
 				expect(contactLink).toHaveAttribute('href', '/contact')
 			})
