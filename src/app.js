@@ -8,6 +8,7 @@ import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/request_page.js'
 import AdminDashboard from './pages/admin/admin_dashboard.js'
 import WorkerVerify from './pages/worker_verify/worker_verify.js'
+import CategoryReport from './pages/category_report/category_report.js'
 import './app.css'
 
 function App() {
@@ -22,6 +23,10 @@ function App() {
 				<Route path="/login" element={<Login />} />
 				<Route path="/admin" element={<AdminDashboard />} />
 				<Route path="/worker-verify" element={<WorkerVerify />} />
+				<Route
+					path="/admin/category-report"
+					element={<CategoryReport />}
+				/>
 			</Routes>
 		</BrowserRouter>
 	)
