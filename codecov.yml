@@ -1,0 +1,10 @@
+coverage:
+  status:
+    project: yes
+    patch: yes
+
+comment:
+  # This tells the bot exactly what to put in the PR comment
+  layout: "header, sunburst, diff, files"
+  behavior: default
+  require_changes: false
