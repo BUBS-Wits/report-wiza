@@ -6,17 +6,17 @@ import About from './pages/about_page/about.js'
 import Contact from './pages/contact_page/contact.js'
 import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/request_page.js'
-import CategoryPage from './pages/category_page/category_page.js'
+import CategoryReport from './pages/category_report/category_report.js'
 import './app.css'
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/dashboard" element={<PublicDashboard />} />
+	return (
+		<BrowserRouter>
+			<Routes>
+				<Route path="/" element={<LandingPage />} />
+				<Route path="/about" element={<About />} />
+				<Route path="/contact" element={<Contact />} />
+				<Route path="/dashboard" element={<PublicDashboard />} />
 				<Route path="/request" element={<RequestPage />} />
 				<Route path="/login" element={<Login />} />
         <Route path="/admin/category-report" element={<CategoryReport />} />
