@@ -1,25 +1,30 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import LandingPage from '../../pages/landing_page/landing_page.js'
+import LandingPage from '../pages/landing_page/landing_page.js'
+import '@testing-library/jest-dom'
 
 // ---------------------------------------------------------------------------
 // Module Mocks
 // ---------------------------------------------------------------------------
 
 // Mock react-router-dom so Link renders as a plain <a> — no package required
-jest.mock('react-router-dom', () => ({
-	Link: ({ to, className, children }) => (
-		<a href={to} className={className}>
-			{children}
-		</a>
-	),
-}))
+jest.mock(
+	'react-router-dom',
+	() => ({
+		Link: ({ to, className, children }) => (
+			<a href={to} className={className}>
+				{children}
+			</a>
+		),
+	}),
+	{ virtual: true }
+)
 
 // Suppress CSS import — Jest cannot process raw CSS files
-jest.mock('../../pages/landing_page/landing_page.css', () => ({}))
+jest.mock('../pages/landing_page/landing_page.css', () => ({}))
 
 // Mock Navbar so the test is isolated to LandingPage only
-jest.mock('../../components/nav_bar/nav_bar.js', () => {
+jest.mock('../components/nav_bar/nav_bar.js', () => {
 	const MockNavbar = () => <nav data-testid="mock-navbar" />
 	MockNavbar.displayName = 'MockNavbar'
 	return MockNavbar
