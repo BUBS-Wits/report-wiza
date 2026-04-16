@@ -19,9 +19,12 @@ function App() {
 				<Route path="/dashboard" element={<PublicDashboard />} />
 				<Route path="/request" element={<RequestPage />} />
 				<Route path="/login" element={<Login />} />
-        <Route path="/admin/category-report" element={<CategoryReport />} />
-      </Routes>
-    </BrowserRouter>
-  )
+				<Route
+					path="/admin/category-report"
+					element={<CategoryReport />}
+				/>
+			</Routes>
+		</BrowserRouter>
+	)
 }
 export default App
