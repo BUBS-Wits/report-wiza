@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, addDoc, getDoc, doc } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { collection, setDoc, getDoc, doc } from 'firebase/firestore'
 import { auth, db, storage } from '../../../firebase_config.js'
 import YellowBtn from '../../../components/buttons/yellow_btn.js'
 
@@ -9,7 +8,34 @@ function ClaimBtn({ request_id }) {
 	const [claiming, set_claiming] = useState(0)
 	const navigate = useNavigate()
 
-	function on_claim() {}
+	async function on_claim() {
+		if (!auth || !auth.currentUser || !auth.currentUser.uid) {
+			return
+		}
+		set_claiming(1)
+		try {
+			const user_creq_ref = doc(db, 'claimed_requests', request_id)
+			if (!(await getDoc(user_creq_ref)).exists()) {
+				throw new Error(
+					`Service request "${request_id}" already claimed.`
+				)
+			}
+			const user_sreq_ref = doc(db, 'service_requests', request_id)
+			if (!(await getDoc(user_sreq_ref)).exists()) {
+				throw new Error(
+					`Service request "${request_id}" does not exist.`
+				)
+			}
+			setDoc(user_creq_ref, {
+				worker_id: auth.currentUser.uid,
+			})
+		} catch (err) {
+			console.error(`Failed to claim request "${request_id}"`)
+			console.error(err)
+		} finally {
+			set_claiming(0)
+		}
+	}
 
 	return (
 		<YellowBtn
