@@ -1,6 +1,6 @@
 // src/pages/admin/components/register_worker.js
 import React, { useState } from 'react'
-import { register_worker_email } from '../../../backend/admin_firebase.js'
+import { register_worker_email } from '../../backend/admin_firebase.js'
 import './register_worker.css'
 
 function RegisterWorker({ on_registered }) {
