@@ -30,8 +30,12 @@ function ResidentRequests() {
 		loadRequests()
 	}, [])
 
-	if (loading) return <div className="loading">Loading your requests...</div>
-	if (error) return <div className="error">{error}</div>
+	if (loading) {
+		return <div className="loading">Loading your requests...</div>
+	}
+	if (error) {
+		return <div className="error">{error}</div>
+	}
 	if (requests.length === 0) {
 		return (
 			<div className="empty">

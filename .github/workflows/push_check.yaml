@@ -6,6 +6,34 @@ on:
       - main
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: "npm"
+      - name: Install Dependencies
+        run: npm install
+      - name: Linting
+        run: npm run lint 
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: "npm"
+      - name: Install Dependencies
+        run: npm install
+      - name: Format Check
+        run: npm run format:check 
   test:
     runs-on: ubuntu-latest
     steps:
@@ -20,7 +48,6 @@ jobs:
         run: npm install
       - name: Testing
         run: npm run test
-
   test-coverage:
     runs-on: ubuntu-latest
     steps:
@@ -35,7 +62,6 @@ jobs:
         run: npm install
       - name: Test Coverage
         run: npm run test:coverage 
-
   build:
     runs-on: ubuntu-latest
     steps:
