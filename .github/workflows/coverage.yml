@@ -1,14 +1,31 @@
-// vite.config.js
-import { defineConfig } from "vite";
-import { codecovVitePlugin } from "@codecov/vite-plugin";
+name: Test Coverage
 
-export default defineConfig({
-  plugins: [
-    // Put the Codecov vite plugin after all other plugins
-    codecovVitePlugin({
-      enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-      bundleName: "<bundle project name>",
-      uploadToken: process.env.CODECOV_TOKEN,
-    }),
-  ],
-});
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x' 
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Run Jest tests with coverage flag and disable watch mode for CI
+      - name: Run Tests
+        run: npm test -- --coverage --watchAll=false
+
+      # Upload the results to Codecov
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
