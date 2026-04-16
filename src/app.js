@@ -9,17 +9,17 @@ import RequestPage from './pages/request/request_page.js'
 import './app.css'
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/dashboard" element={<PublicDashboard />} />
+	return (
+		<BrowserRouter>
+			<Routes>
+				<Route path="/" element={<LandingPage />} />
+				<Route path="/about" element={<About />} />
+				<Route path="/contact" element={<Contact />} />
+				<Route path="/dashboard" element={<PublicDashboard />} />
 				<Route path="/request" element={<RequestPage />} />
 				<Route path="/login" element={<Login />} />
-      </Routes>
-    </BrowserRouter>
-  )
+			</Routes>
+		</BrowserRouter>
+	)
 }
 export default App
