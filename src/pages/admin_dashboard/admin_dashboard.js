@@ -1,7 +1,3 @@
-// src/pages/admin/admin_dashboard.js
-// Main admin dashboard — assembles all components.
-// Teammates plug their sections in where the placeholders are.
-
 import React, { useState, useEffect } from 'react'
 import {
 	fetch_workers,
