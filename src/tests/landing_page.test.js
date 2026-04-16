@@ -11,7 +11,7 @@ import LandingPage from '../../pages/landing_page/landing_page.js'
 jest.mock('./landing_page.css', () => ({}), { virtual: true })
 
 // Mock Navbar so the test is isolated to LandingPage only
-jest.mock('../../components/nav_bar/nav_bar.js', () => {
+jest.mock('../components/nav_bar/nav_bar.js', () => {
 	const MockNavbar = () => <nav data-testid="mock-navbar" />
 	MockNavbar.displayName = 'MockNavbar'
 	return MockNavbar
