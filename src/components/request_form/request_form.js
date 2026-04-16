@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Request } from '../../pages/request/js/request.js'
+import { Request } from '../../pages/request/request.js'
 import { get_data_uri, image_validate } from '../../js/utility.js'
 import { WARD_API } from '../../constants.js'
 import CategorySelect from '../category_select/category_select.js'

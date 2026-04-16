@@ -1,5 +1,5 @@
-import { WARD_API } from '../../../constants.js'
-import { get_data_uri, image_validate } from '../../../js/utility.js'
+import { WARD_API } from '../../constants.js'
+import { get_data_uri, image_validate } from '../../js/utility.js'
 
 export class Request {
 	constructor(
