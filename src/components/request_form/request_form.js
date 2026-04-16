@@ -41,6 +41,7 @@ function RequestForm({ onSubmit }) {
 		<form className="request_form" onSubmit={handle_submit}>
 			<CategorySelect value={category} onChange={set_category} />
 			<textarea
+				data-testid="description-input" // <-- ADD THIS LINE
 				required
 				cols="30"
 				rows="10"
