@@ -1,19 +1,37 @@
 import { Request } from './request.js'
 
 let TESTS = []
+const [longitude, latitude] = [-28.14, 26.02]
+const tmp_loc = {
+	m_id: 10,
+	m_code: 'test_mcode',
+	m_name: 'test_mname',
+	province: 'test_prov',
+	ward: 'test_ward',
+}
 
 test('input_validation_pass', async () => {
 	const tmp = new Request(
 		'Water',
 		'water leakage.',
-		'data:image/jpeg;hello=world;that=joke,thisisanexample...'
+		'data:image/jpeg;hello=world;that=joke,thisisanexample...',
+		longitude,
+		latitude,
+		tmp_loc
 	)
 	expect(tmp.input_validate()).toEqual(true)
 	expect(await tmp.image_validate()).toEqual(true)
 })
 
 test('input_validation_fail', async () => {
-	const tmp = new Request(undefined, undefined, undefined)
+	const tmp = new Request(
+		undefined,
+		undefined,
+		undefined,
+		undefined,
+		undefined,
+		undefined
+	)
 	expect(tmp.input_validate()).not.toEqual(true)
 	expect(await tmp.image_validate()).not.toEqual(true)
 })
@@ -30,7 +48,14 @@ TESTS = [
 ]
 TESTS.forEach((uri, index) => {
 	test(`image_validation_pass #${index + 1}`, async () => {
-		const tmp = new Request('water', 'water leakage.', uri)
+		const tmp = new Request(
+			'water',
+			'water leakage.',
+			uri,
+			longitude,
+			latitude,
+			tmp_loc
+		)
 		expect(tmp.input_validate()).toEqual(true)
 		expect(await tmp.image_validate()).toEqual(true)
 	})
@@ -49,7 +74,14 @@ TESTS = [
 ]
 TESTS.forEach((uri, index) => {
 	test(`image_validation_fail #${index + 1}`, async () => {
-		const tmp = new Request('water', 'water leakage.', uri)
+		const tmp = new Request(
+			'water',
+			'water leakage.',
+			uri,
+			longitude,
+			latitude,
+			tmp_loc
+		)
 		expect(await tmp.image_validate()).not.toEqual(true)
 	})
 })
@@ -58,7 +90,10 @@ test('request_stringify_pass', async () => {
 	const tmp = new Request(
 		'Water',
 		'water leakage.',
-		'data:image/jpeg;base64,/9j/4AAQ...'
+		'data:image/jpeg;base64,/9j/4AAQ...',
+		longitude,
+		latitude,
+		tmp_loc
 	)
 	expect(tmp.input_validate()).toEqual(true)
 	expect(await tmp.image_validate()).toEqual(true)
