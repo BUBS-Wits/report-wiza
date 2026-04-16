@@ -7,11 +7,11 @@ import {
 	fetch_workers,
 	revoke_worker_role,
 } from '../../backend/admin_firebase.js'
-import Sidebar from './components/sidebar.js'
-import TopBar from './components/top_bar.js'
-import StatCards from './components/stat_cards.js'
-import RegisterWorker from './components/register_worker.js'
-import WorkersList from './components/workers_list.js'
+import Sidebar from '../../components/sidebar/sidebar.js'
+import TopBar from '../../components/top_bar/top_bar.js'
+import StatCards from '../../components/stat_cards/stat_cards.js'
+import RegisterWorker from '../../components/register_worker/register_worker.js'
+import WorkersList from '../../components/workers_list/workers_list.js'
 import './admin_dashboard.css'
 
 function AdminDashboard() {
