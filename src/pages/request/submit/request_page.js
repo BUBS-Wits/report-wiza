@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { collection, setDoc, getDoc, doc } from 'firebase/firestore'
 import { auth, db, storage } from '../../../firebase_config.js'
 import { get_date } from '../../../js/utility.js'
-import { PLACEHOLDER_IMAGE } from '../../../constants.js'
+import { WARD_API, PLACEHOLDER_IMAGE } from '../../../constants.js'
 import Navbar from '../../../components/nav_bar/nav_bar.js'
 import RequestForm from '../../../components/request_form/request_form.js'
 import './request_page.css'
@@ -45,23 +45,22 @@ function RequestPage() {
 		}
 		try {
 			// TODO: Add uploading of image to some storage bucket
-			const now = new Date(Date.now())
-			const d = get_date(now)
-			const new_doc_ref = doc(collection(db, 'service_requests'))
-			const timestamp = `${d.year}${d.month}${d.day}${d.hours}${d.minutes}${d.seconds}`
-			const my_new_id = `${timestamp}_${new_doc_ref.id}`
-			await setDoc(doc(db, 'service_requests', my_new_id), {
-				user_id: auth.currentUser.uid,
-				category: request.category,
-				description: request.description,
-				image_url: PLACEHOLDER_IMAGE,
-				location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
-				sa_ward: request.get_ward(),
-				status: 'pending',
-				created_at: now.toUTCString(),
+			request.set_placeholder_image()
+			const token = await auth.currentUser.getIdToken()
+			const req = await fetch('/api/submit-request', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: request.to_string(),
 			})
-
-			alert('Upload successful!')
+			if (!req.ok) {
+				alert('Failed to submit request. Browse console logs.')
+				console.error('Failed:\n', await req.json())
+			}
+			alert('Request successfully submitted.')
+			console.log(await req.json())
 		} catch (e) {
 			console.error('Error during upload:', e)
 		}
