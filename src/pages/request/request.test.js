@@ -100,6 +100,12 @@ test('request_stringify_pass', async () => {
 	expect(tmp.input_validate()).toEqual(true)
 	expect(await tmp.image_validate()).toEqual(true)
 	expect(tmp.to_string()).toEqual(
-		'{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ..."}'
+		`{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ...","longitude":${longitude},"latitude":${latitude},"loc_info":${JSON.stringify(tmp_loc)}}`
+	)
+	const tmp2 = new Request(tmp.to_json())
+	expect(tmp2.input_validate()).toEqual(true)
+	expect(await tmp2.image_validate()).toEqual(true)
+	expect(tmp2.to_string()).toEqual(
+		`{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ...","longitude":${longitude},"latitude":${latitude},"loc_info":${JSON.stringify(tmp_loc)}}`
 	)
 })

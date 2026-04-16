@@ -6,6 +6,12 @@ export async function image_validate(image) {
 	}
 	let image_uri =
 		typeof image === 'string' ? image : await get_data_uri(image)
+	if (!image_uri) {
+		return false
+	}
+	if (/^(https:\/\/|http:\/\/|ftp:\/\/)/.test(image)) {
+		return true
+	}
 	image_uri = image_uri.trim()
 	const image_media_types_suffix = ['jpeg', 'jpg', 'png']
 	const image_data_uri_regex = new RegExp(
@@ -16,6 +22,9 @@ export async function image_validate(image) {
 }
 
 export async function get_data_uri(file) {
+	if (typeof file !== 'object') {
+		return null
+	}
 	if (typeof window !== 'undefined') {
 		// native browser
 		return new Promise((resolve) => {

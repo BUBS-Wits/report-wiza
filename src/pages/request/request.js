@@ -1,21 +1,33 @@
-import { WARD_API } from '../../constants.js'
 import { get_data_uri, image_validate } from '../../js/utility.js'
+import { PLACEHOLDER_IMAGE } from '../../constants.js'
 
 export class Request {
 	constructor(
 		category,
-		description,
-		image,
-		longitude,
-		latitude,
-		location_info
+		description = undefined,
+		image = undefined,
+		longitude = undefined,
+		latitude = undefined,
+		location_info = undefined
 	) {
-		this.category = category ? category.trim() : null
-		this.description = description ? description.trim() : null
-		this.image = image
-		this.longitude = longitude
-		this.latitude = latitude
-		this.loc_info = location_info
+		try {
+			if (typeof category === 'string') {
+				this.category = category?.trim()
+				this.description = description?.trim()
+				this.image = image
+				this.longitude = longitude
+				this.latitude = latitude
+				this.loc_info = location_info
+			} else if (typeof category === 'object') {
+				const json = category
+				this.category = json.category?.trim()
+				this.description = json.description?.trim()
+				this.image = json.image
+				this.longitude = json.longitude
+				this.latitude = json.latitude
+				this.loc_info = json.loc_info
+			}
+		} catch (err) {}
 	}
 
 	async image_validate() {
@@ -49,6 +61,9 @@ export class Request {
 			category: this.category,
 			description: this.description,
 			image: this.image,
+			longitude: this.longitude,
+			latitude: this.latitude,
+			loc_info: this.loc_info,
 		}
 	}
 
@@ -81,5 +96,9 @@ export class Request {
 			return false
 		}
 		return true
+	}
+
+	set_placeholder_image() {
+		this.image = PLACEHOLDER_IMAGE
 	}
 }
