@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { REQUEST_CATEGORIES } from '../../constants.js'
-import CategoryOption from './category_option.js'
+import CategoryOption from '../category_option/category_option.js'
 import './category_select.css'
 
 function CategorySelect({ value, onChange }) {
