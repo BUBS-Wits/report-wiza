@@ -8,7 +8,9 @@ form.request_form {
 	border-radius: 12px;
 }
 
-form.request_form textarea, form.request_form label, form.request_form .dropdown_trigger {
+form.request_form textarea,
+form.request_form label,
+form.request_form .dropdown_trigger {
 	width: 100%;
 }
 
@@ -37,16 +39,16 @@ form.request_form label {
 	transition: all 0.2s ease;
 }
 
-form.request_form label[for="image"]:hover {
+form.request_form label[for='image']:hover {
 	background-color: rgba(51, 65, 85, 0.7);
 	transform: translateY(-1px);
 }
 
-form.request_form label[for="image"]:active {
+form.request_form label[for='image']:active {
 	transform: translateY(0);
 }
 
-form.request_form input[type="file"] {
+form.request_form input[type='file'] {
 	display: none;
 }
 

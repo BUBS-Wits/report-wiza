@@ -85,7 +85,7 @@ function RequestForm({ onSubmit }) {
 					style={{ display: 'block', maxWidth: '300px' }}
 				/>
 			)}
-			<span id='file_name'>{ file?.name || "No file chosen" }</span>
+			<span id="file_name">{file?.name || 'No file chosen'}</span>
 			<label htmlFor="image">
 				Choose an image to upload (PNG, JPEG, JPG)
 			</label>
