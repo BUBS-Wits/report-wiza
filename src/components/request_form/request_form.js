@@ -12,6 +12,7 @@ function RequestForm({ onSubmit }) {
 	const [description, set_description] = useState('')
 	const [file, set_file] = useState(null)
 	const [preview, set_preview] = useState(null)
+	const [submitting, set_submitting] = useState(0)
 
 	function get_voting_district_info(longitude, latitude) {
 		return fetch(`${WARD_API}latitude=${latitude}&longitude=${longitude}`, {
@@ -67,6 +68,7 @@ function RequestForm({ onSubmit }) {
 			console.error('Please provide complete information.')
 			return
 		}
+		set_submitting(1)
 		try {
 			const [longitude, latitude] = await get_location()
 			const loc_info = await get_voting_district_info(longitude, latitude)
@@ -85,6 +87,8 @@ function RequestForm({ onSubmit }) {
 		} catch (err) {
 			console.error('Failed to handle submit of request form.')
 			console.error(err)
+		} finally {
+			set_submitting(0)
 		}
 	}
 
@@ -127,7 +131,10 @@ function RequestForm({ onSubmit }) {
 				accept="image/png, image/jpeg, image/jpg"
 				onChange={handle_image_change}
 			/>
-			<YellowBtn text="Submit" onClick={() => {}} />
+			<YellowBtn
+				text={submitting ? 'Loading' : 'Submit'}
+				onClick={() => {}}
+			/>
 		</form>
 	)
 }

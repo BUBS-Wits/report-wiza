@@ -1,10 +1,46 @@
 button.btn_components {
 	font-size: 1.3rem;
-	padding: 0.6rem;
 	border-radius: 0.7rem;
 	cursor: pointer;
 	padding: 0.4rem 3rem;
 	border: 0;
+	pointer-events: auto;
+}
+
+button.btn_components.loading {
+	color: transparent !important;
+	pointer-events: none;
+}
+
+button.btn_components.loading::after {
+	content: '';
+	background: rgba(245, 245, 245, 0.8);
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100vw;
+	height: 100vh;
+	box-sizing: border-box;
+	border: 3px solid transparent;
+	border-top-color: #ffffff;
+	border-radius: 50%;
+	animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+button.btn_components.loading {
+	color: transparent;
+	pointer-events: none; /* Prevent double clicks */
 }
 
 button.btn_components.yellow_button {

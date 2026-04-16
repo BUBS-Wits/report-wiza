@@ -3,7 +3,13 @@ import './button.css'
 
 function YellowBtn({ text, onClick }) {
 	return (
-		<button className="btn_components yellow_button" onClick={onClick}>
+		<button
+			className={
+				'btn_components yellow_button' +
+				(text === 'Loading' ? ' loading' : '')
+			}
+			onClick={onClick}
+		>
 			{text}
 		</button>
 	)
