@@ -8,7 +8,7 @@ import {
 	compute_summary,
 	format_resolution_time,
 	get_resolution_class,
-} from './category_report_service.js'
+} from '../../backend/category_report_service.js'
 import './category_report.css'
 
 function CategoryReport() {
