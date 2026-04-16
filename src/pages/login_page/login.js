@@ -45,11 +45,11 @@ function Login() {
 			const role = user_snap.exists() ? user_snap.data().role : 'resident'
 
 			if (role === 'admin') {
-				navigate('/admin')
+				navigate('/')
 			} else if (role === 'worker') {
-				navigate('/worker')
+				navigate('/')
 			} else {
-				navigate('/resident')
+				navigate('/')
 			}
 		} catch (err) {
 			if (err.code !== 'auth/popup-closed-by-user') {
