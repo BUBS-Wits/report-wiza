@@ -1,7 +1,7 @@
 import { Request } from './request.js'
 
 let TESTS = []
-const [longitude, latitude] = [-28.14, 26.02]
+const [longitude, latitude] = [-5, 5]
 const tmp_loc = {
 	m_id: 10,
 	m_code: 'test_mcode',
@@ -85,6 +85,7 @@ TESTS.forEach((uri, index) => {
 			tmp_loc
 		)
 		expect(await tmp.image_validate()).not.toEqual(true)
+		tmp.set_placeholder_image()
 	})
 })
 
