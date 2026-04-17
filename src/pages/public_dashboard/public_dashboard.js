@@ -1,6 +1,75 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
 import RequestCard from '../../components/request_card.js'
 import './public_dashboard.css'
+
+delete L.Icon.Default.prototype._getIconUrl
+
+L.Icon.Default.mergeOptions({
+	iconRetinaUrl:
+		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+	iconUrl:
+		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+	shadowUrl:
+		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
+
+const openIcon = new L.Icon({
+	iconUrl:
+		'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
+	shadowUrl:
+		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+	iconSize: [25, 41],
+	iconAnchor: [12, 41],
+	popupAnchor: [1, -34],
+	shadowSize: [41, 41],
+})
+
+const inProgressIcon = new L.Icon({
+	iconUrl:
+		'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+	shadowUrl:
+		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+	iconSize: [25, 41],
+	iconAnchor: [12, 41],
+	popupAnchor: [1, -34],
+	shadowSize: [41, 41],
+})
+
+const resolvedIcon = new L.Icon({
+	iconUrl:
+		'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+	shadowUrl:
+		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+	iconSize: [25, 41],
+	iconAnchor: [12, 41],
+	popupAnchor: [1, -34],
+	shadowSize: [41, 41],
+})
+
+function FixMapSize() {
+	const map = useMap()
+
+	useEffect(() => {
+		setTimeout(() => {
+			map.invalidateSize()
+		}, 100)
+	}, [map])
+
+	return null
+}
+
+function getStatusIcon(status) {
+	const formattedStatus = status.toLowerCase()
+
+	if (formattedStatus === 'open') return openIcon
+	if (formattedStatus === 'in progress') return inProgressIcon
+	if (formattedStatus === 'resolved') return resolvedIcon
+
+	return inProgressIcon
+}
 
 function PublicDashboard() {
 	const openRequests = [
@@ -12,6 +81,8 @@ function PublicDashboard() {
 			municipality: 'City of Johannesburg',
 			description:
 				'Large pothole causing traffic delays near the intersection.',
+			latitude: -26.2044,
+			longitude: 28.0456,
 		},
 		{
 			id: 2,
@@ -20,6 +91,8 @@ function PublicDashboard() {
 			ward: 'Ward 8',
 			municipality: 'City of Johannesburg',
 			description: 'Burst pipe reported outside a residential area.',
+			latitude: -26.1958,
+			longitude: 28.0342,
 		},
 		{
 			id: 3,
@@ -29,6 +102,8 @@ function PublicDashboard() {
 			municipality: 'City of Johannesburg',
 			description:
 				'Power outage affecting multiple streets since early morning.',
+			latitude: -26.1912,
+			longitude: 28.0551,
 		},
 		{
 			id: 4,
@@ -38,6 +113,8 @@ function PublicDashboard() {
 			municipality: 'City of Johannesburg',
 			description:
 				'Overflowing refuse site reported near a school entrance.',
+			latitude: -26.2089,
+			longitude: 28.0614,
 		},
 	]
 
@@ -49,6 +126,8 @@ function PublicDashboard() {
 			ward: 'Ward 5',
 			municipality: 'City of Johannesburg',
 			description: 'Illegal dumping site cleared by the municipal team.',
+			latitude: -26.2015,
+			longitude: 28.0281,
 		},
 		{
 			id: 6,
@@ -57,6 +136,8 @@ function PublicDashboard() {
 			ward: 'Ward 3',
 			municipality: 'City of Johannesburg',
 			description: 'Streetlight outage fixed in the area.',
+			latitude: -26.2132,
+			longitude: 28.0397,
 		},
 		{
 			id: 7,
@@ -65,12 +146,16 @@ function PublicDashboard() {
 			ward: 'Ward 2',
 			municipality: 'City of Johannesburg',
 			description: 'Water leak repaired outside a community clinic.',
+			latitude: -26.1874,
+			longitude: 28.0488,
 		},
 	]
 
 	const wardsAffected = new Set(
 		[...openRequests, ...resolvedRequests].map((request) => request.ward)
 	).size
+
+	const allRequests = [...openRequests, ...resolvedRequests]
 
 	return (
 		<div className="public_dashboard">
@@ -106,12 +191,59 @@ function PublicDashboard() {
 					<h2>Ward Map Overview</h2>
 					<span className="section_tag">Coming soon</span>
 				</div>
-				<div className="map_placeholder">
-					<p>Map and ward boundary overlay will appear here.</p>
-					<span>
-						This public dashboard will later display issue locations
-						on a ward map.
-					</span>
+
+				<div className="map_container">
+					<MapContainer
+						center={[-26.2041, 28.0473]}
+						zoom={13}
+						scrollWheelZoom={false}
+						className="leaflet_map"
+					>
+						<FixMapSize />
+
+						<TileLayer
+							attribution="&copy; OpenStreetMap contributors"
+							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+						/>
+
+						{allRequests.map((request) => (
+							<Marker
+								key={request.id}
+								position={[request.latitude, request.longitude]}
+                icon={getStatusIcon(request.status)}
+
+							>
+								<Popup>
+									<div>
+										<strong>{request.category}</strong>
+										<br />
+										Status: {request.status}
+										<br />
+										{request.ward}
+										<br />
+										{request.municipality}
+										<br />
+										{request.description}
+									</div>
+								</Popup>
+							</Marker>
+						))}
+					</MapContainer>
+
+          <div className="map_legend">
+						<div className="legend_item">
+							<span className="legend_dot legend_open"></span>
+							<span>Open</span>
+						</div>
+						<div className="legend_item">
+							<span className="legend_dot legend_progress"></span>
+							<span>In Progress</span>
+						</div>
+						<div className="legend_item">
+							<span className="legend_dot legend_resolved"></span>
+							<span>Resolved</span>
+						</div>
+					</div>
 				</div>
 			</section>
 
