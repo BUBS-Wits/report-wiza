@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import RequestCard from '../../components/request_card.js'
 import './public_dashboard.css'
+import * as esri from 'esri-leaflet'
 
 delete L.Icon.Default.prototype._getIconUrl
 
@@ -57,6 +58,67 @@ function FixMapSize() {
 			map.invalidateSize()
 		}, 100)
 	}, [map])
+
+	return null
+}
+
+function WardBoundaries() {
+	const map = useMap()
+
+	useEffect(() => {
+		const wardLayer = esri
+			.featureLayer({
+				url: 'https://services7.arcgis.com/oeoyTUJC8HEeYsRB/arcgis/rest/services/SA_Wards2020/FeatureServer/0',
+				style: () => ({
+					color: '#f59e0b',
+					weight: 2,
+					fillColor: '#f59e0b',
+					fillOpacity: 0.08,
+				}),
+			})
+			.bindPopup((layer) => {
+				const props = layer.feature?.properties || {}
+
+				return `
+					<div>
+						<strong>${props.WardLabel || `Ward ${props.WardNo || 'Unknown'}`}</strong><br />
+						Ward Number: ${props.WardNo || 'N/A'}<br />
+						Municipality: ${props.Municipali || 'N/A'}<br />
+						Province: ${props.Province || 'N/A'}
+					</div>
+				`
+			})
+			.on('mouseover', (event) => {
+				event.layer.setStyle({
+					weight: 6,
+					fillOpacity: 0.18,
+				})
+			})
+			.on('mouseout', (event) => {
+				wardLayer.resetStyle(event.layer)
+			})
+			.addTo(map)
+
+		return () => {
+			map.removeLayer(wardLayer)
+		}
+	}, [map])
+
+	return null
+}
+
+function FitMapToRequests({ requests }) {
+	const map = useMap()
+
+	useEffect(() => {
+		if (!requests.length) return
+
+		const bounds = L.latLngBounds(
+			requests.map((request) => [request.latitude, request.longitude])
+		)
+
+		map.fitBounds(bounds, { padding: [40, 40] })
+	}, [map, requests])
 
 	return null
 }
@@ -196,10 +258,12 @@ function PublicDashboard() {
 					<MapContainer
 						center={[-26.2041, 28.0473]}
 						zoom={13}
-						scrollWheelZoom={false}
+						scrollWheelZoom={true}
 						className="leaflet_map"
 					>
 						<FixMapSize />
+            <WardBoundaries />
+            <FitMapToRequests requests={allRequests} />
 
 						<TileLayer
 							attribution="&copy; OpenStreetMap contributors"

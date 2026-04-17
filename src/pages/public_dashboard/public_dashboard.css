@@ -105,6 +105,11 @@
 	background: #1e293b;
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 	min-height: 360px;
+	cursor: grab;
+}
+
+.map_container:active {
+	cursor: grabbing;
 }
 
 .map_legend {
@@ -115,6 +120,8 @@
 	background: #1e293b;
 	border-top: 1px solid #334155;
 }
+
+
 
 .legend_item {
 	display: flex;
