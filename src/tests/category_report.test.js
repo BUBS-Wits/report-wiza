@@ -23,6 +23,18 @@ jest.mock('../firebase_config.js', () => ({
 	auth: {},
 }))
 
+jest.mock('../components/sidebar/sidebar.js', () => {
+	return function MockSidebar() {
+		return <div data-testid="mock-sidebar">Sidebar</div>
+	}
+})
+
+jest.mock('../components/top_bar/top_bar.js', () => {
+	return function MockTopBar({ active_section }) {
+		return <div data-testid="mock-top-bar">{active_section}</div>
+	}
+})
+
 const mock_navigate = jest.fn()
 jest.mock(
 	'react-router-dom',
@@ -221,10 +233,10 @@ describe('CategoryReport', () => {
 			it('Then it should display the correct summary totals', async () => {
 				render_report()
 
-				// Wait for the loading state to finish and dashboard to mount
+				// Wait for the loading state to finish by checking for the summary grid
 				await waitFor(() => {
 					expect(
-						screen.getByText('Request Volume & Resolution Report')
+						screen.getByText('Total Requests')
 					).toBeInTheDocument()
 				})
 
