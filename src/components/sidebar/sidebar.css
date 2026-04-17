@@ -1,0 +1,174 @@
+/* src/pages/admin/components/sidebar.css */
+
+.sidebar {
+	width: 220px;
+	background: #0f1f3d;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	min-height: 100vh;
+}
+
+.sidebar_logo {
+	padding: 20px 20px 16px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar_logo_text {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 22px;
+	font-weight: 700;
+	color: #fff;
+	letter-spacing: 0.04em;
+}
+
+.sidebar_logo_text span {
+	color: #f59e0b;
+}
+
+.sidebar_role {
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.4);
+	margin-top: 2px;
+}
+
+.sidebar_nav {
+	padding: 12px 0;
+	flex: 1;
+}
+
+.sidebar_section {
+	font-size: 10px;
+	font-weight: 500;
+	color: rgba(255, 255, 255, 0.3);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	padding: 12px 20px 6px;
+}
+
+.sidebar_item {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	padding: 9px 20px;
+	font-size: 13px;
+	font-family: 'DM Sans', sans-serif;
+	color: rgba(255, 255, 255, 0.6);
+	background: transparent;
+	border: none;
+	border-left: 2px solid transparent;
+	cursor: pointer;
+	transition: all 0.15s;
+	text-align: left;
+}
+
+.sidebar_item:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.06);
+	color: #fff;
+}
+
+.sidebar_item.active {
+	background: rgba(245, 158, 11, 0.15);
+	color: #f59e0b;
+	border-left: 2px solid #f59e0b;
+}
+
+.sidebar_item:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+.sidebar_soon {
+	font-size: 10px;
+	margin-left: auto;
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.3);
+	padding: 2px 6px;
+	border-radius: 99px;
+}
+
+.sidebar_bottom {
+	padding: 16px 20px;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sidebar_avatar {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: #1a3260;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 500;
+	color: #f59e0b;
+	flex-shrink: 0;
+}
+
+.sidebar_user_info {
+	flex: 1;
+	min-width: 0;
+}
+
+.sidebar_user_name {
+	font-size: 12px;
+	color: #fff;
+	font-weight: 500;
+}
+
+.sidebar_user_role {
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.4);
+}
+
+/* src/components/sidebar/sidebar.css */
+
+/* Aligns the arrow to the right side of the button */
+.sidebar_dropdown_container .sidebar_item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+}
+
+.sidebar_dropdown_arrow {
+	font-size: 0.75rem;
+	opacity: 0.6;
+}
+
+/* Indent the nested items slightly */
+.sidebar_sub_menu {
+	display: flex;
+	flex-direction: column;
+	padding-left: 1.5rem;
+	margin-top: 0.25rem;
+	gap: 0.25rem;
+}
+
+.sidebar_sub_item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.5rem 1rem;
+	border-radius: 6px;
+	font-size: 0.9rem;
+	color: var(--text-secondary); /* Adjust to match your theme */
+	text-decoration: none;
+	border: none;
+	background: none;
+	cursor: pointer;
+	text-align: left;
+}
+
+.sidebar_sub_item:hover:not(:disabled) {
+	background-color: var(--hover-bg); /* Adjust to match your theme */
+}
+
+.sidebar_sub_item.active {
+	background-color: var(--primary-color); /* Adjust to match your theme */
+	color: white;
+}

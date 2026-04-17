@@ -1,6 +1,6 @@
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
-import { db } from '../../firebase_config.js'
-import { REQUEST_CATEGORIES } from '../../constants.js'
+import { db } from '../firebase_config.js'
+import { REQUEST_CATEGORIES } from '../constants.js'
 
 export const verify_admin = async (uid) => {
 	const user_doc = await getDoc(doc(db, 'users', uid))
