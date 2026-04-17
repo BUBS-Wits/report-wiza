@@ -1,4 +1,4 @@
-import { WARD_API } from '../constants.js'
+import { WARD_API } from './constants.js'
 
 export async function image_validate(image) {
 	if (!image) {

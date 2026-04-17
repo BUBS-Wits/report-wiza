@@ -19,9 +19,9 @@ import {
 	image_validate,
 	get_location,
 	get_voting_district_info,
-} from '../js/utility.js'
+} from '../utility.js'
 
-jest.mock('../js/utility.js', () => ({
+jest.mock('../utility.js', () => ({
 	get_data_uri: jest.fn(),
 	image_validate: jest.fn(),
 	get_location: jest.fn(),

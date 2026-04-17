@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
 import { Request } from './src/pages/request/request.js'
-import { get_date } from './src/js/utility.js'
+import { get_date } from './src/utility.js'
 
 /********************* Setup *********************/
 

@@ -5,7 +5,7 @@ import {
 	image_validate,
 	get_location,
 	get_voting_district_info,
-} from '../../js/utility.js'
+} from '../../utility.js'
 import { WARD_API } from '../../constants.js'
 import CategorySelect from '../category_select/category_select.js'
 import YellowBtn from '../buttons/yellow_btn.js'

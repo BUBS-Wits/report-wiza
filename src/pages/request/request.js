@@ -1,4 +1,4 @@
-import { get_data_uri, image_validate } from '../../js/utility.js'
+import { get_data_uri, image_validate } from '../../utility.js'
 import { PLACEHOLDER_IMAGE } from '../../constants.js'
 
 export class Request {
