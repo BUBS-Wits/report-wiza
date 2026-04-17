@@ -1,10 +1,5 @@
 import React from 'react'
-import {
-	render,
-	screen,
-	waitFor,
-	fireEvent,
-} from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import RequestForm from '../components/request_form/request_form.js'
 
@@ -91,14 +86,7 @@ describe('RequestForm', () => {
 		})
 
 		Request.mockImplementation(
-			(
-				category,
-				description,
-				file,
-				longitude,
-				latitude,
-				loc_info
-			) => ({
+			(category, description, file, longitude, latitude, loc_info) => ({
 				category,
 				description,
 				file,
@@ -106,9 +94,7 @@ describe('RequestForm', () => {
 				latitude,
 				loc_info,
 				input_validate: jest.fn().mockReturnValue(true),
-				image_validate: jest
-					.fn()
-					.mockResolvedValue(true),
+				image_validate: jest.fn().mockResolvedValue(true),
 			})
 		)
 	})
@@ -125,18 +111,12 @@ describe('RequestForm', () => {
 	it('renders all fields', () => {
 		render(<RequestForm onSubmit={mock_on_submit} />)
 
-		expect(
-			screen.getByTestId('mock-category-select')
-		).toBeInTheDocument()
+		expect(screen.getByTestId('mock-category-select')).toBeInTheDocument()
+
+		expect(screen.getByTestId('description-input')).toBeInTheDocument()
 
 		expect(
-			screen.getByTestId('description-input')
-		).toBeInTheDocument()
-
-		expect(
-			screen.getByLabelText(
-				/Choose an image to upload/i
-			)
+			screen.getByLabelText(/Choose an image to upload/i)
 		).toBeInTheDocument()
 
 		expect(
@@ -158,28 +138,17 @@ describe('RequestForm', () => {
 		})
 
 		image_validate.mockResolvedValue(true)
-		get_data_uri.mockResolvedValue(
-			'data:image/png;base64,test'
-		)
+		get_data_uri.mockResolvedValue('data:image/png;base64,test')
 
-		fireEvent.change(
-			screen.getByLabelText(
-				/Choose an image to upload/i
-			),
-			{
-				target: { files: [file] },
-			}
-		)
-
-		await waitFor(() => {
-			expect(
-				screen.getByRole('img')
-			).toBeInTheDocument()
+		fireEvent.change(screen.getByLabelText(/Choose an image to upload/i), {
+			target: { files: [file] },
 		})
 
-		expect(
-			screen.getByRole('img')
-		).toHaveAttribute(
+		await waitFor(() => {
+			expect(screen.getByRole('img')).toBeInTheDocument()
+		})
+
+		expect(screen.getByRole('img')).toHaveAttribute(
 			'src',
 			'data:image/png;base64,test'
 		)
@@ -194,19 +163,12 @@ describe('RequestForm', () => {
 
 		image_validate.mockResolvedValue(false)
 
-		fireEvent.change(
-			screen.getByLabelText(
-				/Choose an image to upload/i
-			),
-			{
-				target: { files: [file] },
-			}
-		)
+		fireEvent.change(screen.getByLabelText(/Choose an image to upload/i), {
+			target: { files: [file] },
+		})
 
 		await waitFor(() => {
-			expect(
-				console_error_spy
-			).toHaveBeenCalledWith(
+			expect(console_error_spy).toHaveBeenCalledWith(
 				'Please provide a valid image.'
 			)
 		})
@@ -225,9 +187,7 @@ describe('RequestForm', () => {
 			})
 		)
 
-		expect(
-			console_error_spy
-		).toHaveBeenCalledWith(
+		expect(console_error_spy).toHaveBeenCalledWith(
 			'Please provide complete information.'
 		)
 
@@ -241,48 +201,29 @@ describe('RequestForm', () => {
 	it('submits valid request', async () => {
 		render(<RequestForm onSubmit={mock_on_submit} />)
 
-		fireEvent.change(
-			screen.getByTestId(
-				'mock-category-select'
-			),
-			{
-				target: { value: 'Potholes' },
-			}
-		)
+		fireEvent.change(screen.getByTestId('mock-category-select'), {
+			target: { value: 'Potholes' },
+		})
 
-		fireEvent.change(
-			screen.getByTestId(
-				'description-input'
-			),
-			{
-				target: {
-					value: 'Large pothole near road',
-				},
-			}
-		)
+		fireEvent.change(screen.getByTestId('description-input'), {
+			target: {
+				value: 'Large pothole near road',
+			},
+		})
 
 		const file = new File(['img'], 'road.png', {
 			type: 'image/png',
 		})
 
 		image_validate.mockResolvedValue(true)
-		get_data_uri.mockResolvedValue(
-			'data:image/png;base64,test'
-		)
+		get_data_uri.mockResolvedValue('data:image/png;base64,test')
 
-		fireEvent.change(
-			screen.getByLabelText(
-				/Choose an image to upload/i
-			),
-			{
-				target: { files: [file] },
-			}
-		)
+		fireEvent.change(screen.getByLabelText(/Choose an image to upload/i), {
+			target: { files: [file] },
+		})
 
 		await waitFor(() => {
-			expect(
-				screen.getByRole('img')
-			).toBeInTheDocument()
+			expect(screen.getByRole('img')).toBeInTheDocument()
 		})
 
 		fireEvent.click(
@@ -292,9 +233,7 @@ describe('RequestForm', () => {
 		)
 
 		await waitFor(() => {
-			expect(
-				mock_on_submit
-			).toHaveBeenCalledTimes(1)
+			expect(mock_on_submit).toHaveBeenCalledTimes(1)
 		})
 
 		expect(Request).toHaveBeenCalledWith(
@@ -315,56 +254,33 @@ describe('RequestForm', () => {
 
 	it('does not submit if Request input validation fails', async () => {
 		Request.mockImplementation(() => ({
-			input_validate: jest
-				.fn()
-				.mockReturnValue(false),
-			image_validate: jest
-				.fn()
-				.mockResolvedValue(true),
+			input_validate: jest.fn().mockReturnValue(false),
+			image_validate: jest.fn().mockResolvedValue(true),
 		}))
 
 		render(<RequestForm onSubmit={mock_on_submit} />)
 
-		fireEvent.change(
-			screen.getByTestId(
-				'mock-category-select'
-			),
-			{
-				target: { value: 'Roads' },
-			}
-		)
+		fireEvent.change(screen.getByTestId('mock-category-select'), {
+			target: { value: 'Roads' },
+		})
 
-		fireEvent.change(
-			screen.getByTestId(
-				'description-input'
-			),
-			{
-				target: { value: 'Broken road' },
-			}
-		)
+		fireEvent.change(screen.getByTestId('description-input'), {
+			target: { value: 'Broken road' },
+		})
 
 		const file = new File(['img'], 'road.png', {
 			type: 'image/png',
 		})
 
 		image_validate.mockResolvedValue(true)
-		get_data_uri.mockResolvedValue(
-			'data:image/png;base64,test'
-		)
+		get_data_uri.mockResolvedValue('data:image/png;base64,test')
 
-		fireEvent.change(
-			screen.getByLabelText(
-				/Choose an image to upload/i
-			),
-			{
-				target: { files: [file] },
-			}
-		)
+		fireEvent.change(screen.getByLabelText(/Choose an image to upload/i), {
+			target: { files: [file] },
+		})
 
 		await waitFor(() => {
-			expect(
-				screen.getByRole('img')
-			).toBeInTheDocument()
+			expect(screen.getByRole('img')).toBeInTheDocument()
 		})
 
 		fireEvent.click(
@@ -374,9 +290,7 @@ describe('RequestForm', () => {
 		)
 
 		await waitFor(() => {
-			expect(
-				mock_on_submit
-			).not.toHaveBeenCalled()
+			expect(mock_on_submit).not.toHaveBeenCalled()
 		})
 	})
 })
