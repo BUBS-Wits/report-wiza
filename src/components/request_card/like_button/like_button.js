@@ -24,7 +24,7 @@ const LikeButton = ({ requestId, initialLikeCount }) => {
       alert('Please log in to like requests.');
       return;
     }
-    if (loading) return;
+    if (loading) {return;}
     setLoading(true);
     try {
       if (userLiked) {

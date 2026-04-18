@@ -103,7 +103,7 @@ function WardBoundaries() {
 function FitMapToRequests({ requests }) {
   const map = useMap()
   useEffect(() => {
-    if (!requests.length) return
+    if (!requests.length) {return}
     const bounds = L.latLngBounds(requests.map(r => [r.latitude, r.longitude]))
     map.fitBounds(bounds, { padding: [40, 40] })
   }, [map, requests])
@@ -112,9 +112,9 @@ function FitMapToRequests({ requests }) {
 
 function getStatusIcon(status) {
   const s = status.toLowerCase()
-  if (s === 'open') return openIcon
-  if (s === 'in progress') return inProgressIcon
-  if (s === 'resolved') return resolvedIcon
+  if (s === 'open') {return openIcon}
+  if (s === 'in progress') {return inProgressIcon}
+  if (s === 'resolved') {return resolvedIcon}
   return inProgressIcon
 }
 
