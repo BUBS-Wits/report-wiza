@@ -43,7 +43,11 @@ function CategoryReport() {
 				set_loading(false)
 			}
 		})
-		return () => unsubscribe()
+		return () => {
+			if (typeof unsubscribe === 'function') {
+				unsubscribe()
+			}
+		}
 	}, [navigate])
 
 	const max_total = Math.max(...report_data.map((r) => r.total), 1)
