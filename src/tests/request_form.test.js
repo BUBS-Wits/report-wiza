@@ -95,11 +95,13 @@ describe('RequestForm', () => {
 				loc_info,
 				input_validate: jest.fn().mockReturnValue(true),
 				image_validate: jest.fn().mockResolvedValue(true),
+				loc_validate: jest.fn().mockResolvedValue(true),
 			})
 		)
 	})
 
 	afterEach(() => {
+		jest.clearAllMocks()
 		console_error_spy.mockRestore()
 		console_log_spy.mockRestore()
 	})
@@ -170,6 +172,92 @@ describe('RequestForm', () => {
 		await waitFor(() => {
 			expect(console_error_spy).toHaveBeenCalledWith(
 				'Please provide a valid image.'
+			)
+		})
+	})
+
+	it('rejects invalid failed get to get location', async () => {
+		render(<RequestForm onSubmit={mock_on_submit} />)
+
+		get_location.mockResolvedValue(undefined)
+
+		fireEvent.change(screen.getByTestId('mock-category-select'), {
+			target: { value: 'Potholes' },
+		})
+
+		fireEvent.change(screen.getByTestId('description-input'), {
+			target: {
+				value: 'Large pothole near road',
+			},
+		})
+
+		const file = new File(['img'], 'road.png', {
+			type: 'image/png',
+		})
+
+		image_validate.mockResolvedValue(true)
+		get_data_uri.mockResolvedValue('data:image/png;base64,test')
+
+		fireEvent.change(screen.getByLabelText(/Choose an image to upload/i), {
+			target: { files: [file] },
+		})
+
+		await waitFor(() => {
+			expect(screen.getByRole('img')).toBeInTheDocument()
+		})
+
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: 'Submit',
+			})
+		)
+
+		await waitFor(() => {
+			expect(console_error_spy).toHaveBeenCalledWith(
+				'Failed to handle submit of request form.'
+			)
+		})
+	})
+
+	it('rejects invalid failed get to get location', async () => {
+		render(<RequestForm onSubmit={mock_on_submit} />)
+
+		get_voting_district_info.mockResolvedValue(undefined)
+
+		fireEvent.change(screen.getByTestId('mock-category-select'), {
+			target: { value: 'Potholes' },
+		})
+
+		fireEvent.change(screen.getByTestId('description-input'), {
+			target: {
+				value: 'Large pothole near road',
+			},
+		})
+
+		const file = new File(['img'], 'road.png', {
+			type: 'image/png',
+		})
+
+		image_validate.mockResolvedValue(true)
+		get_data_uri.mockResolvedValue('data:image/png;base64,test')
+
+		fireEvent.change(screen.getByLabelText(/Choose an image to upload/i), {
+			target: { files: [file] },
+		})
+
+		await waitFor(() => {
+			expect(screen.getByRole('img')).toBeInTheDocument()
+		})
+
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: 'Submit',
+			})
+		)
+
+		await waitFor(() => {
+			expect(console_error_spy).toHaveBeenCalledWith(
+				'Failed to handle submit of request form.'
 			)
 		})
 	})
