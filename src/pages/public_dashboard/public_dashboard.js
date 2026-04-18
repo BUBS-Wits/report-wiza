@@ -107,7 +107,7 @@ function FitMapToRequests({ requests }) {
 	const map = useMap()
 
 	useEffect(() => {
-		if (!requests.length) return
+		if (!requests.length) {return}
 
 		const bounds = L.latLngBounds(
 			requests.map((request) => [request.latitude, request.longitude])
@@ -122,9 +122,9 @@ function FitMapToRequests({ requests }) {
 function getStatusIcon(status) {
 	const formattedStatus = status.toLowerCase()
 
-	if (formattedStatus === 'open') return openIcon
-	if (formattedStatus === 'in progress') return inProgressIcon
-	if (formattedStatus === 'resolved') return resolvedIcon
+	if (formattedStatus === 'open') {return openIcon}
+	if (formattedStatus === 'in progress') {return inProgressIcon}
+	if (formattedStatus === 'resolved') {return resolvedIcon}
 
 	return inProgressIcon
 }
