@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { auth } from '../../firebase_config.js'
 import { fetchResidentRequests } from '../../backend/resident_firebase.js'
 import './resident_requests.css'
-import LikeButton from '../../components/like_button/like_button' //implenting like button for requests escaltion
+import LikeButton from '../../components/request_card/like_button/like_button.js' //implenting like button for requests escaltion
 
 function ResidentRequests() {
 	const [requests, setRequests] = useState([])
