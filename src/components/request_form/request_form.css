@@ -1,24 +1,75 @@
 form.request_form {
+	width: 100%;
+	max-width: 500px;
 	display: flex;
 	flex-direction: column;
+	gap: 1.5rem;
+	padding: 2rem;
+	border-radius: 12px;
+}
+
+form.request_form textarea,
+form.request_form label,
+form.request_form .dropdown_trigger {
+	width: 100%;
+}
+
+form.request_form #file_name {
+	font-size: 0.85rem;
+	color: rgb(100, 116, 139);
+	text-align: center;
+}
+
+form.request_form label {
+	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	margin: 0;
+	justify-content: center;
+	gap: 0.5rem;
+
+	width: 100%;
+	padding: 0.75rem;
+
+	border: 2px dashed rgba(148, 163, 184, 0.3);
+	border-radius: 1rem;
+	cursor: pointer;
+
+	background-color: rgba(30, 41, 59, 0.5);
+	color: rgb(148, 163, 184);
+
+	transition: all 0.2s ease;
+}
+
+form.request_form label[for='image']:hover {
+	background-color: rgba(51, 65, 85, 0.7);
+	transform: translateY(-1px);
+}
+
+form.request_form label[for='image']:active {
+	transform: translateY(0);
+}
+
+form.request_form input[type='file'] {
+	display: none;
 }
 
 form.request_form textarea {
 	background-color: transparent;
-	border-radius: 1rem;
 	color: rgb(148, 163, 184);
+	min-height: 150px;
+	resize: vertical;
+	padding: 0.75rem;
+	border-radius: 1rem;
 }
 
 form.request_form img {
 	display: block;
 	border: 1em ridge rgb(10, 22, 40);
-	max-width: 300px;
+	max-width: 100%;
+	align-self: center;
 	border-radius: 1rem;
 }
 
-form.request_form > * {
-	margin-bottom: 2rem;
+form.request_form button {
+	align-self: flex-start;
+	width: 100%;
 }

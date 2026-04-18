@@ -3,7 +3,13 @@ import './button.css'
 
 function TransparentBtn({ text, onClick }) {
 	return (
-		<button className="btn_components transparent_button" onClick={onClick}>
+		<button
+			className={
+				'btn_components transparent_button' +
+				(text === 'Loading' ? ' loading' : '')
+			}
+			onClick={onClick}
+		>
 			{text}
 		</button>
 	)
