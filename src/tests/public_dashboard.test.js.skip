@@ -59,7 +59,7 @@ jest.mock(
 jest.mock('esri-leaflet', () => ({}), { virtual: true })
 
 // 5. MOCK REQUEST CARD
-jest.mock('../components/request_card.js', () => {
+jest.mock('../components/request_card/request_card.js', () => {
 	return function MockRequestCard({ request }) {
 		return (
 			<div data-testid={`request-card-${request.status}`}>
