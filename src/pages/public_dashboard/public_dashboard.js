@@ -3,30 +3,24 @@ import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import RequestCard from '../../components/request_card.js'
+import RequestCard from '../../components/request_card/request_card.js' // your corrected path
 import './public_dashboard.css'
 import * as esri from 'esri-leaflet'
 
 // --- SAFEGUARD FOR JEST TESTING ---
-// Prevents esri-leaflet from crashing during automated tests
 let safeEsri = esri
 if (process.env.NODE_ENV === 'test') {
 	const dummyLayer = {
-		bindPopup: function () {
-			return this
-		},
-		on: function () {
-			return this
-		},
-		addTo: function () {
-			return this
-		},
-		resetStyle: function () {},
+		bindPopup: () => this,
+		on: () => this,
+		addTo: () => this,
+		resetStyle: () => {},
 	}
 	safeEsri = {
 		featureLayer: () => dummyLayer,
 	}
 }
+
 delete L.Icon.Default.prototype._getIconUrl
 
 L.Icon.Default.mergeOptions({
@@ -68,19 +62,14 @@ const resolvedIcon = new L.Icon({
 
 function FixMapSize() {
 	const map = useMap()
-
 	useEffect(() => {
-		setTimeout(() => {
-			map.invalidateSize()
-		}, 100)
+		setTimeout(() => map.invalidateSize(), 100)
 	}, [map])
-
 	return null
 }
 
 function WardBoundaries() {
 	const map = useMap()
-
 	useEffect(() => {
 		const wardLayer = safeEsri
 			.featureLayer({
@@ -94,66 +83,52 @@ function WardBoundaries() {
 			})
 			.bindPopup((layer) => {
 				const props = layer.feature?.properties || {}
-
 				return `
-					<div>
-						<strong>${props.WardLabel || `Ward ${props.WardNo || 'Unknown'}`}</strong><br />
-						Ward Number: ${props.WardNo || 'N/A'}<br />
-						Municipality: ${props.Municipali || 'N/A'}<br />
-						Province: ${props.Province || 'N/A'}
-					</div>
-				`
+          <div>
+            <strong>${props.WardLabel || `Ward ${props.WardNo || 'Unknown'}`}</strong><br />
+            Ward Number: ${props.WardNo || 'N/A'}<br />
+            Municipality: ${props.Municipali || 'N/A'}<br />
+            Province: ${props.Province || 'N/A'}
+          </div>
+        `
 			})
 			.on('mouseover', (event) => {
-				event.layer.setStyle({
-					weight: 6,
-					fillOpacity: 0.18,
-				})
+				event.layer.setStyle({ weight: 6, fillOpacity: 0.18 })
 			})
 			.on('mouseout', (event) => {
 				wardLayer.resetStyle(event.layer)
 			})
 			.addTo(map)
-
-		return () => {
-			map.removeLayer(wardLayer)
-		}
+		return () => map.removeLayer(wardLayer)
 	}, [map])
-
 	return null
 }
 
 function FitMapToRequests({ requests }) {
 	const map = useMap()
-
 	useEffect(() => {
 		if (!requests.length) {
 			return
 		}
-
 		const bounds = L.latLngBounds(
-			requests.map((request) => [request.latitude, request.longitude])
+			requests.map((r) => [r.latitude, r.longitude])
 		)
-
 		map.fitBounds(bounds, { padding: [40, 40] })
 	}, [map, requests])
-
 	return null
 }
 
 function getStatusIcon(status) {
-	const formattedStatus = status.toLowerCase()
-
-	if (formattedStatus === 'open') {
+	const s = status.toLowerCase()
+	if (s === 'open') {
 		return openIcon
 	}
-	if (formattedStatus === 'in progress') {
+	if (s === 'in progress') {
 		return inProgressIcon
 	}
-	if (formattedStatus === 'resolved') {
+	if (s === 'resolved') {
 		return resolvedIcon
 	}
-
 	return inProgressIcon
 }
 
@@ -169,6 +144,7 @@ function PublicDashboard() {
 				'Large pothole causing traffic delays near the intersection.',
 			latitude: -26.2044,
 			longitude: 28.0456,
+			like_count: 0, // added from your branch
 		},
 		{
 			id: 2,
@@ -179,6 +155,7 @@ function PublicDashboard() {
 			description: 'Burst pipe reported outside a residential area.',
 			latitude: -26.1958,
 			longitude: 28.0342,
+			like_count: 0,
 		},
 		{
 			id: 3,
@@ -190,6 +167,7 @@ function PublicDashboard() {
 				'Power outage affecting multiple streets since early morning.',
 			latitude: -26.1912,
 			longitude: 28.0551,
+			like_count: 0,
 		},
 		{
 			id: 4,
@@ -201,6 +179,7 @@ function PublicDashboard() {
 				'Overflowing refuse site reported near a school entrance.',
 			latitude: -26.2089,
 			longitude: 28.0614,
+			like_count: 0,
 		},
 	]
 
@@ -214,6 +193,7 @@ function PublicDashboard() {
 			description: 'Illegal dumping site cleared by the municipal team.',
 			latitude: -26.2015,
 			longitude: 28.0281,
+			like_count: 0,
 		},
 		{
 			id: 6,
@@ -224,6 +204,7 @@ function PublicDashboard() {
 			description: 'Streetlight outage fixed in the area.',
 			latitude: -26.2132,
 			longitude: 28.0397,
+			like_count: 0,
 		},
 		{
 			id: 7,
@@ -234,11 +215,12 @@ function PublicDashboard() {
 			description: 'Water leak repaired outside a community clinic.',
 			latitude: -26.1874,
 			longitude: 28.0488,
+			like_count: 0,
 		},
 	]
 
 	const wardsAffected = new Set(
-		[...openRequests, ...resolvedRequests].map((request) => request.ward)
+		[...openRequests, ...resolvedRequests].map((r) => r.ward)
 	).size
 
 	const allRequests = [...openRequests, ...resolvedRequests]
@@ -249,7 +231,6 @@ function PublicDashboard() {
 				<Link to="/" className="home_button">
 					🏠 Home
 				</Link>
-
 				<p className="dashboard_eyebrow">Public Municipal Dashboard</p>
 				<h1>Community Service Dashboard</h1>
 				<p className="dashboard_intro">
@@ -280,7 +261,6 @@ function PublicDashboard() {
 				<div className="section_heading_row">
 					<h2>Ward Map Overview</h2>
 				</div>
-
 				<div className="map_container">
 					<MapContainer
 						center={[-26.2041, 28.0473]}
@@ -291,12 +271,10 @@ function PublicDashboard() {
 						<FixMapSize />
 						<WardBoundaries />
 						<FitMapToRequests requests={allRequests} />
-
 						<TileLayer
 							attribution="&copy; OpenStreetMap contributors"
 							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 						/>
-
 						{allRequests.map((request) => (
 							<Marker
 								key={request.id}
@@ -319,7 +297,6 @@ function PublicDashboard() {
 							</Marker>
 						))}
 					</MapContainer>
-
 					<div className="map_legend">
 						<div className="legend_item">
 							<span className="legend_dot legend_open"></span>
