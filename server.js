@@ -79,7 +79,7 @@ const create_service_request = (req, request, now) => {
 
 const set_db_doc = (collection, u_doc_id, u_doc) => {
 	return db
-		.collection('service_requests')
+		.collection(collection)
 		.doc(u_doc_id)
 		.set(u_doc)
 		.then(() => {
@@ -93,6 +93,19 @@ const set_db_doc = (collection, u_doc_id, u_doc) => {
 
 const update_db_doc = (collection, u_doc_id, u_doc) =>
 	set_db_doc(collection, u_doc_id, u_doc)
+
+const delete_db_doc = (collection, u_doc_id) => {
+	return db
+		.collection(collection)
+		.doc(u_doc_id)
+		.delete()
+		.then(() => {
+			return { ok: true, value: 'success' }
+		})
+		.catch((err) => {
+			return { ok: false, value: `failed to delete "${u_doc_id}"` }
+		})
+}
 
 const create_db_doc = (collection, u_doc) => {
 	const now = new Date(Date.now())
