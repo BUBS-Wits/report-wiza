@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -222,6 +223,12 @@ function PublicDashboard() {
 	return (
 		<div className="public_dashboard">
 			<header className="dashboard_header">
+
+        <Link to="/" className="home_button">
+		      🏠 Home
+	      </Link>
+
+
 				<p className="dashboard_eyebrow">Public Municipal Dashboard</p>
 				<h1>Community Service Dashboard</h1>
 				<p className="dashboard_intro">
