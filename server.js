@@ -77,6 +77,30 @@ const create_service_request = (req, request, now) => {
 	}
 }
 
+const set_db_doc = (collection, u_doc_id, u_doc) => {
+	return db
+		.collection('service_requests')
+		.doc(u_doc_id)
+		.set(u_doc)
+		.then(() => {
+			return { ok: true, value: u_doc_id }
+		})
+		.catch((error) => {
+			res.status(400).json(error)
+			return { ok: false, value: error }
+		})
+}
+
+const update_db_doc = (collection, u_doc_id, u_doc) =>
+	set_db_doc(collection, u_doc_id, u_doc)
+
+const create_db_doc = (collection, u_doc) => {
+	const now = new Date(Date.now())
+	const u_doc_id = get_new_doc_id(collection, now)
+
+	return set_db_doc(collection, u_doc_id, u_doc)
+}
+
 app.get('/api/voting-district', async (req, res) => {
 	try {
 		const { latitude, longitude } = req.query
@@ -129,19 +153,17 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			})
 		}
 
-		const now = new Date(Date.now())
-		const new_doc_id = get_new_doc_id('service_requests', now)
 		const service_request = create_service_request(req, request, now)
-
-		db.collection('service_requests')
-			.doc(new_doc_id)
-			.set(service_request)
-			.then(() => {
-				res.status(200).json(new_doc_id)
+		if (exists_db_doc('service_request', service_request)) {
+			const ret = await create_db_doc(
+				'service_requests',
+				service_request
+			)(ret.ok ? res.status(200) : res.status(400)).json(ret.value)
+		} else {
+			res.status(200).json({
+				msg: 'User alredy exists in db.',
 			})
-			.catch((error) => {
-				res.status(400).json(error)
-			})
+		}
 	} catch (err) {
 		console.error('Proxy error:', err)
 		res.status(500).json({
