@@ -23,12 +23,14 @@ export async function image_validate(image) {
 
 function get_bit_array(val) {
 	const bits = []
-	while (val != 0) {
+	while (val !== 0) {
 		const rem = val % 2
 		val = Math.floor(val / 2)
 		bits.push(rem)
 	}
-	while (bits.length < 6) bits.push(0)
+	while (bits.length < 6) {
+		bits.push(0)
+	}
 	bits.reverse()
 	return bits
 }
@@ -42,7 +44,7 @@ function get_int(bits) {
 }
 
 export function get_uint8array(base64) {
-	if (typeof base64 != 'string' || base64.length % 4 > 0) {
+	if (typeof base64 !== 'string' || base64.length % 4 > 0) {
 		return null
 	}
 	const chars =
@@ -54,7 +56,7 @@ export function get_uint8array(base64) {
 	let bits = []
 	for (let i = 0; i < cbase64.length; i++) {
 		const tmp_index = chars.indexOf(cbase64[i])
-		if (tmp_index == -1) {
+		if (tmp_index === -1) {
 			console.error('String is not base64: ', base64)
 			return null
 		}
