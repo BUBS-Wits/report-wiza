@@ -21,6 +21,52 @@ export async function image_validate(image) {
 	return image_data_uri_regex.test(image_uri)
 }
 
+function get_bit_array(val) {
+	const bits = []
+	while (val != 0) {
+		const rem = val % 2
+		val = Math.floor(val / 2)
+		bits.push(rem)
+	}
+	while (bits.length < 6) bits.push(0)
+	bits.reverse()
+	return bits
+}
+
+function get_int(bits) {
+	let val = 0
+	for (let i = bits.length - 1; i >= 0; i--) {
+		val += Math.pow(2, bits.length - 1 - i) * bits[i]
+	}
+	return val
+}
+
+export function get_uint8array(base64) {
+	if (typeof base64 != 'string' || base64.length % 4 > 0) {
+		return null
+	}
+	const chars =
+		'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+	const cbase64 = base64.replace(/=+$/, '')
+	const decoded_bytes_len = Math.floor((cbase64.length * 6) / 8) // we want 8 bit chars/ints
+	const bytes = new Uint8Array(decoded_bytes_len)
+	let n = 0
+	let bits = []
+	for (let i = 0; i < cbase64.length; i++) {
+		const tmp_index = chars.indexOf(cbase64[i])
+		if (tmp_index == -1) {
+			console.error('String is not base64: ', base64)
+			return null
+		}
+		const tmp = get_bit_array(tmp_index)
+		bits = bits.concat(tmp)
+	}
+	while (bits.length >= 8) {
+		bytes[n++] = get_int(bits.splice(0, 8))
+	}
+	return bytes
+}
+
 export async function get_data_uri(file) {
 	if (typeof file !== 'object') {
 		return null
@@ -96,7 +142,7 @@ export function get_location() {
 	return fetch(`https://ipapi.co/json/`)
 		.then(async (res) => {
 			const data = await res.json()
-			if (!data.longitude || !data.latitude) {
+			if (!data.longitude || !data.latitude || !res.ok) {
 				console.error(
 					'Failed to get longitude and latitude from response body'
 				)
