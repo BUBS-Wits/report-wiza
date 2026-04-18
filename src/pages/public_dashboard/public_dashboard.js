@@ -7,6 +7,26 @@ import RequestCard from '../../components/request_card.js'
 import './public_dashboard.css'
 import * as esri from 'esri-leaflet'
 
+// --- SAFEGUARD FOR JEST TESTING ---
+// Prevents esri-leaflet from crashing during automated tests
+let safeEsri = esri
+if (process.env.NODE_ENV === 'test') {
+	const dummyLayer = {
+		bindPopup: function () {
+			return this
+		},
+		on: function () {
+			return this
+		},
+		addTo: function () {
+			return this
+		},
+		resetStyle: function () {},
+	}
+	safeEsri = {
+		featureLayer: () => dummyLayer,
+	}
+}
 delete L.Icon.Default.prototype._getIconUrl
 
 L.Icon.Default.mergeOptions({
@@ -62,7 +82,7 @@ function WardBoundaries() {
 	const map = useMap()
 
 	useEffect(() => {
-		const wardLayer = esri
+		const wardLayer = safeEsri
 			.featureLayer({
 				url: 'https://services7.arcgis.com/oeoyTUJC8HEeYsRB/arcgis/rest/services/SA_Wards2020/FeatureServer/0',
 				style: () => ({
