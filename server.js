@@ -135,6 +135,7 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
 		let body
 		try {
+			// Tom-Foolery to check if it is even a valid json object
 			body = JSON.parse(JSON.stringify(req.body))
 		} catch (err) {
 			return res.status(400).json({
