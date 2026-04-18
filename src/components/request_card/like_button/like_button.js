@@ -24,8 +24,12 @@ const LikeButton = ({ requestId, initialLikeCount }) => {
 	}, [currentUser, requestId])
 
 	const handleLike = async () => {
-		if (!currentUser) return // safety, button is disabled for non-logged-in
-		if (loading) return
+		if (!currentUser) {
+			return
+		} // safety, button is disabled for non-logged-in
+		if (loading) {
+			return
+		}
 		setLoading(true)
 		try {
 			if (userLiked) {
