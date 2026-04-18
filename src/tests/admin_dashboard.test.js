@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import AdminDashboard from '../pages/admin/admin_dashboard.js'
+import AdminDashboard from '../pages/admin_dashboard/admin_dashboard.js'
 
 // ---------------------------------------------------------------------------
 // Module Mocks
@@ -13,7 +13,7 @@ jest.mock('../backend/admin_firebase.js', () => ({
 	revoke_worker_role: jest.fn(),
 }))
 
-jest.mock('../pages/admin/admin_dashboard.css', () => ({}))
+jest.mock('../pages/admin_dashboard/admin_dashboard.css', () => ({}))
 
 // Updated to match the new src/components/ folder structure
 jest.mock('../components/top_bar/top_bar.js', () => {

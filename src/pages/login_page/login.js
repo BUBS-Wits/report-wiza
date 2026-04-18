@@ -45,7 +45,7 @@ function Login() {
 			const role = user_snap.exists() ? user_snap.data().role : 'resident'
 
 			if (role === 'admin') {
-				navigate('/')
+				navigate('/admin')
 			} else if (role === 'worker') {
 				navigate('/')
 			} else {

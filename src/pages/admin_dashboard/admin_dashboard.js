@@ -1,7 +1,3 @@
-// src/pages/admin/admin_dashboard.js
-// Main admin dashboard — assembles all components.
-// Teammates plug their sections in where the placeholders are.
-
 import React, { useState, useEffect } from 'react'
 import {
 	fetch_workers,
@@ -22,10 +18,6 @@ function AdminDashboard() {
 	const [message, set_message] = useState(null)
 	const [is_error, set_is_error] = useState(false)
 
-	useEffect(() => {
-		load_workers()
-	}, [])
-
 	const load_workers = async () => {
 		set_workers_loading(true)
 		try {
@@ -37,6 +29,10 @@ function AdminDashboard() {
 			set_workers_loading(false)
 		}
 	}
+
+	useEffect(() => {
+		load_workers()
+	}, [])
 
 	const handle_revoke = async (uid, email) => {
 		set_revoking_uid(uid)
