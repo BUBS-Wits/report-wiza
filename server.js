@@ -87,7 +87,7 @@ app.use('/api/analytics', analytics_routes)
 
 // 3. Fallback for React Router
 app.get('/{*splat}', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'))
+	res.sendFile(path.join(__dirname, 'build', 'index.html'))
 })
 
 /********************* Start *********************/
@@ -95,7 +95,7 @@ app.get('/{*splat}', (req, res) => {
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () =>
-    console.log(`Server running on:\nhttp://localhost:${PORT}`)
+	console.log(`Server running on:\nhttp://localhost:${PORT}`)
 )
 
 /********************* End *********************/
