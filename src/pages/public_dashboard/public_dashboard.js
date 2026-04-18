@@ -258,7 +258,6 @@ function PublicDashboard() {
 			<section className="map_section">
 				<div className="section_heading_row">
 					<h2>Ward Map Overview</h2>
-					<span className="section_tag">Coming soon</span>
 				</div>
 
 				<div className="map_container">
