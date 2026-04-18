@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { auth } from '../../firebase_config.js'
 import { fetchResidentRequests } from '../../backend/resident_firebase.js'
 import './resident_requests.css'
+import LikeButton from '../../components/like_button/like_button'; //implenting like button for requests escaltion 
 
 function ResidentRequests() {
 	const [requests, setRequests] = useState([])
@@ -50,6 +51,7 @@ function ResidentRequests() {
 			<ul className="requests_list">
 				{requests.map((req) => (
 					<li key={req.id} className="request_item">
+
 						<div className="request_header">
 							<span className="request_category">
 								{req.category || 'Other'}
@@ -60,9 +62,11 @@ function ResidentRequests() {
 								{req.status || 'open'}
 							</span>
 						</div>
+
 						<p className="request_description">
 							{req.description || 'No description'}
 						</p>
+
 						<div className="request_footer">
 							<span className="request_date">
 								Submitted:{' '}
@@ -72,7 +76,9 @@ function ResidentRequests() {
 											.toLocaleDateString()
 									: 'Unknown date'}
 							</span>
+							<LikeButton requestId={req.id} initialLikeCount={req.like_count || 0} />
 						</div>
+
 					</li>
 				))}
 			</ul>

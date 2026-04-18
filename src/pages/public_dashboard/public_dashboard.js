@@ -1,72 +1,76 @@
 import React from 'react'
-import RequestCard from '../../components/request_card.js'
+import RequestCard from '../../components/request_card/request_card.js';
 import './public_dashboard.css'
 
 function PublicDashboard() {
 	const openRequests = [
-		{
-			id: 1,
-			category: 'Potholes',
-			status: 'In Progress',
-			ward: 'Ward 12',
-			municipality: 'City of Johannesburg',
-			description:
-				'Large pothole causing traffic delays near the intersection.',
-		},
-		{
-			id: 2,
-			category: 'Water',
-			status: 'Open',
-			ward: 'Ward 8',
-			municipality: 'City of Johannesburg',
-			description: 'Burst pipe reported outside a residential area.',
-		},
-		{
-			id: 3,
-			category: 'Electricity',
-			status: 'Open',
-			ward: 'Ward 4',
-			municipality: 'City of Johannesburg',
-			description:
-				'Power outage affecting multiple streets since early morning.',
-		},
-		{
-			id: 4,
-			category: 'Waste',
-			status: 'In Progress',
-			ward: 'Ward 6',
-			municipality: 'City of Johannesburg',
-			description:
-				'Overflowing refuse site reported near a school entrance.',
-		},
-	]
+	{
+		id: 1,
+		category: 'Potholes',
+		status: 'In Progress',
+		ward: 'Ward 12',
+		municipality: 'City of Johannesburg',
+		description: 'Large pothole causing traffic delays near the intersection.',
+		like_count: 0,
+	},
+	{
+		id: 2,
+		category: 'Water',
+		status: 'Open',
+		ward: 'Ward 8',
+		municipality: 'City of Johannesburg',
+		description: 'Burst pipe reported outside a residential area.',
+		like_count: 0,
+	},
+	{
+		id: 3,
+		category: 'Electricity',
+		status: 'Open',
+		ward: 'Ward 4',
+		municipality: 'City of Johannesburg',
+		description: 'Power outage affecting multiple streets since early morning.',
+		like_count: 0,
+	},
+	{
+		id: 4,
+		category: 'Waste',
+		status: 'In Progress',
+		ward: 'Ward 6',
+		municipality: 'City of Johannesburg',
+		description: 'Overflowing refuse site reported near a school entrance.',
+		like_count: 0,
+	},
+	];
 
 	const resolvedRequests = [
-		{
-			id: 5,
-			category: 'Waste',
-			status: 'Resolved',
-			ward: 'Ward 5',
-			municipality: 'City of Johannesburg',
-			description: 'Illegal dumping site cleared by the municipal team.',
-		},
-		{
-			id: 6,
-			category: 'Electricity',
-			status: 'Resolved',
-			ward: 'Ward 3',
-			municipality: 'City of Johannesburg',
-			description: 'Streetlight outage fixed in the area.',
-		},
-		{
-			id: 7,
-			category: 'Water',
-			status: 'Resolved',
-			ward: 'Ward 2',
-			municipality: 'City of Johannesburg',
-			description: 'Water leak repaired outside a community clinic.',
-		},
-	]
+	{
+		id: 5,
+		category: 'Waste',
+		status: 'Resolved',
+		ward: 'Ward 5',
+		municipality: 'City of Johannesburg',
+		description: 'Illegal dumping site cleared by the municipal team.',
+		like_count: 0,
+	},
+	{
+		id: 6,
+		category: 'Electricity',
+		status: 'Resolved',
+		ward: 'Ward 3',
+		municipality: 'City of Johannesburg',
+		description: 'Streetlight outage fixed in the area.',
+		like_count: 0,
+	},
+	{
+		id: 7,
+		category: 'Water',
+		status: 'Resolved',
+		ward: 'Ward 2',
+		municipality: 'City of Johannesburg',
+		description: 'Water leak repaired outside a community clinic.',
+		like_count: 0,
+	},
+	];
 
 	const wardsAffected = new Set(
 		[...openRequests, ...resolvedRequests].map((request) => request.ward)
@@ -113,6 +117,7 @@ function PublicDashboard() {
 						on a ward map.
 					</span>
 				</div>
+
 			</section>
 
 			<section className="dashboard_section">
