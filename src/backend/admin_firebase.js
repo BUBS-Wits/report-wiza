@@ -1,5 +1,3 @@
-// src/backend/admin_firebase.js
-// src/backend/admin_firebase.js
 import { auth, db } from '../firebase_config.js'
 import { sendSignInLinkToEmail } from 'firebase/auth'
 import {
@@ -13,15 +11,11 @@ import {
 	serverTimestamp,
 } from 'firebase/firestore'
 
-// Email link settings — tells Firebase where to redirect
-// the worker after they click the link
 const action_code_settings = {
 	url: `${window.location.origin}/worker-verify`,
 	handleCodeInApp: true,
 }
 
-// Sends a sign-in email link to the given email address
-// and stores them in Firestore as a pending worker
 export const register_worker_email = async (email) => {
 	try {
 		// Send the email link via Firebase

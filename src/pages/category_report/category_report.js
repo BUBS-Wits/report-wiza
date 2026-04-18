@@ -3,14 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
 import {
-	verify_admin,
 	fetch_report_data,
-	compute_summary,
 	format_resolution_time,
 	get_resolution_class,
 } from '../../backend/category_report_service.js'
-
-// Import the layout components
 import Sidebar from '../../components/sidebar/sidebar.js'
 import TopBar from '../../components/top_bar/top_bar.js'
 
@@ -32,17 +28,16 @@ function CategoryReport() {
 				return
 			}
 			try {
-				const is_admin = await verify_admin(user.uid)
-				if (!is_admin) {
-					navigate('/login')
-					return
-				}
-				const { stats, total_requests: total } =
-					await fetch_report_data()
-				set_report_data(stats)
-				set_total_requests(total)
-				set_summary(compute_summary(stats))
+				// 1. Fetch data directly (backend handles the admin verification now!)
+				const response = await fetch_report_data(user.uid)
+
+				// 2. Save the pre-calculated data to state
+				set_report_data(response.stats)
+				set_total_requests(response.total_requests)
+				set_summary(response.summary)
 			} catch (err) {
+				// If the backend threw a 403 Forbidden, we can bounce them to login
+				console.error(err)
 				set_error('Failed to load report data. Please try again.')
 			} finally {
 				set_loading(false)

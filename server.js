@@ -8,6 +8,10 @@ import { get_date } from './src/utility.js'
 
 /********************* Setup *********************/
 
+// 1. ALL imports must be at the top of the file!
+import gis_routes from './src/backend/routes/gis_routes.js'
+import analytics_routes from './src/backend/routes/analytics_routes.js'
+
 const app = express()
 
 const __filename = fileURLToPath(import.meta.url)
@@ -77,86 +81,13 @@ const create_service_request = (req, request, now) => {
 	}
 }
 
-app.get('/api/voting-district', async (req, res) => {
-	try {
-		const { latitude, longitude } = req.query
+// 2. Mount your APIs
+app.use('/api', gis_routes)
+app.use('/api/analytics', analytics_routes)
 
-		if (!latitude || !longitude) {
-			return res.status(400).json({
-				error: 'Missing latitude or longitude',
-			})
-		}
-
-		const url = `https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=${latitude}&longitude=${longitude}`
-
-		const response = await fetch(url)
-
-		if (!response.ok) {
-			return res.status(response.status).json({
-				error: 'Failed to fetch from GIS API',
-			})
-		}
-
-		const data = await response.json()
-		res.status(200).json(data)
-	} catch (err) {
-		console.error('Proxy error:', err)
-		res.status(500).json({
-			error: 'Internal server error',
-		})
-	}
-})
-
-app.post('/api/submit-request', authenticate, async (req, res) => {
-	try {
-		let body
-		try {
-			body = JSON.parse(JSON.stringify(req.body))
-		} catch (err) {
-			return res.status(400).json({
-				error: 'Unknown body. Failed to parse as JSON.',
-			})
-		}
-
-		const request = new Request(body)
-		if (
-			!body ||
-			!request.input_validate() ||
-			(await !request.image_validate())
-		) {
-			return res.status(400).json({
-				error: 'Missing parameters in request object.',
-			})
-		}
-
-		const now = new Date(Date.now())
-		const new_doc_id = get_new_doc_id('service_requests', now)
-		const service_request = create_service_request(req, request, now)
-
-		db.collection('service_requests')
-			.doc(new_doc_id)
-			.set(service_request)
-			.then(() => {
-				res.status(200).json(new_doc_id)
-			})
-			.catch((error) => {
-				res.status(400).json(error)
-			})
-	} catch (err) {
-		console.error('Proxy error:', err)
-		res.status(500).json({
-			error: 'Internal server error',
-		})
-	}
-})
-
-/********************* Frontend *********************/
-
-const build_path = path.resolve(path.join(__dirname, 'build'))
-app.use(express.static(build_path))
-
+// 3. Fallback for React Router
 app.get('/{*splat}', (req, res) => {
-	res.sendFile(path.join(build_path, 'index.html'))
+    res.sendFile(path.join(__dirname, 'build', 'index.html'))
 })
 
 /********************* Start *********************/
@@ -164,7 +95,7 @@ app.get('/{*splat}', (req, res) => {
 const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () =>
-	console.log(`Server running on:\nhttp://localhost:${PORT}`)
+    console.log(`Server running on:\nhttp://localhost:${PORT}`)
 )
 
 /********************* End *********************/
