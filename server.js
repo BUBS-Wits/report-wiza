@@ -109,21 +109,10 @@ app.get('/api/voting-district', async (req, res) => {
 
 app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
-		let body
-		try {
-			body = JSON.parse(JSON.stringify(req.body))
-		} catch (err) {
-			return res.status(400).json({
-				error: 'Unknown body. Failed to parse as JSON.',
-			})
-		}
+		const body = req.body
 
-		const request = new Request(body)
-		if (
-			!body ||
-			!request.input_validate() ||
-			(await !request.image_validate())
-		) {
+		// DO YOUR VALIDATION DIRECTLY IN THE BACKEND
+		if (!body || !body.latitude || !body.longitude || !body.category) {
 			return res.status(400).json({
 				error: 'Missing parameters in request object.',
 			})
@@ -131,22 +120,30 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 
 		const now = new Date(Date.now())
 		const new_doc_id = get_new_doc_id('service_requests', now)
-		const service_request = create_service_request(req, request, now)
 
-		db.collection('service_requests')
+		// Create the object directly instead of using the frontend class
+		const service_request = {
+			user_id: req.user.uid,
+			created_at: now.toUTCString(),
+			location: `SRID=4326;POINT(${body.longitude} ${body.latitude})`,
+			sa_ward: body.ward,
+			sa_m_id: body.municipality_id,
+			sa_m_code: body.municipality_code,
+			sa_m_name: body.municipality_name,
+			status: 'pending',
+			category: body.category,
+			description: body.description,
+			image: body.image,
+		}
+
+		await db
+			.collection('service_requests')
 			.doc(new_doc_id)
 			.set(service_request)
-			.then(() => {
-				res.status(200).json(new_doc_id)
-			})
-			.catch((error) => {
-				res.status(400).json(error)
-			})
+		res.status(200).json(new_doc_id)
 	} catch (err) {
-		console.error('Proxy error:', err)
-		res.status(500).json({
-			error: 'Internal server error',
-		})
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
 	}
 })
 
@@ -155,7 +152,7 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 const build_path = path.resolve(path.join(__dirname, 'build'))
 app.use(express.static(build_path))
 
-app.get('/{*splat}', (req, res) => {
+app.get('*', (req, res) => {
 	res.sendFile(path.join(build_path, 'index.html'))
 })
 
