@@ -45,7 +45,18 @@ import { getDoc, setDoc } from 'firebase/firestore'
 const render_login = () => render(<Login />)
 
 describe('Login page', () => {
-	beforeEach(() => jest.clearAllMocks())
+	let console_error_spy
+	beforeEach(() => {
+		jest.clearAllMocks()
+		console_error_spy = jest
+			.spyOn(console, 'error')
+			.mockImplementation(() => {})
+	})
+
+	afterEach(() => {
+		jest.clearAllMocks()
+		console_error_spy.mockRestore()
+	})
 
 	describe('Given the login page renders', () => {
 		describe('When it loads', () => {
