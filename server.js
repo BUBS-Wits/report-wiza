@@ -3,11 +3,6 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import { Request, request_converter } from './backend/request.js'
-import {
-	ClaimedRequest,
-	claimed_request_converter,
-} from './backend/claimed_request.js'
 
 /********************* Setup *********************/
 
@@ -32,6 +27,240 @@ const db = admin.firestore()
 db.listCollections()
 	.then(() => console.log('firebase connected.'))
 	.catch((err) => console.error('firebase failed:', err))
+
+/********************* Utility *********************/
+
+const PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'><rect width='256' height='256' fill='%23e0e0e0'/><rect x='32' y='32' width='192' height='192' fill='none' stroke='%239e9e9e' stroke-width='4'/><line x1='32' y1='32' x2='224' y2='224' stroke='%239e9e9e' stroke-width='4'/><line x1='224' y1='32' x2='32' y2='224' stroke='%239e9e9e' stroke-width='4'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23757575' font-family='Arial, sans-serif' font-size='20'>No Image</text></svg>`
+
+async function get_data_uri(file) {
+	if (typeof file !== 'object') {
+		return null
+	}
+	if (typeof window !== 'undefined') {
+		// native browser
+		return new Promise((resolve) => {
+			const reader = new FileReader()
+			reader.onload = (e) => {
+				const data_uri = e.target.result
+				resolve(data_uri)
+			}
+			reader.readAsDataURL(file)
+		})
+	} else {
+		// nodejs
+		const buffer = Buffer.from(await file.arrayBuffer())
+		const data_uri = `data:${file.type};base64,${buffer.toString('base64')}`
+		return data_uri
+	}
+}
+
+async function image_validate(image) {
+	if (!image) {
+		return false
+	}
+	let image_uri =
+		typeof image === 'string' ? image : await get_data_uri(image)
+	if (!image_uri) {
+		return false
+	}
+	if (/^(https:\/\/|http:\/\/|ftp:\/\/)/.test(image)) {
+		return true
+	}
+	image_uri = image_uri.trim()
+	const image_media_types_suffix = ['jpeg', 'jpg', 'png']
+	const image_data_uri_regex = new RegExp(
+		`^data:image/(${image_media_types_suffix.join('|')})(;[^,;]+)*,.*$`,
+		'i'
+	)
+	return image_data_uri_regex.test(image_uri)
+}
+
+class Request {
+	constructor(
+		category,
+		description = undefined,
+		image = undefined,
+		longitude = undefined,
+		latitude = undefined,
+		location_info = undefined
+	) {
+		try {
+			if (typeof category === 'string') {
+				this.category = category?.trim()
+				this.description = description?.trim()
+				this.image = image
+				this.longitude = longitude
+				this.latitude = latitude
+				this.loc_info = location_info
+			} else if (typeof category === 'object') {
+				const json = category
+				this.category = json.category?.trim()
+				this.description = json.description?.trim()
+				this.image = json.image
+				this.longitude = Number(json.longitude)
+				this.latitude = Number(json.latitude)
+				this.loc_info = json.loc_info
+				this.loc_info.ward = Number(this.loc_info.ward)
+				this.loc_info.m_id = Number(this.loc_info.m_id)
+			}
+		} catch (err) {}
+	}
+
+	async image_validate() {
+		if (!this.input_validate()) {
+			return false
+		}
+		return image_validate(this.image)
+	}
+
+	input_validate() {
+		if (
+			this.category &&
+			this.description &&
+			this.image &&
+			this.longitude !== undefined &&
+			this.latitude !== undefined &&
+			this.loc_info &&
+			this.loc_validate()
+		) {
+			return true
+		}
+		return false
+	}
+
+	to_string() {
+		return JSON.stringify(this.to_json())
+	}
+
+	to_json() {
+		return {
+			category: this.category,
+			description: this.description,
+			image: this.image,
+			longitude: this.longitude,
+			latitude: this.latitude,
+			loc_info: this.loc_info,
+		}
+	}
+
+	get_municipality() {
+		return {
+			id: this.loc_info?.m_id,
+			code: this.loc_info?.m_code,
+			name: this.loc_info?.m_name,
+		}
+	}
+
+	get_ward() {
+		return this.loc_info?.ward
+	}
+
+	get_province() {
+		return this.loc_info?.province
+	}
+
+	loc_validate() {
+		const municipality = this.get_municipality()
+		if (
+			this.get_ward() === undefined ||
+			!this.get_province() ||
+			!municipality ||
+			municipality.id === undefined ||
+			!municipality.code ||
+			!municipality.name
+		) {
+			return false
+		}
+		return true
+	}
+
+	set_placeholder_image() {
+		this.image = PLACEHOLDER_IMAGE
+	}
+}
+
+const request_converter = {
+	to_firestore: function (user_uid, request, now) {
+		const municipality = request.get_municipality()
+		return {
+			user_uid,
+			created_at: now.toUTCString(),
+			location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
+			sa_ward: request.get_ward(),
+			sa_province: request.get_province(),
+			sa_m_id: municipality.id,
+			sa_m_code: municipality.code,
+			sa_m_name: municipality.name,
+			category: request.category,
+			description: request.description,
+			image: request.image,
+		}
+	},
+	from_firestore: function (snapshot, options) {
+		const data = snapshot.data(options)
+		data['longitude'] = data.location.replace(
+			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
+			'$1'
+		)
+		data['latitude'] = data.location.replace(
+			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
+			'$2'
+		)
+		data['loc_info'] = {
+			ward: data.sa_ward,
+			province: data.sa_province,
+			m_id: data.sa_m_id,
+			m_code: data.sa_m_code,
+			m_name: data.sa_m_name,
+		}
+		return new Request(data)
+	},
+}
+
+class ClaimedRequest {
+	constructor(request_uid, worker_uid, tmp_status) {
+		this.request_uid = request_uid
+		this.worker_uid = worker_uid
+		this.status = tmp_status
+	}
+
+	validate() {
+		if (this.request_uid && this.worker_uid && this.status) {
+			return true
+		}
+		return false
+	}
+
+	to_string() {
+		return JSON.stringify(this.to_json())
+	}
+
+	to_json() {
+		return {
+			request_uid: this.request_uid,
+			worker_uid: this.worker_uid,
+			status: this.status,
+		}
+	}
+}
+
+const claimed_request_converter = {
+	to_firestore: function (claimed_request) {
+		return {
+			request_uid: claimed_request.request_uid,
+			worker_uid: claimed_request.worker_uid,
+			status: claimed_request.status,
+		}
+	},
+	from_firestore: function (snapshot, options) {
+		const data = snapshot.data(options)
+		return new ClaimedRequest(
+			data.request_uid,
+			data.worker_uid,
+			data.status
+		)
+	},
+}
 
 /********************* Backend *********************/
 
@@ -235,37 +464,6 @@ const role_service = {
 	is_admin: (uid) => has_role(uid, 'admin'),
 	is_worker: (uid) => has_role(uid, 'worker'),
 }
-
-app.get('/api/voting-district', async (req, res) => {
-	try {
-		const { latitude, longitude } = req.query
-
-		if (!latitude || !longitude) {
-			return res.status(400).json({
-				error: 'Missing latitude or longitude',
-			})
-		}
-
-		const url = `https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=${latitude}&longitude=${longitude}`
-
-		const response = await fetch(url)
-
-		if (!response.ok) {
-			return res.status(response.status).json({
-				error: 'Failed to fetch from GIS API.',
-				url,
-			})
-		}
-
-		const data = await response.json()
-		return res.status(200).json({ data })
-	} catch (err) {
-		console.error('api voting-district > proxy error:', err)
-		return res.status(500).json({
-			error: 'Internal server error',
-		})
-	}
-})
 
 app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {

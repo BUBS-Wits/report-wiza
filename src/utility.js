@@ -108,20 +108,36 @@ export function get_date(now) {
 	}
 }
 
+async function gisapi(longitude, latitude) {
+	try {
+		const url = `https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=${latitude}&longitude=${longitude}`
+
+		const response = await fetch(url)
+
+		if (!response.ok) {
+			console.error({
+				error: 'Failed to fetch from GIS API.',
+				url,
+			})
+			return null
+		}
+
+		const data = await response.json()
+		return data
+	} catch (err) {
+		console.error('api voting-district > proxy error:', err)
+		return null
+	}
+}
+
 export function get_voting_district_info(longitude, latitude) {
-	return fetch(`${WARD_API}latitude=${latitude}&longitude=${longitude}`, {
-		credentials: 'omit',
-	})
+	return gisapi(longitude, latitude)
 		.then(async (res) => {
-			const tmp = await res.json()
-			if (!res.ok) {
-				if (tmp.error && typeof tmp.error === 'string') {
-					throw new Error(tmp.error)
-				} else {
-					throw tmp.error
-				}
+			if (res == null) {
+				return null
 			}
-			const data = tmp.data
+			console.log(res)
+			const data = res
 			if (
 				!data.Municipality ||
 				!data.MunicipalityID ||
