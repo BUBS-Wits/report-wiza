@@ -311,7 +311,7 @@ app.get('/api/get-requests', async (req, res) => {
 	return res.status(200).json(ret.value)
 })
 
-app.get('/api/my-claimed-requests', authenticate, async (req, res) => {
+app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 	const worker_uid = req.user.uid
 	if (!role_service.is_worker(worker_uid)) {
 		return unauthorized(res)
