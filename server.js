@@ -312,13 +312,14 @@ app.get('/api/get-requests', async (req, res) => {
 })
 
 app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
-	const worker_uid = req.user.uid
-	if (!role_service.is_worker(worker_uid)) {
+	const uid = req.user.uid
+	const is_worker = role_service.is_worker(uid)
+	const is_admin = role_service.is_admin(uid)
+	if (!is_worker && !is_admin) {
 		return unauthorized(res)
 	}
-	const ret = await get_db_documents('claimed_requests', [
-		['worker_id', '==', worker_uid],
-	])
+	const conditions = is_admin ? [] : ['worker_id', '==', uid]
+	const ret = await get_db_documents('claimed_requests', conditions)
 	if (!ret.ok) {
 		return res.status(400).json({ error: ret.value })
 	}
