@@ -3,12 +3,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import { Request, request_converter } from './src/pages/request/request.js'
+import { Request, request_converter } from './src/backend/request.js'
 import {
 	ClaimedRequest,
 	claimed_request_converter,
-} from './src/pages/request/claimed_request.js'
-import { get_date } from './src/utility.js'
+} from './src/backend/claimed_request.js'
 
 /********************* Setup *********************/
 
