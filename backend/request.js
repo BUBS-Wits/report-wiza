@@ -1,5 +1,47 @@
-import { get_data_uri, image_validate } from '../../utility.js'
-import { PLACEHOLDER_IMAGE } from '../../constants.js'
+const PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'><rect width='256' height='256' fill='%23e0e0e0'/><rect x='32' y='32' width='192' height='192' fill='none' stroke='%239e9e9e' stroke-width='4'/><line x1='32' y1='32' x2='224' y2='224' stroke='%239e9e9e' stroke-width='4'/><line x1='224' y1='32' x2='32' y2='224' stroke='%239e9e9e' stroke-width='4'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23757575' font-family='Arial, sans-serif' font-size='20'>No Image</text></svg>`
+
+async function get_data_uri(file) {
+	if (typeof file !== 'object') {
+		return null
+	}
+	if (typeof window !== 'undefined') {
+		// native browser
+		return new Promise((resolve) => {
+			const reader = new FileReader()
+			reader.onload = (e) => {
+				const data_uri = e.target.result
+				resolve(data_uri)
+			}
+			reader.readAsDataURL(file)
+		})
+	} else {
+		// nodejs
+		const buffer = Buffer.from(await file.arrayBuffer())
+		const data_uri = `data:${file.type};base64,${buffer.toString('base64')}`
+		return data_uri
+	}
+}
+
+async function image_validate(image) {
+	if (!image) {
+		return false
+	}
+	let image_uri =
+		typeof image === 'string' ? image : await get_data_uri(image)
+	if (!image_uri) {
+		return false
+	}
+	if (/^(https:\/\/|http:\/\/|ftp:\/\/)/.test(image)) {
+		return true
+	}
+	image_uri = image_uri.trim()
+	const image_media_types_suffix = ['jpeg', 'jpg', 'png']
+	const image_data_uri_regex = new RegExp(
+		`^data:image/(${image_media_types_suffix.join('|')})(;[^,;]+)*,.*$`,
+		'i'
+	)
+	return image_data_uri_regex.test(image_uri)
+}
 
 export class Request {
 	constructor(

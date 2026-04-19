@@ -16,6 +16,19 @@ jest.mock('../firebase_config', () => ({
 }))
 
 describe('fetchResidentRequests', () => {
+	let console_error_spy
+	beforeEach(() => {
+		jest.clearAllMocks()
+		console_error_spy = jest
+			.spyOn(console, 'error')
+			.mockImplementation(() => {})
+	})
+
+	afterEach(() => {
+		jest.clearAllMocks()
+		console_error_spy.mockRestore()
+	})
+
 	it('returns formatted requests on success', async () => {
 		const mockSnapshot = {
 			docs: [

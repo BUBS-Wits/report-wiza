@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, setDoc, getDoc, doc } from 'firebase/firestore'
-import { auth, db, storage } from '../../../firebase_config.js'
+import { auth } from '../../../firebase_config.js'
 import { get_date } from '../../../utility.js'
 import { WARD_API, PLACEHOLDER_IMAGE } from '../../../constants.js'
 import Navbar from '../../../components/nav_bar/nav_bar.js'
@@ -57,7 +56,8 @@ function RequestPage() {
 			})
 			if (!req.ok) {
 				alert('Failed to submit request. Browse console logs.')
-				console.error('Failed:\n', await req.json())
+				console.error('Failed:\n', (await req.json()).error)
+				return
 			}
 			alert('Request successfully submitted.')
 			console.log(await req.json())

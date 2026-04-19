@@ -31,7 +31,18 @@ import { confirm_worker_role } from '../backend/admin_firebase.js'
 const render_verify = () => render(<WorkerVerify />)
 
 describe('WorkerVerify page', () => {
-	beforeEach(() => jest.clearAllMocks())
+	let console_error_spy
+	beforeEach(() => {
+		jest.clearAllMocks()
+		console_error_spy = jest
+			.spyOn(console, 'error')
+			.mockImplementation(() => {})
+	})
+
+	afterEach(() => {
+		jest.clearAllMocks()
+		console_error_spy.mockRestore()
+	})
 
 	describe('Given an invalid email link', () => {
 		describe('When the page loads', () => {
