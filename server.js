@@ -140,8 +140,8 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 const build_path = path.resolve(path.join(__dirname, 'build'))
 app.use(express.static(build_path))
 
-app.get('*', (req, res) => {
-	res.sendFile(path.join(build_path, 'index.html'))
+app.get(/.*/, (req, res) => {
+    res.sendFile(path.join(build_path, 'index.html'))
 })
 
 /********************* Start *********************/
