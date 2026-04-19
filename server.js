@@ -3,11 +3,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import { Request, request_converter } from './src/backend/request.js'
+import { Request, request_converter } from './src/backend/shared/request.js'
 import {
 	ClaimedRequest,
 	claimed_request_converter,
-} from './src/backend/claimed_request.js'
+} from './src/backend/shared/claimed_request.js'
 
 /********************* Setup *********************/
 
@@ -65,8 +65,15 @@ const authenticate = async (req, res, next) => {
 
 const generate_doc_id = (collection, no) => {
 	const new_doc_ref = db.collection(collection).doc()
-	const d = get_date(no)
-	const timestamp = `${d.year}${d.month}${d.day}${d.hours}${d.minutes}${d.seconds}`
+	const now = new Date(Date.now())
+	const year = now.getFullYear()
+	const month = String(now.getMonth() + 1).padStart(2, '0')
+	const day = String(now.getDate()).padStart(2, '0')
+	const hours = String(now.getHours()).padStart(2, '0')
+	const minutes = String(now.getMinutes()).padStart(2, '0')
+	const seconds = String(now.getSeconds()).padStart(2, '0')
+
+	const timestamp = `${year}${month}${day}${hours}${minutes}${seconds}`
 	return `${timestamp}_${new_doc_ref.id}`
 }
 
@@ -226,7 +233,7 @@ const has_role = (uid, role) => {
 const role_service = {
 	is_resident: (uid) => has_role(uid, 'resident'),
 	is_admin: (uid) => has_role(uid, 'admin'),
-	is_orker: (uid) => has_role(uid, 'worker'),
+	is_worker: (uid) => has_role(uid, 'worker'),
 }
 
 app.get('/api/voting-district', async (req, res) => {
@@ -324,7 +331,7 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 		})
 	}
 	const tmp = new ClaimedRequest(request_uid, uid, 'pending')
-	const claimed_requst = claimed_request_converter.to_firestore(tmp)
+	const claimed_request = claimed_request_converter.to_firestore(tmp)
 	const ret = await create_db_document('claimed_requests', claimed_request)
 	if (!ret.ok) {
 		return res.status(400).json({ error: ret.value })
@@ -374,7 +381,7 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 const build_path = path.resolve(path.join(__dirname, 'build'))
 app.use(express.static(build_path))
 
-app.get('/{*splat}', (req, res) => {
+app.get(/.*/, (req, res) => {
 	res.sendFile(path.join(build_path, 'index.html'))
 })
 
