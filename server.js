@@ -3,11 +3,6 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import { Request, request_converter } from './backend/request.js'
-import {
-	ClaimedRequest,
-	claimed_request_converter,
-} from './backend/claimed_request.js'
 
 /********************* Setup *********************/
 
@@ -30,19 +25,12 @@ admin.initializeApp({
 
 const db = admin.firestore()
 db.listCollections()
-	.then(() => console.log('firebase connected.'))
-	.catch((err) => console.error('firebase failed:', err))
+	.then(() => console.log('Firebase connected.'))
+	.catch((err) => console.error('Firebase failed:', err))
 
 /********************* Backend *********************/
 
 app.use(express.json({ limit: '10mb' }))
-
-const respond = {
-	unauthorized: (res) =>
-		res.status(400).json({ error: 'Unauthorized access to API endpoint.' }),
-	invalid_parameters: (res) =>
-		res.status(400).json({ error: 'Invalid parameters provided.' }),
-}
 
 const authenticate = async (req, res, next) => {
 	try {
@@ -63,9 +51,9 @@ const authenticate = async (req, res, next) => {
 	}
 }
 
-const generate_doc_id = (collection, no) => {
+const get_new_doc_id = (collection, now) => {
 	const new_doc_ref = db.collection(collection).doc()
-	const now = new Date(Date.now())
+
 	const year = now.getFullYear()
 	const month = String(now.getMonth() + 1).padStart(2, '0')
 	const day = String(now.getDate()).padStart(2, '0')
@@ -75,165 +63,6 @@ const generate_doc_id = (collection, no) => {
 
 	const timestamp = `${year}${month}${day}${hours}${minutes}${seconds}`
 	return `${timestamp}_${new_doc_ref.id}`
-}
-
-const apply_query = (query, condition) => {
-	if (!Array.isArray(condition) && condition.length !== 3) {
-		console.debug(
-			`get_db_documents > provided condition array ith len != 3`
-		)
-		return
-	}
-	return query.where(condition[0], condition[1], condition[2])
-}
-
-/**
- * get_db_documents() - Returns an array of db docs matching some condition(s)
- * @collection: Collection name as a string in db
- * @conditions: An array of the conditions to check treated as being joined by AND.
- * 	A condition is an array of exactly length 3.
- * 	Given st. conditions[0] is the field to filter,
- * 	conditions[1] is the comparison op,
- * 	and condition[2] is the value.
- */
-const get_db_documents = (collection, conditions) => {
-	if (!Array.isArray(conditions)) {
-		console.error('get_db_documents > conditions not given as array')
-		return new Promise.resolve({
-			ok: false,
-			value: new Error(
-				'Argument "conditions" incorrect type passed (Expected Array).'
-			),
-		})
-	}
-	const col = db.collection(collection)
-	let query = col
-	for (const condition of conditions) {
-		query = apply_query(query, condition)
-	}
-	// TODO: add query optimization using `startAt()` and `limit()`
-	return query
-		.get()
-		.then((snapshot) => {
-			return {
-				ok: true,
-				value: snapshot.docs.map((doc_snap) => ({
-					id: doc_snap.id,
-					...doc_snap.data(),
-				})),
-			}
-		})
-		.catch((error) => {
-			console.error(
-				'get_db_documents > error hile getting documents: ',
-				error
-			)
-			return { ok: false, value: error }
-		})
-}
-
-const get_db_document = (collection, doc_id) => {
-	return db
-		.collection(collection)
-		.doc(doc_id)
-		.get()
-		.then((doc_snap) => {
-			if (doc_snap.exists) {
-				return {
-					ok: true,
-					value: { id: doc_snap.id, ...doc_snap.data() },
-				}
-			} else {
-				return { ok: true, value: null }
-			}
-		})
-		.catch((error) => {
-			console.error(
-				'get_db_document > error hile getting document: ',
-				error
-			)
-			return { ok: false, value: error }
-		})
-}
-
-const set_db_document = (collection, doc_id, doc) => {
-	return db
-		.collection(collection)
-		.doc(doc_id)
-		.set(doc)
-		.then(() => {
-			return { ok: true, value: doc_id }
-		})
-		.catch((error) => {
-			return { ok: false, value: error }
-		})
-}
-
-const update_db_document = (collection, doc_id, doc) =>
-	set_db_document(collection, doc_id, doc)
-
-const delete_db_document = (collection, doc_id) => {
-	return db
-		.collection(collection)
-		.doc(doc_id)
-		.delete()
-		.then(() => {
-			return { ok: true, value: `successfully deleted "${doc_id}"` }
-		})
-		.catch((err) => {
-			return { ok: false, value: `failed to delete "${doc_id}"` }
-		})
-}
-
-const create_db_document = (collection, doc) => {
-	const no = new Date(Date.now())
-	const doc_id = generate_doc_id(collection, no)
-
-	return set_db_document(collection, doc_id, doc)
-}
-
-const exists_db_document = async (collection, doc) => {
-	if (typeof doc === 'string') {
-		const ret = await get_db_document(collection, doc)
-		if (!ret.ok || ret.value) {
-			return true
-		}
-		return false
-	}
-	const conditions = []
-	for (const key of Object.keys(doc)) {
-		conditions.push([key, '==', doc[key]])
-	}
-	const docs =
-		conditions.length > 0
-			? await get_db_documents(collection, conditions)
-			: null
-	if (
-		!docs || //empty doc
-		!docs.ok || // error > it is safer to assume it exists
-		(docs.value && docs.value.length > 0)
-	) {
-		return true
-	}
-	return false
-}
-
-const has_role = (uid, role) => {
-	return get_db_document('users', uid).then((ret) => {
-		if (!ret.ok) {
-			return { ok: false, value: ret.value }
-		}
-		if (!ret.value) {
-			return { ok: true, value: false }
-		}
-		return { ok: true, value: ret.value.role === role }
-	})
-}
-
-const role_service = {
-	is_resident: (uid) => has_role(uid, 'resident'),
-	is_admin: (uid) => has_role(uid, 'admin'),
-	is_worker: (uid) => has_role(uid, 'worker'),
 }
 
 app.get('/api/voting-district', async (req, res) => {
@@ -252,16 +81,15 @@ app.get('/api/voting-district', async (req, res) => {
 
 		if (!response.ok) {
 			return res.status(response.status).json({
-				error: 'Failed to fetch from GIS API.',
-				url,
+				error: 'Failed to fetch from GIS API',
 			})
 		}
 
 		const data = await response.json()
-		return res.status(200).json({ data })
+		res.status(200).json(data)
 	} catch (err) {
-		console.error('api voting-district > proxy error:', err)
-		return res.status(500).json({
+		console.error('Proxy error:', err)
+		res.status(500).json({
 			error: 'Internal server error',
 		})
 	}
@@ -269,112 +97,42 @@ app.get('/api/voting-district', async (req, res) => {
 
 app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
-		let body
-		try {
-			// Tom-Foolery to check if it is even a valid json object
-			body = JSON.parse(JSON.stringify(req.body))
-		} catch (err) {
+		const body = req.body
+
+		// DO YOUR VALIDATION DIRECTLY IN THE BACKEND
+		if (!body || !body.latitude || !body.longitude || !body.category) {
 			return res.status(400).json({
-				error: 'Unknon body. Failed to parse as JSON.',
+				error: 'Missing parameters in request object.',
 			})
 		}
 
-		const request = new Request(body)
-		if (
-			!body ||
-			!request.input_validate() ||
-			(await !request.image_validate())
-		) {
-			return respond.invalid_parameters(res)
+		const now = new Date(Date.now())
+		const new_doc_id = get_new_doc_id('service_requests', now)
+
+		// Create the object directly instead of using the frontend class
+		const service_request = {
+			user_id: req.user.uid,
+			created_at: now.toUTCString(),
+			location: `SRID=4326;POINT(${body.longitude} ${body.latitude})`,
+			sa_ward: body.ward,
+			sa_m_id: body.municipality_id,
+			sa_m_code: body.municipality_code,
+			sa_m_name: body.municipality_name,
+			status: 'pending',
+			category: body.category,
+			description: body.description,
+			image: body.image,
 		}
 
-		const service_request = request_converter.to_firestore(
-			req.user.uid,
-			request,
-			new Date(Date.now())
-		)
-		if (!(await exists_db_document('service_request', service_request))) {
-			const ret = await create_db_document(
-				'service_requests',
-				service_request
-			)
-			if (ret.ok) {
-				return res.status(200).json({ data: ret.value })
-			} else {
-				return res.status(400).json({ error: ret.value })
-			}
-		} else {
-			return res.status(201).json({
-				data: 'User alredy exists in db.',
-			})
-		}
+		await db
+			.collection('service_requests')
+			.doc(new_doc_id)
+			.set(service_request)
+		res.status(200).json(new_doc_id)
 	} catch (err) {
-		console.error('api submit-request > proxy error: ', err)
-		return res.status(500).json({
-			error: 'Internal server error',
-		})
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
 	}
-})
-
-app.get('/api/claim-request', authenticate, async (req, res) => {
-	const uid = req.user.uid
-	const is_worker = await role_service.is_worker(uid)
-	if (!is_worker) {
-		return respond.unauthorized(res)
-	}
-	const request_uid = req.query.request_uid
-	if (!request_uid || Object.keys(req.query).length !== 1) {
-		return respond.invalid_parameters(res)
-	}
-	if (await exists_db_document('claimed_requests', request_uid)) {
-		return res.status(201).json({
-			data: 'Request already claimed in db.',
-		})
-	}
-	const tmp = new ClaimedRequest(request_uid, uid, 'pending')
-	const claimed_request = claimed_request_converter.to_firestore(tmp)
-	const ret = await create_db_document('claimed_requests', claimed_request)
-	if (!ret.ok) {
-		return res.status(400).json({ error: ret.value })
-	}
-	return res.status(200).json({ data: ret.value })
-})
-
-app.get('/api/get-requests', async (req, res) => {
-	const conditions = []
-	if (req.query.all) {
-		if (req.query.all === 'false') {
-			if (!authenticate(req, res, () => {})) {
-				return respond.unauthorized(res)
-			}
-			conditions.push(['service_requests', '==', req.user.uid])
-		} else if (
-			req.query.all !== 'true' ||
-			Object.keys(req.query).length !== 1
-		) {
-			return respond.invalid_parameters(res)
-		}
-	}
-	const ret = await get_db_documents('service_requests', conditions)
-	if (!ret.ok) {
-		return res.status(400).json({ error: ret.value })
-	}
-	return res.status(200).json({ data: ret.value })
-})
-
-app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
-	const uid = req.user.uid
-	const is_worker = await role_service.is_worker(uid)
-	const is_admin = await role_service.is_admin(uid)
-	if (!is_worker && !is_admin) {
-		return respond.unauthorized(res)
-	}
-	const conditions = is_admin ? [] : ['worker_uid', '==', uid]
-	const ret = await get_db_documents('claimed_requests', conditions)
-	if (!ret.ok) {
-		return res.status(400).json({ error: ret.value })
-	}
-	return res.status(200).json({ data: ret.value })
 })
 
 /********************* Frontend *********************/

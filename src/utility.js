@@ -113,15 +113,7 @@ export function get_voting_district_info(longitude, latitude) {
 		credentials: 'omit',
 	})
 		.then(async (res) => {
-			const tmp = await res.json()
-			if (!res.ok) {
-				if (tmp.error && typeof tmp.error === 'string') {
-					throw new Error(tmp.error)
-				} else {
-					throw tmp.error
-				}
-			}
-			const data = tmp.data
+			const data = await res.json()
 			if (
 				!data.Municipality ||
 				!data.MunicipalityID ||
@@ -143,7 +135,6 @@ export function get_voting_district_info(longitude, latitude) {
 			}
 		})
 		.catch((err) => {
-			console.error(`Failed to fetch from ${WARD_API}`)
 			console.error(err)
 			return null
 		})
