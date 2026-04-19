@@ -323,7 +323,7 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 	if (!is_worker && !is_admin) {
 		return respond.unauthorized(res)
 	}
-	const conditions = is_admin ? [] : ['worker_id', '==', uid]
+	const conditions = is_admin ? [] : ['worker_uid', '==', uid]
 	const ret = await get_db_documents('claimed_requests', conditions)
 	if (!ret.ok) {
 		return res.status(400).json({ error: ret.value })
