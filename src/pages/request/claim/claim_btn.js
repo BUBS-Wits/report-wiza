@@ -28,6 +28,7 @@ function ClaimBtn({ request_id }) {
 			}
 			setDoc(user_creq_ref, {
 				worker_id: auth.currentUser.uid,
+				status: 'pending',
 			})
 		} catch (err) {
 			console.error(`Failed to claim request "${request_id}"`)
