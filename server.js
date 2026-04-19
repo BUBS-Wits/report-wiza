@@ -3,7 +3,6 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import { Request } from './src/pages/request/request.js'
 import { get_date } from './src/utility.js'
 
 /********************* Setup *********************/
@@ -58,23 +57,6 @@ const get_new_doc_id = (collection, now) => {
 	const d = get_date(now)
 	const timestamp = `${d.year}${d.month}${d.day}${d.hours}${d.minutes}${d.seconds}`
 	return `${timestamp}_${new_doc_ref.id}`
-}
-
-const create_service_request = (req, request, now) => {
-	const municipality = request.get_municipality()
-	return {
-		user_id: req.user.uid,
-		created_at: now.toUTCString(),
-		location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
-		sa_ward: request.get_ward(),
-		sa_m_id: municipality.id,
-		sa_m_code: municipality.code,
-		sa_m_name: municipality.name,
-		status: 'pending',
-		category: request.category,
-		description: request.description,
-		image: request.image,
-	}
 }
 
 app.get('/api/voting-district', async (req, res) => {
