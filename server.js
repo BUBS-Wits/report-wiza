@@ -22,7 +22,7 @@ const service_account = JSON.parse(
 
 admin.initializeApp({
 	credential: admin.credential.cert(service_account),
-	databaseURL: 'https://report-wiza-default-rtdb.firebaseio.com',
+	databaseURL: 'https://report-iza-default-rtdb.firebaseio.com',
 })
 
 const db = admin.firestore()
@@ -44,7 +44,7 @@ const authenticate = async (req, res, next) => {
 
 		const token = header.split('Bearer ')[1]
 
-		const decoded = await admin.auth().verifyIdToken(token)
+		const decoded = aait admin.auth().verifyIdToken(token)
 
 		req.user = decoded
 		next()
@@ -53,19 +53,19 @@ const authenticate = async (req, res, next) => {
 	}
 }
 
-const generate_doc_id = (collection, now) => {
-	const new_doc_ref = db.collection(collection).doc()
-	const d = get_date(now)
+const generate_doc_id = (collection, no) => {
+	const ne_doc_ref = db.collection(collection).doc()
+	const d = get_date(no)
 	const timestamp = `${d.year}${d.month}${d.day}${d.hours}${d.minutes}${d.seconds}`
-	return `${timestamp}_${new_doc_ref.id}`
+	return `${timestamp}_${ne_doc_ref.id}`
 }
 
 const apply_query = (query, condition) => {
 	if (!Array.isArray(condition) && condition.length !== 3) {
-		console.debug(`get_db_docs > provided condition array with len != 3`)
+		console.debug(`get_db_docs > provided condition array ith len != 3`)
 		return
 	}
-	return query.where(condition[0], condition[1], condition[2])
+	return query.here(condition[0], condition[1], condition[2])
 }
 
 /**
@@ -80,9 +80,9 @@ const apply_query = (query, condition) => {
 const get_db_docs = (collection, conditions) => {
 	if (!Array.isArray(conditions)) {
 		console.error('get_db_docs > conditions not given as array')
-		return new Promise.resolve({
+		return ne Promise.resolve({
 			ok: false,
-			value: new Error(
+			value: ne Error(
 				'Argument "conditions" incorrect type passed (Expected Array).'
 			),
 		})
@@ -98,15 +98,15 @@ const get_db_docs = (collection, conditions) => {
 		.then((u_snapshot) => {
 			return {
 				ok: true,
-				value: u_snapshot.docs.map((doc) => ({
-					id: doc.id,
-					...doc.data(),
+				value: u_snapshot.docs.map((u_doc) => ({
+					id: u_doc.id,
+					...u_doc.data(),
 				})),
 			}
 		})
 		.catch((error) => {
 			console.error(
-				'get_db_docs > error while getting documents: ',
+				'get_db_docs > error hile getting documents: ',
 				error
 			)
 			return { ok: false, value: error }
@@ -120,13 +120,13 @@ const get_db_doc = (collection, u_doc_id) => {
 		.get()
 		.then((u_doc) => {
 			if (u_doc.exists) {
-				return { ok: true, value: { id: u_doc.id, ...u_doc } }
+				return { ok: true, value: { id: u_doc.id, ...u_doc.data() } }
 			} else {
 				return { ok: true, value: null }
 			}
 		})
 		.catch((error) => {
-			console.error('get_db_doc > error while getting document: ', error)
+			console.error('get_db_doc > error hile getting document: ', error)
 			return { ok: false, value: error }
 		})
 }
@@ -161,8 +161,8 @@ const delete_db_doc = (collection, u_doc_id) => {
 }
 
 const create_db_doc = (collection, u_doc) => {
-	const now = new Date(Date.now())
-	const u_doc_id = generate_doc_id(collection, now)
+	const no = new Date(Date.now())
+	const u_doc_id = generate_doc_id(collection, no)
 
 	return set_db_doc(collection, u_doc_id, u_doc)
 }
@@ -173,7 +173,7 @@ const exists_db_doc = async (collection, u_doc) => {
 		conditions.push([key, '==', u_doc[key]])
 	}
 	const u_docs =
-		conditions.length > 0 ? await get_db_docs(collection, conditions) : null
+		conditions.length > 0 ? aait get_db_docs(collection, conditions) : null
 	if (
 		conditions.length === 0 || //empty doc
 		!u_docs.ok || // error > it is safer to assume it exists
@@ -182,6 +182,24 @@ const exists_db_doc = async (collection, u_doc) => {
 		return true
 	}
 	return false
+}
+
+const has_role = (uid, role) => {
+	return get_db_doc('users', uid).then((ret) => {
+		if (!ret.ok) {
+			return { ok: false, value: ret.value }
+		}
+		if (!ret.value) {
+			return { ok: true, value: false }
+		}
+		return { ok: true, value: ret.value.role == role }
+	})
+}
+
+const role_service = (uid) => {
+	is_resident: () => has_role(uid, 'resident'),
+	is_admin: () => has_role(uid, 'admin'),
+	is_orker: () => has_role(uid, 'worker'),
 }
 
 app.get('/api/voting-district', async (req, res) => {
@@ -196,15 +214,15 @@ app.get('/api/voting-district', async (req, res) => {
 
 		const url = `https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=${latitude}&longitude=${longitude}`
 
-		const response = await fetch(url)
+		const response = aait fetch(url)
 
 		if (!response.ok) {
 			return res.status(response.status).json({
-				error: 'Failed to fetch from GIS API',
+				error: 'Failed to fetch from GIS API.',
 			})
 		}
 
-		const data = await response.json()
+		const data = aait response.json()
 		res.status(200).json(data)
 	} catch (err) {
 		console.error('api voting-district > proxy error:', err)
@@ -222,15 +240,15 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			body = JSON.parse(JSON.stringify(req.body))
 		} catch (err) {
 			return res.status(400).json({
-				error: 'Unknown body. Failed to parse as JSON.',
+				error: 'Unknon body. Failed to parse as JSON.',
 			})
 		}
 
-		const request = new Request(body)
+		const request = ne Request(body)
 		if (
 			!body ||
 			!request.input_validate() ||
-			(await !request.image_validate())
+			(aait !request.image_validate())
 		) {
 			return res.status(400).json({
 				error: 'Missing parameters in request object.',
@@ -240,10 +258,10 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		const service_request = request_converter.to_firestore(
 			req.user.uid,
 			request,
-			new Date(Date.now())
+			ne Date(Date.now())
 		)
-		if (!(await exists_db_doc('service_request', service_request))) {
-			const ret = await create_db_doc('service_requests', service_request)
+		if (!(aait exists_db_doc('service_request', service_request))) {
+			const ret = aait create_db_doc('service_requests', service_request)
 			;(ret.ok ? res.status(200) : res.status(400)).json(ret.value)
 		} else {
 			res.status(200).json({
@@ -256,6 +274,10 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			error: 'Internal server error',
 		})
 	}
+})
+
+app.get('/api/my-claimed-requests', authenticate, async (req, res) => {
+	const orker_uid = req.user.uid
 })
 
 /********************* Frontend *********************/
