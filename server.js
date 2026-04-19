@@ -3,11 +3,11 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import { Request, request_converter } from './src/backend/shared/request.js'
+import { Request, request_converter } from './backend/request.js'
 import {
 	ClaimedRequest,
 	claimed_request_converter,
-} from './src/backend/shared/claimed_request.js'
+} from './backend/claimed_request.js'
 
 /********************* Setup *********************/
 
@@ -25,7 +25,7 @@ const service_account = JSON.parse(
 
 admin.initializeApp({
 	credential: admin.credential.cert(service_account),
-	databaseURL: 'https://report-iza-default-rtdb.firebaseio.com',
+	databaseURL: 'https://report-wiza-default-rtdb.firebaseio.com',
 })
 
 const db = admin.firestore()
@@ -318,7 +318,7 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 
 app.get('/api/claim-request', authenticate, async (req, res) => {
 	const uid = req.user.uid
-	const is_worker = role_service.is_worker(uid)
+	const is_worker = await role_service.is_worker(uid)
 	if (!is_worker) {
 		return respond.unauthorized(res)
 	}
@@ -364,8 +364,8 @@ app.get('/api/get-requests', async (req, res) => {
 
 app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 	const uid = req.user.uid
-	const is_worker = role_service.is_worker(uid)
-	const is_admin = role_service.is_admin(uid)
+	const is_worker = await role_service.is_worker(uid)
+	const is_admin = await role_service.is_admin(uid)
 	if (!is_worker && !is_admin) {
 		return respond.unauthorized(res)
 	}
