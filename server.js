@@ -44,7 +44,7 @@ const authenticate = async (req, res, next) => {
 
 		const token = header.split('Bearer ')[1]
 
-		const decoded = aait admin.auth().verifyIdToken(token)
+		const decoded = await admin.auth().verifyIdToken(token)
 
 		req.user = decoded
 		next()
@@ -54,22 +54,24 @@ const authenticate = async (req, res, next) => {
 }
 
 const generate_doc_id = (collection, no) => {
-	const ne_doc_ref = db.collection(collection).doc()
+	const new_doc_ref = db.collection(collection).doc()
 	const d = get_date(no)
 	const timestamp = `${d.year}${d.month}${d.day}${d.hours}${d.minutes}${d.seconds}`
-	return `${timestamp}_${ne_doc_ref.id}`
+	return `${timestamp}_${new_doc_ref.id}`
 }
 
 const apply_query = (query, condition) => {
 	if (!Array.isArray(condition) && condition.length !== 3) {
-		console.debug(`get_db_docs > provided condition array ith len != 3`)
+		console.debug(
+			`get_db_documents > provided condition array ith len != 3`
+		)
 		return
 	}
 	return query.here(condition[0], condition[1], condition[2])
 }
 
 /**
- * get_db_docs() - Returns an array of db docs matching some condition(s)
+ * get_db_documents() - Returns an array of db docs matching some condition(s)
  * @collection: Collection name as a string in db
  * @conditions: An array of the conditions to check treated as being joined by AND.
  * 	A condition is an array of exactly length 3.
@@ -77,12 +79,12 @@ const apply_query = (query, condition) => {
  * 	conditions[1] is the comparison op,
  * 	and condition[2] is the value.
  */
-const get_db_docs = (collection, conditions) => {
+const get_db_documents = (collection, conditions) => {
 	if (!Array.isArray(conditions)) {
-		console.error('get_db_docs > conditions not given as array')
-		return ne Promise.resolve({
+		console.error('get_db_documents > conditions not given as array')
+		return new Promise.resolve({
 			ok: false,
-			value: ne Error(
+			value: new Error(
 				'Argument "conditions" incorrect type passed (Expected Array).'
 			),
 		})
@@ -95,89 +97,97 @@ const get_db_docs = (collection, conditions) => {
 	// TODO: add query optimization using `startAt()` and `limit()`
 	return query
 		.get()
-		.then((u_snapshot) => {
+		.then((snapshot) => {
 			return {
 				ok: true,
-				value: u_snapshot.docs.map((u_doc) => ({
-					id: u_doc.id,
-					...u_doc.data(),
+				value: snapshot.docs.map((doc_snap) => ({
+					id: doc_snap.id,
+					...doc_snap.data(),
 				})),
 			}
 		})
 		.catch((error) => {
 			console.error(
-				'get_db_docs > error hile getting documents: ',
+				'get_db_documents > error hile getting documents: ',
 				error
 			)
 			return { ok: false, value: error }
 		})
 }
 
-const get_db_doc = (collection, u_doc_id) => {
+const get_db_document = (collection, doc_id) => {
 	return db
 		.collection(collection)
-		.doc(u_doc_id)
+		.doc(doc_id)
 		.get()
-		.then((u_doc) => {
-			if (u_doc.exists) {
-				return { ok: true, value: { id: u_doc.id, ...u_doc.data() } }
+		.then((doc_snap) => {
+			if (doc_snap.exists) {
+				return {
+					ok: true,
+					value: { id: doc_snap.id, ...doc_snap.data() },
+				}
 			} else {
 				return { ok: true, value: null }
 			}
 		})
 		.catch((error) => {
-			console.error('get_db_doc > error hile getting document: ', error)
+			console.error(
+				'get_db_document > error hile getting document: ',
+				error
+			)
 			return { ok: false, value: error }
 		})
 }
 
-const set_db_doc = (collection, u_doc_id, u_doc) => {
+const set_db_document = (collection, doc_id, doc) => {
 	return db
 		.collection(collection)
-		.doc(u_doc_id)
-		.set(u_doc)
+		.doc(doc_id)
+		.set(doc)
 		.then(() => {
-			return { ok: true, value: u_doc_id }
+			return { ok: true, value: doc_id }
 		})
 		.catch((error) => {
 			return { ok: false, value: error }
 		})
 }
 
-const update_db_doc = (collection, u_doc_id, u_doc) =>
-	set_db_doc(collection, u_doc_id, u_doc)
+const update_db_document = (collection, doc_id, doc) =>
+	set_db_document(collection, doc_id, doc)
 
-const delete_db_doc = (collection, u_doc_id) => {
+const delete_db_document = (collection, doc_id) => {
 	return db
 		.collection(collection)
-		.doc(u_doc_id)
+		.doc(doc_id)
 		.delete()
 		.then(() => {
-			return { ok: true, value: `successfully deleted "${u_doc_id}"` }
+			return { ok: true, value: `successfully deleted "${doc_id}"` }
 		})
 		.catch((err) => {
-			return { ok: false, value: `failed to delete "${u_doc_id}"` }
+			return { ok: false, value: `failed to delete "${doc_id}"` }
 		})
 }
 
-const create_db_doc = (collection, u_doc) => {
+const create_db_document = (collection, doc) => {
 	const no = new Date(Date.now())
-	const u_doc_id = generate_doc_id(collection, no)
+	const doc_id = generate_doc_id(collection, no)
 
-	return set_db_doc(collection, u_doc_id, u_doc)
+	return set_db_document(collection, doc_id, doc)
 }
 
-const exists_db_doc = async (collection, u_doc) => {
+const exists_db_document = async (collection, doc) => {
 	const conditions = []
-	for (const key of Object.keys(u_doc)) {
-		conditions.push([key, '==', u_doc[key]])
+	for (const key of Object.keys(doc)) {
+		conditions.push([key, '==', doc[key]])
 	}
-	const u_docs =
-		conditions.length > 0 ? aait get_db_docs(collection, conditions) : null
+	const docs =
+		conditions.length > 0
+			? await get_db_documents(collection, conditions)
+			: null
 	if (
 		conditions.length === 0 || //empty doc
-		!u_docs.ok || // error > it is safer to assume it exists
-		(u_docs.value && u_docs.value.length > 0)
+		!docs.ok || // error > it is safer to assume it exists
+		(docs.value && docs.value.length > 0)
 	) {
 		return true
 	}
@@ -185,21 +195,21 @@ const exists_db_doc = async (collection, u_doc) => {
 }
 
 const has_role = (uid, role) => {
-	return get_db_doc('users', uid).then((ret) => {
+	return get_db_document('users', uid).then((ret) => {
 		if (!ret.ok) {
 			return { ok: false, value: ret.value }
 		}
 		if (!ret.value) {
 			return { ok: true, value: false }
 		}
-		return { ok: true, value: ret.value.role == role }
+		return { ok: true, value: ret.value.role === role }
 	})
 }
 
-const role_service = (uid) => {
-	is_resident: () => has_role(uid, 'resident'),
-	is_admin: () => has_role(uid, 'admin'),
-	is_orker: () => has_role(uid, 'worker'),
+const role_service = {
+	is_resident: (uid) => has_role(uid, 'resident'),
+	is_admin: (uid) => has_role(uid, 'admin'),
+	is_orker: (uid) => has_role(uid, 'worker'),
 }
 
 app.get('/api/voting-district', async (req, res) => {
@@ -214,7 +224,7 @@ app.get('/api/voting-district', async (req, res) => {
 
 		const url = `https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=${latitude}&longitude=${longitude}`
 
-		const response = aait fetch(url)
+		const response = await fetch(url)
 
 		if (!response.ok) {
 			return res.status(response.status).json({
@@ -222,7 +232,7 @@ app.get('/api/voting-district', async (req, res) => {
 			})
 		}
 
-		const data = aait response.json()
+		const data = await response.json()
 		res.status(200).json(data)
 	} catch (err) {
 		console.error('api voting-district > proxy error:', err)
@@ -244,11 +254,11 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			})
 		}
 
-		const request = ne Request(body)
+		const request = new Request(body)
 		if (
 			!body ||
 			!request.input_validate() ||
-			(aait !request.image_validate())
+			(await !request.image_validate())
 		) {
 			return res.status(400).json({
 				error: 'Missing parameters in request object.',
@@ -258,10 +268,13 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		const service_request = request_converter.to_firestore(
 			req.user.uid,
 			request,
-			ne Date(Date.now())
+			new Date(Date.now())
 		)
-		if (!(aait exists_db_doc('service_request', service_request))) {
-			const ret = aait create_db_doc('service_requests', service_request)
+		if (!(await exists_db_document('service_request', service_request))) {
+			const ret = await create_db_document(
+				'service_requests',
+				service_request
+			)
 			;(ret.ok ? res.status(200) : res.status(400)).json(ret.value)
 		} else {
 			res.status(200).json({
