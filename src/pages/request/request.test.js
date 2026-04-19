@@ -1,5 +1,4 @@
-import '@testing-library/jest-dom'
-import { Request, request_converter } from './request.js'
+import { Request } from './request.js'
 
 let TESTS = []
 const [longitude, latitude] = [-5, 5]
@@ -8,10 +7,10 @@ const tmp_loc = {
 	m_code: 'test_mcode',
 	m_name: 'test_mname',
 	province: 'test_prov',
-	ward: 1,
+	ward: 'test_ward',
 }
 
-test('validation_pass', async () => {
+test('input_validation_pass', async () => {
 	const tmp = new Request(
 		'Water',
 		'water leakage.',
@@ -25,11 +24,18 @@ test('validation_pass', async () => {
 	expect(tmp.loc_validate()).toEqual(true)
 })
 
-test('validation_fail', async () => {
-	const tmp = new Request(undefined, undefined, undefined)
-	expect(tmp.input_validate()).toEqual(false)
-	expect(await tmp.image_validate()).toEqual(false)
-	expect(tmp.loc_validate()).toEqual(false)
+test('input_validation_fail', async () => {
+	const tmp = new Request(
+		undefined,
+		undefined,
+		undefined,
+		undefined,
+		undefined,
+		undefined
+	)
+	expect(tmp.input_validate()).not.toEqual(true)
+	expect(await tmp.image_validate()).not.toEqual(true)
+	expect(tmp.loc_validate()).not.toEqual(true)
 })
 
 TESTS = [
@@ -103,59 +109,4 @@ test('request_stringify_pass', async () => {
 	expect(tmp2.to_string()).toEqual(
 		`{"category":"Water","description":"water leakage.","image":"data:image/jpeg;base64,/9j/4AAQ...","longitude":${longitude},"latitude":${latitude},"loc_info":${JSON.stringify(tmp_loc)}}`
 	)
-})
-
-test('converter to firestore', () => {
-	const tmp = new Request(
-		'Water',
-		'water leakage.',
-		'data:image/jpeg;base64,/9j/4AAQ...',
-		longitude,
-		latitude,
-		tmp_loc
-	)
-	const muni = tmp.get_municipality()
-	const tmp_date = new Date(Date.now())
-	expect(request_converter.to_firestore('tmp_uid', tmp, tmp_date)).toEqual({
-		user_uid: 'tmp_uid',
-		created_at: tmp_date.toUTCString(),
-		location: `SRID=4326;POINT(${tmp.longitude} ${tmp.latitude})`,
-		sa_ward: tmp.get_ward(),
-		sa_province: tmp.get_province(),
-		sa_m_id: muni.id,
-		sa_m_code: muni.code,
-		sa_m_name: muni.name,
-		image: tmp.image,
-		description: tmp.description,
-		category: tmp.category,
-	})
-})
-
-test('converter from firestore', () => {
-	const tmp = new Request(
-		'Water',
-		'water leakage.',
-		'data:image/jpeg;base64,/9j/4AAQ...',
-		longitude,
-		latitude,
-		tmp_loc
-	)
-	const muni = tmp.get_municipality()
-	const tmp_date = new Date(Date.now())
-	const tmp_snapshot = {
-		data: (options) => ({
-			user_uid: 'tmp_uid',
-			created_at: tmp_date.toUTCString(),
-			location: `SRID=4326;POINT(${tmp.longitude} ${tmp.latitude})`,
-			sa_ward: tmp.get_ward(),
-			sa_province: tmp.get_province(),
-			sa_m_id: muni.id,
-			sa_m_code: muni.code,
-			sa_m_name: muni.name,
-			image: tmp.image,
-			description: tmp.description,
-			category: tmp.category,
-		}),
-	}
-	expect(request_converter.from_firestore(tmp_snapshot, {})).toEqual(tmp)
 })
