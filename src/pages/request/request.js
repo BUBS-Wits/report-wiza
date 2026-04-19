@@ -23,9 +23,11 @@ export class Request {
 				this.category = json.category?.trim()
 				this.description = json.description?.trim()
 				this.image = json.image
-				this.longitude = json.longitude
-				this.latitude = json.latitude
+				this.longitude = Number(json.longitude)
+				this.latitude = Number(json.latitude)
 				this.loc_info = json.loc_info
+				this.loc_info.ward = Number(this.loc_info.ward)
+				this.loc_info.m_id = Number(this.loc_info.m_id)
 			}
 		} catch (err) {}
 	}
@@ -42,8 +44,8 @@ export class Request {
 			this.category &&
 			this.description &&
 			this.image &&
-			this.longitude &&
-			this.latitude &&
+			this.longitude !== undefined &&
+			this.latitude !== undefined &&
 			this.loc_info &&
 			this.loc_validate()
 		) {
@@ -86,10 +88,10 @@ export class Request {
 	loc_validate() {
 		const municipality = this.get_municipality()
 		if (
-			!this.get_ward() ||
+			this.get_ward() === undefined ||
 			!this.get_province() ||
 			!municipality ||
-			!municipality.id ||
+			municipality.id === undefined ||
 			!municipality.code ||
 			!municipality.name
 		) {
@@ -111,6 +113,7 @@ export const request_converter = {
 			created_at: now.toUTCString(),
 			location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
 			sa_ward: request.get_ward(),
+			sa_province: request.get_province(),
 			sa_m_id: municipality.id,
 			sa_m_code: municipality.code,
 			sa_m_name: municipality.name,
@@ -121,6 +124,21 @@ export const request_converter = {
 	},
 	from_firestore: function (snapshot, options) {
 		const data = snapshot.data(options)
+		data['longitude'] = data.location.replace(
+			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
+			'$1'
+		)
+		data['latitude'] = data.location.replace(
+			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
+			'$2'
+		)
+		data['loc_info'] = {
+			ward: data.sa_ward,
+			province: data.sa_province,
+			m_id: data.sa_m_id,
+			m_code: data.sa_m_code,
+			m_name: data.sa_m_name,
+		}
 		return new Request(data)
 	},
 }

@@ -141,11 +141,13 @@ describe('Utility Functions', () => {
 				ok: true,
 				json: () =>
 					Promise.resolve({
-						Municipality: 'my bruh',
-						MunicipalityID: 1,
-						MunicipalityCode: 'awez',
-						Ward: 10,
-						Province: 'howzit',
+						data: {
+							Municipality: 'my bruh',
+							MunicipalityID: 1,
+							MunicipalityCode: 'awez',
+							Ward: 10,
+							Province: 'howzit',
+						},
 					}),
 			}
 
@@ -165,7 +167,8 @@ describe('Utility Functions', () => {
 		test('server returns failed', async () => {
 			const mock_response = {
 				ok: false,
-				json: () => Promise.resolve({ longitude: -5, latitude: 5 }),
+				json: () =>
+					Promise.resolve({ error: { longitude: -5, latitude: 5 } }),
 			}
 
 			const fetch_spy = jest
