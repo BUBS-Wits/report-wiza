@@ -56,7 +56,7 @@ function RequestPage() {
 			})
 			if (!req.ok) {
 				alert('Failed to submit request. Browse console logs.')
-				console.error('Failed:\n', await req.json())
+				console.error('Failed:\n', (await req.json()).error)
 			}
 			alert('Request successfully submitted.')
 			console.log(await req.json())

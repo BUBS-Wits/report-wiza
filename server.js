@@ -183,6 +183,13 @@ const create_db_document = (collection, doc) => {
 }
 
 const exists_db_document = async (collection, doc) => {
+	if (typeof doc === 'string') {
+		const ret = await get_db_document(collection, doc)
+		if (!ret.ok || ret.value) {
+			return true
+		}
+		return false
+	}
 	const conditions = []
 	for (const key of Object.keys(doc)) {
 		conditions.push([key, '==', doc[key]])
@@ -192,7 +199,7 @@ const exists_db_document = async (collection, doc) => {
 			? await get_db_documents(collection, conditions)
 			: null
 	if (
-		conditions.length === 0 || //empty doc
+		!docs || //empty doc
 		!docs.ok || // error > it is safer to assume it exists
 		(docs.value && docs.value.length > 0)
 	) {
@@ -240,10 +247,10 @@ app.get('/api/voting-district', async (req, res) => {
 		}
 
 		const data = await response.json()
-		res.status(200).json(data)
+		return res.status(200).json({ data })
 	} catch (err) {
 		console.error('api voting-district > proxy error:', err)
-		res.status(500).json({
+		return res.status(500).json({
 			error: 'Internal server error',
 		})
 	}
@@ -280,15 +287,19 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 				'service_requests',
 				service_request
 			)
-			;(ret.ok ? res.status(200) : res.status(400)).json(ret.value)
+			if (ret.ok) {
+				return res.status(200).json({ data: ret.value })
+			} else {
+				return res.status(400).json({ error: ret.value })
+			}
 		} else {
-			res.status(200).json({
-				msg: 'User alredy exists in db.',
+			return res.status(201).json({
+				data: 'User alredy exists in db.',
 			})
 		}
 	} catch (err) {
 		console.error('api submit-request > proxy error: ', err)
-		res.status(500).json({
+		return res.status(500).json({
 			error: 'Internal server error',
 		})
 	}
@@ -304,7 +315,7 @@ app.get('/api/get-requests', async (req, res) => {
 			conditions.push(['service_requests', '==', req.user.uid])
 		} else if (
 			req.query.all !== 'true' ||
-			Object.keys(req.query).length != 1
+			Object.keys(req.query).length !== 1
 		) {
 			return respond.invalid_parameters(res)
 		}
@@ -313,7 +324,7 @@ app.get('/api/get-requests', async (req, res) => {
 	if (!ret.ok) {
 		return res.status(400).json({ error: ret.value })
 	}
-	return res.status(200).json(ret.value)
+	return res.status(200).json({ data: ret.value })
 })
 
 app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
@@ -328,7 +339,7 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 	if (!ret.ok) {
 		return res.status(400).json({ error: ret.value })
 	}
-	return res.status(200).json(ret.value)
+	return res.status(200).json({ data: ret.value })
 })
 
 /********************* Frontend *********************/
