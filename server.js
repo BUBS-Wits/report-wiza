@@ -4,6 +4,10 @@ import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
 import { Request, request_converter } from './src/pages/request/request.js'
+import {
+	ClaimedRequest,
+	claimed_request_converter,
+} from './src/pages/request/claimed_request.js'
 import { get_date } from './src/utility.js'
 
 /********************* Setup *********************/
@@ -303,6 +307,30 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			error: 'Internal server error',
 		})
 	}
+})
+
+app.get('/api/claim-request', authenticate, async (req, res) => {
+	const uid = req.user.uid
+	const is_worker = role_service.is_worker(uid)
+	if (!is_worker) {
+		return respond.unauthorized(res)
+	}
+	const request_uid = req.query.request_uid
+	if (!request_uid || Object.keys(req.query).length !== 1) {
+		return respond.invalid_parameters(res)
+	}
+	if (await exists_db_document('claimed_requests', request_uid)) {
+		return res.status(201).json({
+			data: 'Request already claimed in db.',
+		})
+	}
+	const tmp = new ClaimedRequest(request_uid, uid, 'pending')
+	const claimed_requst = claimed_request_converter.to_firestore(tmp)
+	const ret = await create_db_document('claimed_requests', claimed_request)
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	return res.status(200).json({ data: ret.value })
 })
 
 app.get('/api/get-requests', async (req, res) => {
