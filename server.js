@@ -34,8 +34,12 @@ db.listCollections()
 
 app.use(express.json({ limit: '10mb' }))
 
-const unauthorized = (res) =>
-	res.status(400).json({ error: 'Unauthorized access to API endpoint.' })
+const respond = {
+	unauthorized: (res) =>
+		res.status(400).json({ error: 'Unauthorized access to API endpoint.' }),
+	invalid_parameters: (res) =>
+		res.status(400).json({ error: 'Invalid parameters provided.' }),
+}
 
 const authenticate = async (req, res, next) => {
 	try {
@@ -263,9 +267,7 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			!request.input_validate() ||
 			(await !request.image_validate())
 		) {
-			return res.status(400).json({
-				error: 'Missing parameters in request object.',
-			})
+			return respond.invalid_parameters(res)
 		}
 
 		const service_request = request_converter.to_firestore(
@@ -297,11 +299,14 @@ app.get('/api/get-requests', async (req, res) => {
 	if (req.query.all) {
 		if (req.query.all === 'false') {
 			if (!authenticate(req, res, () => {})) {
-				return unauthorized(res)
+				return respond.unauthorized(res)
 			}
 			conditions.push(['service_requests', '==', req.user.uid])
-		} else if (req.query.all !== 'true') {
-			return res.status(400).json({ error: 'Invalid parameter' })
+		} else if (
+			req.query.all !== 'true' ||
+			Object.keys(req.query).length != 1
+		) {
+			return respond.invalid_parameters(res)
 		}
 	}
 	const ret = await get_db_documents('service_requests', conditions)
@@ -316,7 +321,7 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 	const is_worker = role_service.is_worker(uid)
 	const is_admin = role_service.is_admin(uid)
 	if (!is_worker && !is_admin) {
-		return unauthorized(res)
+		return respond.unauthorized(res)
 	}
 	const conditions = is_admin ? [] : ['worker_id', '==', uid]
 	const ret = await get_db_documents('claimed_requests', conditions)
