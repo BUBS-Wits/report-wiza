@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, setDoc, getDoc, doc } from 'firebase/firestore'
 import { auth, db, storage } from '../../../firebase_config.js'
+import { ClaimedRequest } from '../claimed_request.js'
 import YellowBtn from '../../../components/buttons/yellow_btn.js'
 
 function ClaimBtn({ request_uid }) {
@@ -14,23 +15,27 @@ function ClaimBtn({ request_uid }) {
 		}
 		set_claiming(1)
 		try {
-			const user_creq_ref = doc(db, 'claimed_requests', request_uid)
-			if (!(await getDoc(user_creq_ref)).exists()) {
-				throw new Error(
-					`Service request "${request_uid}" already claimed.`
-				)
-			}
-			const user_sreq_ref = doc(db, 'service_requests', request_uid)
-			if (!(await getDoc(user_sreq_ref)).exists()) {
-				throw new Error(
-					`Service request "${request_uid}" does not exist.`
-				)
-			}
-			setDoc(user_creq_ref, {
+			const claimed_request = new ClaimedRequest(
 				request_uid,
-				worker_uid: auth.currentUser.uid,
-				status: 'pending',
+				auth.currentUser.uid,
+				'pending'
+			)
+			const token = await auth.currentUser.getIdToken()
+			const req = await fetch('/api/claim-request', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: claimed_request.to_string(),
 			})
+			if (!req.ok) {
+				alert('Failed to claim request. Browse console logs.')
+				console.error('Failed:\n', (await req.json()).error)
+				return
+			}
+			alert('Request successfully claimed.')
+			console.log(await req.json())
 		} catch (err) {
 			console.error(`Failed to claim request "${request_uid}"`)
 			console.error(err)

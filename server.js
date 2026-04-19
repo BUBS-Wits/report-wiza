@@ -84,7 +84,7 @@ const apply_query = (query, condition) => {
 		)
 		return
 	}
-	return query.here(condition[0], condition[1], condition[2])
+	return query.where(condition[0], condition[1], condition[2])
 }
 
 /**
@@ -253,6 +253,7 @@ app.get('/api/voting-district', async (req, res) => {
 		if (!response.ok) {
 			return res.status(response.status).json({
 				error: 'Failed to fetch from GIS API.',
+				url,
 			})
 		}
 
