@@ -8,6 +8,8 @@ import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/submit/request_page.js'
 import AdminDashboard from './pages/admin_dashboard/admin_dashboard.js'
 import WorkerVerify from './pages/worker_verify/worker_verify.js'
+import WorkerDashboard from './pages/worker/worker_dashboard.js'
+import WorkerRequestDetail from './pages/worker/request_detail/worker_request_detail.js'
 import CategoryReport from './pages/category_report/category_report.js'
 import './app.css'
 
@@ -23,6 +25,8 @@ function App() {
 				<Route path="/login" element={<Login />} />
 				<Route path="/admin" element={<AdminDashboard />} />
 				<Route path="/worker-verify" element={<WorkerVerify />} />
+				<Route path="/worker" element={<WorkerDashboard />} />
+                <Route path="/worker/requests/:id" element={<WorkerRequestDetail />} />
 				<Route
 					path="/admin/analytics/category-report"
 					element={<CategoryReport />}
