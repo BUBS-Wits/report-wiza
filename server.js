@@ -3,7 +3,6 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import { get_date } from './src/utility.js'
 
 /********************* Setup *********************/
 
@@ -53,10 +52,17 @@ const authenticate = async (req, res, next) => {
 }
 
 const get_new_doc_id = (collection, now) => {
-	const new_doc_ref = db.collection(collection).doc()
-	const d = get_date(now)
-	const timestamp = `${d.year}${d.month}${d.day}${d.hours}${d.minutes}${d.seconds}`
-	return `${timestamp}_${new_doc_ref.id}`
+    const new_doc_ref = db.collection(collection).doc()
+    
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const seconds = String(now.getSeconds()).padStart(2, '0')
+    
+    const timestamp = `${year}${month}${day}${hours}${minutes}${seconds}`
+    return `${timestamp}_${new_doc_ref.id}`
 }
 
 app.get('/api/voting-district', async (req, res) => {
