@@ -102,3 +102,26 @@ export class Request {
 		this.image = PLACEHOLDER_IMAGE
 	}
 }
+
+export const request_converter = {
+	to_firestore: function (user_uid, request, now) {
+		const municipality = request.get_municipality()
+		return {
+			user_uid,
+			created_at: now.toUTCString(),
+			location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
+			sa_ward: request.get_ward(),
+			sa_m_id: municipality.id,
+			sa_m_code: municipality.code,
+			sa_m_name: municipality.name,
+			status: 'pending',
+			category: request.category,
+			description: request.description,
+			image: request.image,
+		}
+	},
+	from_firestore: function (snapshot, options) {
+		const data = snapshot.data(options)
+		return new Request(data)
+	},
+}
