@@ -34,6 +34,9 @@ db.listCollections()
 
 app.use(express.json({ limit: '10mb' }))
 
+const unauthorized = (res) =>
+	res.status(400).json({ error: 'Unauthorized access to API endpoint.' })
+
 const authenticate = async (req, res, next) => {
 	try {
 		const header = req.headers.authorization
@@ -289,8 +292,37 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 	}
 })
 
+app.get('/api/get-requests', async (req, res) => {
+	const conditions = []
+	if (req.query.all) {
+		if (req.query.all === 'false') {
+			if (!authenticate(req, res, () => {})) {
+				return unauthorized(res)
+			}
+			conditions.push(['service_requests', '==', req.user.uid])
+		} else if (req.query.all !== 'true') {
+			return res.status(400).json({ error: 'Invalid parameter' })
+		}
+	}
+	const ret = await get_db_documents('service_requests', conditions)
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	return res.status(200).json(ret.value)
+})
+
 app.get('/api/my-claimed-requests', authenticate, async (req, res) => {
-	const orker_uid = req.user.uid
+	const worker_uid = req.user.uid
+	if (!role_service.is_worker(worker_uid)) {
+		return unauthorized(res)
+	}
+	const ret = await get_db_documents('claimed_requests', [
+		['worker_id', '==', worker_uid],
+	])
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	return res.status(200).json(ret.value)
 })
 
 /********************* Frontend *********************/
