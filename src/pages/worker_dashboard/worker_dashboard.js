@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { getAuth } from 'firebase/auth'
 import { fetch_worker_dashboard_data } from '../../backend/worker_dashboard_service.js'
 import './worker_dashboard.css'
@@ -26,7 +26,9 @@ export default function WorkerDashboard() {
 		try {
 			const auth = getAuth()
 			const user = auth.currentUser
-			if (!user) throw new Error('Not authenticated.')
+			if (!user) {
+				throw new Error('Not authenticated.')
+			}
 
 			// Direct call to the client-side Firebase service
 			const data = await fetch_worker_dashboard_data(user.uid)
@@ -42,9 +44,15 @@ export default function WorkerDashboard() {
 		loadDashboard()
 	}, [loadDashboard])
 
-	if (loading) return <LoadingScreen />
-	if (error) return <ErrorScreen message={error} onRetry={loadDashboard} />
-	if (!dashData) return null
+	if (loading) {
+		return <LoadingScreen />
+	}
+	if (error) {
+		return <ErrorScreen message={error} onRetry={loadDashboard} />
+	}
+	if (!dashData) {
+		return null
+	}
 
 	const { worker, requests, stats } = dashData
 	const currentUser = getAuth().currentUser
