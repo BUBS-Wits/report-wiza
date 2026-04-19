@@ -47,7 +47,7 @@ function Login() {
 			if (role === 'admin') {
 				navigate('/admin')
 			} else if (role === 'worker') {
-				navigate('/worker')
+				navigate('/worker-dashboard')
 			} else {
 				navigate('/resident')
 			}
