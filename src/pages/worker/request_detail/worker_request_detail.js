@@ -5,7 +5,7 @@ import { db } from '../../../firebase_config.js'
 import { update_request_status } from '../../../backend/worker_firebase.js'
 import './worker_request_detail.css'
 
-const VALID_STATUSES = ['acknowledged', 'in_progress', 'resolved']
+const VALID_STATUSES = ['assigned', 'in_progress', 'resolved']
 
 function WorkerRequestDetail() {
   const { id } = useParams()
