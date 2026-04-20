@@ -102,6 +102,9 @@ class Request {
 				this.loc_info = json.loc_info
 				this.loc_info.ward = Number(this.loc_info.ward)
 				this.loc_info.m_id = Number(this.loc_info.m_id)
+				if (json.status) {
+					this.status = json.status?.trim()
+				}
 			}
 		} catch (err) {}
 	}
@@ -220,9 +223,8 @@ const request_converter = {
 
 class ClaimedRequest {
 	constructor(request_uid, worker_uid, tmp_status) {
-		this.request_uid = request_uid
 		this.worker_uid = worker_uid
-		this.status = tmp_status
+		this.request_uid = request_uid
 	}
 
 	validate() {
@@ -238,9 +240,8 @@ class ClaimedRequest {
 
 	to_json() {
 		return {
-			request_uid: this.request_uid,
 			worker_uid: this.worker_uid,
-			status: this.status,
+			request_uid: this.request_uid,
 		}
 	}
 }
@@ -248,24 +249,26 @@ class ClaimedRequest {
 const claimed_request_converter = {
 	to_firestore: function (claimed_request) {
 		return {
-			request_uid: claimed_request.request_uid,
 			worker_uid: claimed_request.worker_uid,
-			status: claimed_request.status,
+			request_uid: claimed_request.request_uid,
 		}
 	},
 	from_firestore: function (snapshot, options) {
 		const data = snapshot.data(options)
-		return new ClaimedRequest(
-			data.request_uid,
-			data.worker_uid,
-			data.status
-		)
+		return new ClaimedRequest(data.request_uid, data.worker_uid)
 	},
 }
 
 /********************* Backend *********************/
 
 app.use(express.json({ limit: '10mb' }))
+
+const respond = {
+	unauthorized: (res) =>
+		res.status(400).json({ error: 'Unauthorized access to API endpoint.' }),
+	invalid_parameters: (res) =>
+		res.status(400).json({ error: 'Invalid parameters provided.' }),
+}
 
 const authenticate = async (req, res, next) => {
 	try {
@@ -372,7 +375,7 @@ const get_db_document = (collection, doc_id) => {
 		})
 		.catch((error) => {
 			console.error(
-				'get_db_document > error hile getting document: ',
+				'get_db_document > error while getting document: ',
 				error
 			)
 			return { ok: false, value: error }
@@ -465,16 +468,12 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 
 		// DO YOUR VALIDATION DIRECTLY IN THE BACKEND
 		if (!body) {
-			return res.status(400).json({
-				error: 'Missing parameters in request object.',
-			})
+			return respond.invalid_parameters(res)
 		}
 
 		const tmp = new Request(body)
 		if (!tmp.input_validate()) {
-			return res.status(400).json({
-				error: 'Missing parameters in request object.',
-			})
+			return respond.invalid_parameters(res)
 		}
 		const service_request = request_converter.to_firestore(
 			req.user.uid,
@@ -483,11 +482,15 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		)
 
 		if (!(await exists_db_document('service_requests', service_request))) {
-			const doc_id = await create_db_document(
+			const ret = await create_db_document(
 				'service_requests',
 				service_request
 			)
-			res.status(200).json({ data: doc_id })
+			if (ret.ok) {
+				return res.status(200).json({ data: ret.value })
+			} else {
+				return res.status(400).json({ error: ret.value })
+			}
 		} else {
 			res.status(201).json({ data: 'Request already exists' })
 		}
@@ -495,6 +498,119 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		console.error('Database error:', err)
 		res.status(500).json({ error: 'Internal server error' })
 	}
+})
+
+app.get('/api/claim-request', authenticate, async (req, res) => {
+	const uid = req.user.uid
+	const is_worker = await role_service.is_worker(uid)
+	if (!is_worker) {
+		return respond.unauthorized(res)
+	}
+	const request_uid = req.query.request_uid
+	if (!request_uid || Object.keys(req.query).length !== 1) {
+		return respond.invalid_parameters(res)
+	}
+	if (await exists_db_document('assignments', request_uid)) {
+		return res.status(201).json({
+			data: 'Request already claimed in db.',
+		})
+	}
+	const tmp = new ClaimedRequest(request_uid, uid, 'pending')
+	const claimed_request = claimed_request_converter.to_firestore(tmp)
+	const ret = await create_db_document('assignments', claimed_request)
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	return res.status(200).json({ data: ret.value })
+})
+
+app.get('/api/get-requests', async (req, res) => {
+	const conditions = []
+	if (req.query.all) {
+		if (req.query.all === 'false') {
+			if (!authenticate(req, res, () => {})) {
+				return respond.unauthorized(res)
+			}
+			conditions.push(['service_requests', '==', req.user.uid])
+		} else if (
+			req.query.all !== 'true' ||
+			Object.keys(req.query).length !== 1
+		) {
+			return respond.invalid_parameters(res)
+		}
+	}
+	const ret = await get_db_documents('service_requests', conditions)
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	return res.status(200).json({ data: ret.value })
+})
+
+app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
+	const uid = req.user.uid
+	const is_worker = await role_service.is_worker(uid)
+	const is_admin = await role_service.is_admin(uid)
+	if (!is_worker && !is_admin) {
+		return respond.unauthorized(res)
+	}
+	let conditions = is_admin ? [] : [['worker_uid', '==', uid]]
+	let ret = await get_db_documents('assignments', conditions)
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	const claimed_requests = []
+	for (const doc of ret.value) {
+		ret = await get_db_document('service_requests', doc.request_uid)
+		if (!ret.ok) {
+			return res.status(400).json({ error: ret.value })
+		}
+		const data = ret.value
+		claimed_requests.push({
+			status: data.status,
+			category: data.category,
+			description: data.description,
+			location: data.location,
+			sa_ward: data.ward,
+			sa_m_name: data['sa_m_name'],
+		})
+	}
+	return res.status(200).json({ data: claimed_requests })
+})
+
+app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
+	const uid = req.user.uid
+	const is_worker = await role_service.is_worker(uid)
+	const is_admin = await role_service.is_admin(uid)
+	if (!is_worker && !is_admin) {
+		return respond.unauthorized(res)
+	}
+
+	let ret = await get_db_documents('assignments', [])
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	const claimed_requests = ret.value.map((doc) => doc.request_uid)
+
+	ret = await get_db_document('service_requests', [])
+	if (!ret.ok) {
+		return res.status(400).json({ error: ret.value })
+	}
+	const requests = []
+	for (const doc of ret.value) {
+		if (claimed_requests.findIndex(doc.id) !== -1) {
+			continue
+		}
+		requests.push({
+			id: doc.id,
+			status: doc.status,
+			category: doc.category,
+			description: doc.description,
+			location: doc.location,
+			sa_ward: doc.ward,
+			sa_m_name: doc['sa_m_name'],
+		})
+	}
+	return res.status(200).json({ data: requests })
 })
 
 /********************* Frontend *********************/
