@@ -139,7 +139,9 @@ describe('Login page', () => {
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
 				await waitFor(() =>
-					expect(mock_navigate).toHaveBeenCalledWith('/worker-dashboard')
+					expect(mock_navigate).toHaveBeenCalledWith(
+						'/worker-dashboard'
+					)
 				)
 			})
 		})
