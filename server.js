@@ -191,6 +191,7 @@ const request_converter = {
 			sa_m_id: municipality.id,
 			sa_m_code: municipality.code,
 			sa_m_name: municipality.name,
+			status: 'ASSIGNED',
 			category: request.category,
 			description: request.description,
 			image: request.image,
