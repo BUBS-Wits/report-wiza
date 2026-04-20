@@ -133,7 +133,7 @@ async function gisapi(longitude, latitude) {
 export function get_voting_district_info(longitude, latitude) {
 	return gisapi(longitude, latitude)
 		.then(async (res) => {
-			if (res == null) {
+			if (res === null) {
 				return null
 			}
 			console.log(res)
