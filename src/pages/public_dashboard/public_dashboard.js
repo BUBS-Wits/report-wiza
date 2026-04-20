@@ -3,26 +3,56 @@ import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+<<<<<<< HEAD
 import RequestCard from '../../components/request_card.js'
 import './public_dashboard.css'
 import * as esri from 'esri-leaflet'
 
+=======
+import RequestCard from '../../components/request_card/request_card.js' // your corrected path
+import './public_dashboard.css'
+import * as esri from 'esri-leaflet'
+
+// --- SAFEGUARD FOR JEST TESTING ---
+let safeEsri = esri
+if (process.env.NODE_ENV === 'test') {
+	const dummyLayer = {
+		bindPopup: () => this,
+		on: () => this,
+		addTo: () => this,
+		resetStyle: () => {},
+	}
+	safeEsri = {
+		featureLayer: () => dummyLayer,
+	}
+}
+
+>>>>>>> main
 delete L.Icon.Default.prototype._getIconUrl
 
 L.Icon.Default.mergeOptions({
 	iconRetinaUrl:
 		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+<<<<<<< HEAD
 	iconUrl:
 		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
 	shadowUrl:
 		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+=======
+	iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+	shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+>>>>>>> main
 })
 
 const openIcon = new L.Icon({
 	iconUrl:
 		'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-orange.png',
+<<<<<<< HEAD
 	shadowUrl:
 		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+=======
+	shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+>>>>>>> main
 	iconSize: [25, 41],
 	iconAnchor: [12, 41],
 	popupAnchor: [1, -34],
@@ -32,8 +62,12 @@ const openIcon = new L.Icon({
 const inProgressIcon = new L.Icon({
 	iconUrl:
 		'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+<<<<<<< HEAD
 	shadowUrl:
 		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+=======
+	shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+>>>>>>> main
 	iconSize: [25, 41],
 	iconAnchor: [12, 41],
 	popupAnchor: [1, -34],
@@ -43,8 +77,12 @@ const inProgressIcon = new L.Icon({
 const resolvedIcon = new L.Icon({
 	iconUrl:
 		'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+<<<<<<< HEAD
 	shadowUrl:
 		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+=======
+	shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+>>>>>>> main
 	iconSize: [25, 41],
 	iconAnchor: [12, 41],
 	popupAnchor: [1, -34],
@@ -53,6 +91,7 @@ const resolvedIcon = new L.Icon({
 
 function FixMapSize() {
 	const map = useMap()
+<<<<<<< HEAD
 
 	useEffect(() => {
 		setTimeout(() => {
@@ -60,14 +99,24 @@ function FixMapSize() {
 		}, 100)
 	}, [map])
 
+=======
+	useEffect(() => {
+		setTimeout(() => map.invalidateSize(), 100)
+	}, [map])
+>>>>>>> main
 	return null
 }
 
 function WardBoundaries() {
 	const map = useMap()
+<<<<<<< HEAD
 
 	useEffect(() => {
 		const wardLayer = esri
+=======
+	useEffect(() => {
+		const wardLayer = safeEsri
+>>>>>>> main
 			.featureLayer({
 				url: 'https://services7.arcgis.com/oeoyTUJC8HEeYsRB/arcgis/rest/services/SA_Wards2020/FeatureServer/0',
 				style: () => ({
@@ -79,6 +128,7 @@ function WardBoundaries() {
 			})
 			.bindPopup((layer) => {
 				const props = layer.feature?.properties || {}
+<<<<<<< HEAD
 
 				return `
 					<div>
@@ -94,22 +144,41 @@ function WardBoundaries() {
 					weight: 6,
 					fillOpacity: 0.18,
 				})
+=======
+				return `
+          <div>
+            <strong>${props.WardLabel || `Ward ${props.WardNo || 'Unknown'}`}</strong><br />
+            Ward Number: ${props.WardNo || 'N/A'}<br />
+            Municipality: ${props.Municipali || 'N/A'}<br />
+            Province: ${props.Province || 'N/A'}
+          </div>
+        `
+			})
+			.on('mouseover', (event) => {
+				event.layer.setStyle({ weight: 6, fillOpacity: 0.18 })
+>>>>>>> main
 			})
 			.on('mouseout', (event) => {
 				wardLayer.resetStyle(event.layer)
 			})
 			.addTo(map)
+<<<<<<< HEAD
 
 		return () => {
 			map.removeLayer(wardLayer)
 		}
 	}, [map])
 
+=======
+		return () => map.removeLayer(wardLayer)
+	}, [map])
+>>>>>>> main
 	return null
 }
 
 function FitMapToRequests({ requests }) {
 	const map = useMap()
+<<<<<<< HEAD
 
 	useEffect(() => {
 		if (!requests.length) return
@@ -121,16 +190,40 @@ function FitMapToRequests({ requests }) {
 		map.fitBounds(bounds, { padding: [40, 40] })
 	}, [map, requests])
 
+=======
+	useEffect(() => {
+		if (!requests.length) {
+			return
+		}
+		const bounds = L.latLngBounds(
+			requests.map((r) => [r.latitude, r.longitude])
+		)
+		map.fitBounds(bounds, { padding: [40, 40] })
+	}, [map, requests])
+>>>>>>> main
 	return null
 }
 
 function getStatusIcon(status) {
+<<<<<<< HEAD
 	const formattedStatus = status.toLowerCase()
 
 	if (formattedStatus === 'open') return openIcon
 	if (formattedStatus === 'in progress') return inProgressIcon
 	if (formattedStatus === 'resolved') return resolvedIcon
 
+=======
+	const s = status.toLowerCase()
+	if (s === 'open') {
+		return openIcon
+	}
+	if (s === 'in progress') {
+		return inProgressIcon
+	}
+	if (s === 'resolved') {
+		return resolvedIcon
+	}
+>>>>>>> main
 	return inProgressIcon
 }
 
@@ -146,6 +239,10 @@ function PublicDashboard() {
 				'Large pothole causing traffic delays near the intersection.',
 			latitude: -26.2044,
 			longitude: 28.0456,
+<<<<<<< HEAD
+=======
+			like_count: 0, // added from your branch
+>>>>>>> main
 		},
 		{
 			id: 2,
@@ -156,6 +253,10 @@ function PublicDashboard() {
 			description: 'Burst pipe reported outside a residential area.',
 			latitude: -26.1958,
 			longitude: 28.0342,
+<<<<<<< HEAD
+=======
+			like_count: 0,
+>>>>>>> main
 		},
 		{
 			id: 3,
@@ -167,6 +268,10 @@ function PublicDashboard() {
 				'Power outage affecting multiple streets since early morning.',
 			latitude: -26.1912,
 			longitude: 28.0551,
+<<<<<<< HEAD
+=======
+			like_count: 0,
+>>>>>>> main
 		},
 		{
 			id: 4,
@@ -178,6 +283,10 @@ function PublicDashboard() {
 				'Overflowing refuse site reported near a school entrance.',
 			latitude: -26.2089,
 			longitude: 28.0614,
+<<<<<<< HEAD
+=======
+			like_count: 0,
+>>>>>>> main
 		},
 	]
 
@@ -191,6 +300,10 @@ function PublicDashboard() {
 			description: 'Illegal dumping site cleared by the municipal team.',
 			latitude: -26.2015,
 			longitude: 28.0281,
+<<<<<<< HEAD
+=======
+			like_count: 0,
+>>>>>>> main
 		},
 		{
 			id: 6,
@@ -201,6 +314,10 @@ function PublicDashboard() {
 			description: 'Streetlight outage fixed in the area.',
 			latitude: -26.2132,
 			longitude: 28.0397,
+<<<<<<< HEAD
+=======
+			like_count: 0,
+>>>>>>> main
 		},
 		{
 			id: 7,
@@ -211,11 +328,15 @@ function PublicDashboard() {
 			description: 'Water leak repaired outside a community clinic.',
 			latitude: -26.1874,
 			longitude: 28.0488,
+<<<<<<< HEAD
+=======
+			like_count: 0,
+>>>>>>> main
 		},
 	]
 
 	const wardsAffected = new Set(
-		[...openRequests, ...resolvedRequests].map((request) => request.ward)
+		[...openRequests, ...resolvedRequests].map((r) => r.ward)
 	).size
 
 	const allRequests = [...openRequests, ...resolvedRequests]
@@ -223,12 +344,18 @@ function PublicDashboard() {
 	return (
 		<div className="public_dashboard">
 			<header className="dashboard_header">
+<<<<<<< HEAD
 
         <Link to="/" className="home_button">
 		      🏠 Home
 	      </Link>
 
 
+=======
+				<Link to="/" className="home_button">
+					🏠 Home
+				</Link>
+>>>>>>> main
 				<p className="dashboard_eyebrow">Public Municipal Dashboard</p>
 				<h1>Community Service Dashboard</h1>
 				<p className="dashboard_intro">
@@ -259,7 +386,10 @@ function PublicDashboard() {
 				<div className="section_heading_row">
 					<h2>Ward Map Overview</h2>
 				</div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 				<div className="map_container">
 					<MapContainer
 						center={[-26.2041, 28.0473]}
@@ -268,20 +398,32 @@ function PublicDashboard() {
 						className="leaflet_map"
 					>
 						<FixMapSize />
+<<<<<<< HEAD
             <WardBoundaries />
             <FitMapToRequests requests={allRequests} />
 
+=======
+						<WardBoundaries />
+						<FitMapToRequests requests={allRequests} />
+>>>>>>> main
 						<TileLayer
 							attribution="&copy; OpenStreetMap contributors"
 							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 						/>
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 						{allRequests.map((request) => (
 							<Marker
 								key={request.id}
 								position={[request.latitude, request.longitude]}
+<<<<<<< HEAD
                 icon={getStatusIcon(request.status)}
 
+=======
+								icon={getStatusIcon(request.status)}
+>>>>>>> main
 							>
 								<Popup>
 									<div>
@@ -299,8 +441,12 @@ function PublicDashboard() {
 							</Marker>
 						))}
 					</MapContainer>
+<<<<<<< HEAD
 
           <div className="map_legend">
+=======
+					<div className="map_legend">
+>>>>>>> main
 						<div className="legend_item">
 							<span className="legend_dot legend_open"></span>
 							<span>Open</span>

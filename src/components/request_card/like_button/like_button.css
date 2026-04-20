@@ -1,0 +1,16 @@
+.like_button {
+	background: none;
+	border: 1px solid #ddd;
+	border-radius: 20px;
+	padding: 4px 12px;
+	cursor: pointer;
+	font-size: 0.9rem;
+	transition: all 0.2s;
+}
+.like_button:hover:not(:disabled) {
+	background-color: #f0f0f0;
+}
+.like_button_disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
