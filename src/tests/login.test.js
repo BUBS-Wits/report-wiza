@@ -124,7 +124,7 @@ describe('Login page', () => {
 		})
 
 		describe('When sign in succeeds and user is a worker', () => {
-			it('Then it should navigate to /worker', async () => {
+			it('Then it should navigate to /worker-dashboard', async () => {
 				signInWithPopup.mockResolvedValueOnce({
 					user: {
 						uid: 'uid-789',
@@ -139,7 +139,9 @@ describe('Login page', () => {
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
 				await waitFor(() =>
-					expect(mock_navigate).toHaveBeenCalledWith('/worker')
+					expect(mock_navigate).toHaveBeenCalledWith(
+						'/worker-dashboard'
+					)
 				)
 			})
 		})
