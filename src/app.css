@@ -1,32 +1,14 @@
-body {
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=DM+Sans:wght@400;500&display=swap');
+
+* {
+	box-sizing: border-box;
 	margin: 0;
+	padding: 0;
+}
+
+body {
 	font-family: 'DM Sans', sans-serif;
-	background: #0f1f3d;
-	color: #ffffff;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+	background: #f8fafc;
+	color: #0f172a;
 	min-height: 100vh;
-}
-
-.app_container {
-	text-align: center;
-	padding: 40px;
-}
-
-.app_container h1 {
-	font-size: 2.5rem;
-	color: #f59e0b;
-	margin-bottom: 12px;
-}
-
-.db_status {
-	font-size: 0.9rem;
-	color: #94a3b8;
-	margin-bottom: 8px;
-}
-
-.stack_info {
-	font-size: 0.8rem;
-	color: #475569;
 }
