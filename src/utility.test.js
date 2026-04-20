@@ -164,8 +164,7 @@ describe('Utility Functions', () => {
 		test('server returns failed', async () => {
 			const mock_response = {
 				ok: false,
-				json: () =>
-					Promise.resolve({ error: { longitude: -5, latitude: 5 } }),
+				json: () => Promise.resolve({ longitude: -5, latitude: 5 }),
 			}
 
 			const fetch_spy = jest

@@ -24,6 +24,17 @@ jobs:
             - name: Install dependencies
               run: npm install
 
+            # --- 🚀 NEW CODECOV INTEGRATION STEPS ---
+            - name: Run test coverage
+              run: npm run test:coverage # IMPORTANT: Ensure this matches the exact script name in your package.json
+
+            - name: Upload coverage to Codecov
+              uses: codecov/codecov-action@v4
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  fail_ci_if_error: false
+            # ----------------------------------------
+
             - name: Build React app
               run: npm run build
               env:

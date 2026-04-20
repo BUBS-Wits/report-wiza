@@ -25,8 +25,8 @@ admin.initializeApp({
 
 const db = admin.firestore()
 db.listCollections()
-	.then(() => console.log('firebase connected.'))
-	.catch((err) => console.error('firebase failed:', err))
+	.then(() => console.log('Firebase connected.'))
+	.catch((err) => console.error('Firebase failed:', err))
 
 /********************* Utility *********************/
 
@@ -266,13 +266,6 @@ const claimed_request_converter = {
 
 app.use(express.json({ limit: '10mb' }))
 
-const respond = {
-	unauthorized: (res) =>
-		res.status(400).json({ error: 'Unauthorized access to API endpoint.' }),
-	invalid_parameters: (res) =>
-		res.status(400).json({ error: 'Invalid parameters provided.' }),
-}
-
 const authenticate = async (req, res, next) => {
 	try {
 		const header = req.headers.authorization
@@ -292,9 +285,9 @@ const authenticate = async (req, res, next) => {
 	}
 }
 
-const generate_doc_id = (collection, no) => {
+const generate_doc_id = (collection, now) => {
 	const new_doc_ref = db.collection(collection).doc()
-	const now = new Date(Date.now())
+
 	const year = now.getFullYear()
 	const month = String(now.getMonth() + 1).padStart(2, '0')
 	const day = String(now.getDate()).padStart(2, '0')
@@ -467,112 +460,40 @@ const role_service = {
 
 app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
-		let body
-		try {
-			// Tom-Foolery to check if it is even a valid json object
-			body = JSON.parse(JSON.stringify(req.body))
-		} catch (err) {
+		const body = req.body
+
+		// DO YOUR VALIDATION DIRECTLY IN THE BACKEND
+		if (!body) {
 			return res.status(400).json({
-				error: 'Unknon body. Failed to parse as JSON.',
+				error: 'Missing parameters in request object.',
 			})
 		}
 
-		const request = new Request(body)
-		if (
-			!body ||
-			!request.input_validate() ||
-			(await !request.image_validate())
-		) {
-			return respond.invalid_parameters(res)
+		const tmp = new Request(body)
+		if (!tmp.input_validate()) {
+			return res.status(400).json({
+				error: 'Missing parameters in request object.',
+			})
 		}
-
 		const service_request = request_converter.to_firestore(
 			req.user.uid,
-			request,
+			tmp,
 			new Date(Date.now())
 		)
-		if (!(await exists_db_document('service_request', service_request))) {
-			const ret = await create_db_document(
+
+		if (!(await exists_db_document('service_requests', service_request))) {
+			const doc_id = await create_db_document(
 				'service_requests',
 				service_request
 			)
-			if (ret.ok) {
-				return res.status(200).json({ data: ret.value })
-			} else {
-				return res.status(400).json({ error: ret.value })
-			}
+			res.status(200).json({ data: doc_id })
 		} else {
-			return res.status(201).json({
-				data: 'User alredy exists in db.',
-			})
+			res.status(201).json({ data: 'Request already exists' })
 		}
 	} catch (err) {
-		console.error('api submit-request > proxy error: ', err)
-		return res.status(500).json({
-			error: 'Internal server error',
-		})
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
 	}
-})
-
-app.get('/api/claim-request', authenticate, async (req, res) => {
-	const uid = req.user.uid
-	const is_worker = await role_service.is_worker(uid)
-	if (!is_worker) {
-		return respond.unauthorized(res)
-	}
-	const request_uid = req.query.request_uid
-	if (!request_uid || Object.keys(req.query).length !== 1) {
-		return respond.invalid_parameters(res)
-	}
-	if (await exists_db_document('claimed_requests', request_uid)) {
-		return res.status(201).json({
-			data: 'Request already claimed in db.',
-		})
-	}
-	const tmp = new ClaimedRequest(request_uid, uid, 'pending')
-	const claimed_request = claimed_request_converter.to_firestore(tmp)
-	const ret = await create_db_document('claimed_requests', claimed_request)
-	if (!ret.ok) {
-		return res.status(400).json({ error: ret.value })
-	}
-	return res.status(200).json({ data: ret.value })
-})
-
-app.get('/api/get-requests', async (req, res) => {
-	const conditions = []
-	if (req.query.all) {
-		if (req.query.all === 'false') {
-			if (!authenticate(req, res, () => {})) {
-				return respond.unauthorized(res)
-			}
-			conditions.push(['service_requests', '==', req.user.uid])
-		} else if (
-			req.query.all !== 'true' ||
-			Object.keys(req.query).length !== 1
-		) {
-			return respond.invalid_parameters(res)
-		}
-	}
-	const ret = await get_db_documents('service_requests', conditions)
-	if (!ret.ok) {
-		return res.status(400).json({ error: ret.value })
-	}
-	return res.status(200).json({ data: ret.value })
-})
-
-app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
-	const uid = req.user.uid
-	const is_worker = await role_service.is_worker(uid)
-	const is_admin = await role_service.is_admin(uid)
-	if (!is_worker && !is_admin) {
-		return respond.unauthorized(res)
-	}
-	const conditions = is_admin ? [] : ['worker_uid', '==', uid]
-	const ret = await get_db_documents('claimed_requests', conditions)
-	if (!ret.ok) {
-		return res.status(400).json({ error: ret.value })
-	}
-	return res.status(200).json({ data: ret.value })
 })
 
 /********************* Frontend *********************/

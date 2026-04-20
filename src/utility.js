@@ -159,7 +159,6 @@ export function get_voting_district_info(longitude, latitude) {
 			}
 		})
 		.catch((err) => {
-			console.error(`Failed to fetch from ${WARD_API}`)
 			console.error(err)
 			return null
 		})
