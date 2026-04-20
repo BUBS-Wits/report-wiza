@@ -12,5 +12,6 @@ const firebase_config = {
 }
 
 const app = initializeApp(firebase_config)
-export const db = getFirestore(app)
+
+export const db = getFirestore(app, 'report-wiza-db')
 export const auth = getAuth(app)

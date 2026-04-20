@@ -2,11 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
-import {
-	get_claimed_requests,
-	get_unclaimed_requests,
-	claim_request,
-} from '../../backend/worker_firebase.js'
 import RequestCard from '../../components/request_card/request_card.js'
 import './worker_dashboard.css'
 
@@ -21,6 +16,44 @@ function WorkerDashboard() {
 	const [active_section, set_active_section] = useState('my_requests')
 	const navigate = useNavigate()
 
+	const get_claimed_requests = async () => {
+		const token = await auth.currentUser.getIdToken()
+		const ret = await fetch('/api/get-claimed-requests', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+		if (!ret.ok) {
+			console.error('Failed: ', await ret.json())
+			return []
+		}
+		const tmp = await ret.json()
+		const data = tmp.data
+		console.log('claimed: ', data)
+		return data
+	}
+
+	const get_unclaimed_requests = async () => {
+		const token = await auth.currentUser.getIdToken()
+		const ret = await fetch('/api/get-unclaimed-requests', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+		if (!ret.ok) {
+			console.error('Failed: ', await ret.json())
+			return []
+		}
+		const tmp = await ret.json()
+		const data = tmp.data
+		console.log('unclaimed: ', data)
+		return data
+	}
+
 	const load_requests = async () => {
 		if (!auth.currentUser) {
 			navigate('/login')
@@ -31,6 +64,7 @@ function WorkerDashboard() {
 				get_claimed_requests(auth.currentUser.uid),
 				get_unclaimed_requests(),
 			])
+			console.log(claimed, unclaimed)
 			set_my_requests(claimed)
 			set_unclaimed_requests(unclaimed)
 		} catch (err) {
@@ -49,6 +83,27 @@ function WorkerDashboard() {
 		navigate('/login')
 	}
 
+	const claim_request = async (request_id) => {
+		const token = await auth.currentUser.getIdToken()
+		const req = await fetch(
+			`/api/claim-request?request_uid=${request_id}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+			}
+		)
+		if (!req.ok) {
+			alert('Failed to claim request. Browse console logs.')
+			console.error('Failed:\n', await req.json())
+			return
+		}
+		console.log(await req.json())
+		return
+	}
+
 	const handle_claim = async (request_id) => {
 		set_claiming_id(request_id)
 		try {
@@ -63,7 +118,7 @@ function WorkerDashboard() {
 	}
 
 	const filtered_requests =
-		active_filter === 'all'
+		active_filter === 'ALL'
 			? my_requests
 			: my_requests.filter((r) => r.status === active_filter)
 

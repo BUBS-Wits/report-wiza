@@ -19,6 +19,7 @@ function WorkerRequestDetail() {
 	useEffect(() => {
 		const load = async () => {
 			try {
+				console.log('hi')
 				const token = await auth.currentUser.getIdToken()
 				const ret = await fetch('/api/get-unclaimed-requests', {
 					method: 'GET',
@@ -29,7 +30,6 @@ function WorkerRequestDetail() {
 				})
 				if (!ret.ok) {
 					console.error('Failed: ', await ret.json())
-					navigate('/worker')
 					return
 				}
 				const tmp = await ret.json()
@@ -87,24 +87,29 @@ function WorkerRequestDetail() {
 					<div className="wr_card_top">
 						<h2 className="wr_category">{request.category}</h2>
 						<span className={`wr_status_badge ${request.status}`}>
-							{request.status?.replace('_', ' ')}
+							{request.status}
 						</span>
 					</div>
 
 					<div className="wr_detail_row">
 						<span className="wr_label">Ward</span>
-						<span className="wr_value">{request.ward || '—'}</span>
+						<span className="wr_value">
+							{request.sa_ward || '—'}
+						</span>
 					</div>
 					<div className="wr_detail_row">
 						<span className="wr_label">Municipality</span>
 						<span className="wr_value">
-							{request.municipality || '—'}
+							{request.sa_m_name || '—'}
 						</span>
 					</div>
 					<div className="wr_detail_row">
-						<span className="wr_label">Priority</span>
+						<span className="wr_label">Location</span>
 						<span className="wr_value">
-							{request.priority || '—'}
+							{request.location.replace(
+								/SRID=4326;POINT\((-?[0-9.]*) (-?[0-9.]*)\)/g,
+								'Longitude: $1; Latitude: $2;'
+							) || '—'}
 						</span>
 					</div>
 					<div className="wr_detail_row">
