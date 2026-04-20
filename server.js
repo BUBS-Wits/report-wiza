@@ -28,6 +28,240 @@ db.listCollections()
 	.then(() => console.log('Firebase connected.'))
 	.catch((err) => console.error('Firebase failed:', err))
 
+/********************* Utility *********************/
+
+const PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'><rect width='256' height='256' fill='%23e0e0e0'/><rect x='32' y='32' width='192' height='192' fill='none' stroke='%239e9e9e' stroke-width='4'/><line x1='32' y1='32' x2='224' y2='224' stroke='%239e9e9e' stroke-width='4'/><line x1='224' y1='32' x2='32' y2='224' stroke='%239e9e9e' stroke-width='4'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23757575' font-family='Arial, sans-serif' font-size='20'>No Image</text></svg>`
+
+async function get_data_uri(file) {
+	if (typeof file !== 'object') {
+		return null
+	}
+	if (typeof window !== 'undefined') {
+		// native browser
+		return new Promise((resolve) => {
+			const reader = new FileReader()
+			reader.onload = (e) => {
+				const data_uri = e.target.result
+				resolve(data_uri)
+			}
+			reader.readAsDataURL(file)
+		})
+	} else {
+		// nodejs
+		const buffer = Buffer.from(await file.arrayBuffer())
+		const data_uri = `data:${file.type};base64,${buffer.toString('base64')}`
+		return data_uri
+	}
+}
+
+async function image_validate(image) {
+	if (!image) {
+		return false
+	}
+	let image_uri =
+		typeof image === 'string' ? image : await get_data_uri(image)
+	if (!image_uri) {
+		return false
+	}
+	if (/^(https:\/\/|http:\/\/|ftp:\/\/)/.test(image)) {
+		return true
+	}
+	image_uri = image_uri.trim()
+	const image_media_types_suffix = ['jpeg', 'jpg', 'png']
+	const image_data_uri_regex = new RegExp(
+		`^data:image/(${image_media_types_suffix.join('|')})(;[^,;]+)*,.*$`,
+		'i'
+	)
+	return image_data_uri_regex.test(image_uri)
+}
+
+class Request {
+	constructor(
+		category,
+		description = undefined,
+		image = undefined,
+		longitude = undefined,
+		latitude = undefined,
+		location_info = undefined
+	) {
+		try {
+			if (typeof category === 'string') {
+				this.category = category?.trim()
+				this.description = description?.trim()
+				this.image = image
+				this.longitude = longitude
+				this.latitude = latitude
+				this.loc_info = location_info
+			} else if (typeof category === 'object') {
+				const json = category
+				this.category = json.category?.trim()
+				this.description = json.description?.trim()
+				this.image = json.image
+				this.longitude = Number(json.longitude)
+				this.latitude = Number(json.latitude)
+				this.loc_info = json.loc_info
+				this.loc_info.ward = Number(this.loc_info.ward)
+				this.loc_info.m_id = Number(this.loc_info.m_id)
+			}
+		} catch (err) {}
+	}
+
+	async image_validate() {
+		if (!this.input_validate()) {
+			return false
+		}
+		return image_validate(this.image)
+	}
+
+	input_validate() {
+		if (
+			this.category &&
+			this.description &&
+			this.image &&
+			this.longitude !== undefined &&
+			this.latitude !== undefined &&
+			this.loc_info &&
+			this.loc_validate()
+		) {
+			return true
+		}
+		return false
+	}
+
+	to_string() {
+		return JSON.stringify(this.to_json())
+	}
+
+	to_json() {
+		return {
+			category: this.category,
+			description: this.description,
+			image: this.image,
+			longitude: this.longitude,
+			latitude: this.latitude,
+			loc_info: this.loc_info,
+		}
+	}
+
+	get_municipality() {
+		return {
+			id: this.loc_info?.m_id,
+			code: this.loc_info?.m_code,
+			name: this.loc_info?.m_name,
+		}
+	}
+
+	get_ward() {
+		return this.loc_info?.ward
+	}
+
+	get_province() {
+		return this.loc_info?.province
+	}
+
+	loc_validate() {
+		const municipality = this.get_municipality()
+		if (
+			this.get_ward() === undefined ||
+			!this.get_province() ||
+			!municipality ||
+			municipality.id === undefined ||
+			!municipality.code ||
+			!municipality.name
+		) {
+			return false
+		}
+		return true
+	}
+
+	set_placeholder_image() {
+		this.image = PLACEHOLDER_IMAGE
+	}
+}
+
+const request_converter = {
+	to_firestore: function (user_uid, request, now) {
+		const municipality = request.get_municipality()
+		return {
+			user_uid,
+			created_at: now.toUTCString(),
+			location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
+			sa_ward: request.get_ward(),
+			sa_province: request.get_province(),
+			sa_m_id: municipality.id,
+			sa_m_code: municipality.code,
+			sa_m_name: municipality.name,
+			category: request.category,
+			description: request.description,
+			image: request.image,
+		}
+	},
+	from_firestore: function (snapshot, options) {
+		const data = snapshot.data(options)
+		data['longitude'] = data.location.replace(
+			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
+			'$1'
+		)
+		data['latitude'] = data.location.replace(
+			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
+			'$2'
+		)
+		data['loc_info'] = {
+			ward: data.sa_ward,
+			province: data.sa_province,
+			m_id: data.sa_m_id,
+			m_code: data.sa_m_code,
+			m_name: data.sa_m_name,
+		}
+		return new Request(data)
+	},
+}
+
+class ClaimedRequest {
+	constructor(request_uid, worker_uid, tmp_status) {
+		this.request_uid = request_uid
+		this.worker_uid = worker_uid
+		this.status = tmp_status
+	}
+
+	validate() {
+		if (this.request_uid && this.worker_uid && this.status) {
+			return true
+		}
+		return false
+	}
+
+	to_string() {
+		return JSON.stringify(this.to_json())
+	}
+
+	to_json() {
+		return {
+			request_uid: this.request_uid,
+			worker_uid: this.worker_uid,
+			status: this.status,
+		}
+	}
+}
+
+const claimed_request_converter = {
+	to_firestore: function (claimed_request) {
+		return {
+			request_uid: claimed_request.request_uid,
+			worker_uid: claimed_request.worker_uid,
+			status: claimed_request.status,
+		}
+	},
+	from_firestore: function (snapshot, options) {
+		const data = snapshot.data(options)
+		return new ClaimedRequest(
+			data.request_uid,
+			data.worker_uid,
+			data.status
+		)
+	},
+}
+
 /********************* Backend *********************/
 
 app.use(express.json({ limit: '10mb' }))
@@ -51,7 +285,7 @@ const authenticate = async (req, res, next) => {
 	}
 }
 
-const get_new_doc_id = (collection, now) => {
+const generate_doc_id = (collection, now) => {
 	const new_doc_ref = db.collection(collection).doc()
 
 	const year = now.getFullYear()
@@ -65,70 +299,197 @@ const get_new_doc_id = (collection, now) => {
 	return `${timestamp}_${new_doc_ref.id}`
 }
 
-app.get('/api/voting-district', async (req, res) => {
-	try {
-		const { latitude, longitude } = req.query
+const apply_query = (query, condition) => {
+	if (!Array.isArray(condition) && condition.length !== 3) {
+		console.debug(
+			`get_db_documents > provided condition array ith len != 3`
+		)
+		return
+	}
+	return query.where(condition[0], condition[1], condition[2])
+}
 
-		if (!latitude || !longitude) {
-			return res.status(400).json({
-				error: 'Missing latitude or longitude',
-			})
-		}
-
-		const url = `https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=${latitude}&longitude=${longitude}`
-
-		const response = await fetch(url)
-
-		if (!response.ok) {
-			return res.status(response.status).json({
-				error: 'Failed to fetch from GIS API',
-			})
-		}
-
-		const data = await response.json()
-		res.status(200).json(data)
-	} catch (err) {
-		console.error('Proxy error:', err)
-		res.status(500).json({
-			error: 'Internal server error',
+/**
+ * get_db_documents() - Returns an array of db docs matching some condition(s)
+ * @collection: Collection name as a string in db
+ * @conditions: An array of the conditions to check treated as being joined by AND.
+ * 	A condition is an array of exactly length 3.
+ * 	Given st. conditions[0] is the field to filter,
+ * 	conditions[1] is the comparison op,
+ * 	and condition[2] is the value.
+ */
+const get_db_documents = (collection, conditions) => {
+	if (!Array.isArray(conditions)) {
+		console.error('get_db_documents > conditions not given as array')
+		return new Promise.resolve({
+			ok: false,
+			value: new Error(
+				'Argument "conditions" incorrect type passed (Expected Array).'
+			),
 		})
 	}
-})
+	const col = db.collection(collection)
+	let query = col
+	for (const condition of conditions) {
+		query = apply_query(query, condition)
+	}
+	// TODO: add query optimization using `startAt()` and `limit()`
+	return query
+		.get()
+		.then((snapshot) => {
+			return {
+				ok: true,
+				value: snapshot.docs.map((doc_snap) => ({
+					id: doc_snap.id,
+					...doc_snap.data(),
+				})),
+			}
+		})
+		.catch((error) => {
+			console.error(
+				'get_db_documents > error hile getting documents: ',
+				error
+			)
+			return { ok: false, value: error }
+		})
+}
+
+const get_db_document = (collection, doc_id) => {
+	return db
+		.collection(collection)
+		.doc(doc_id)
+		.get()
+		.then((doc_snap) => {
+			if (doc_snap.exists) {
+				return {
+					ok: true,
+					value: { id: doc_snap.id, ...doc_snap.data() },
+				}
+			} else {
+				return { ok: true, value: null }
+			}
+		})
+		.catch((error) => {
+			console.error(
+				'get_db_document > error hile getting document: ',
+				error
+			)
+			return { ok: false, value: error }
+		})
+}
+
+const set_db_document = (collection, doc_id, doc) => {
+	return db
+		.collection(collection)
+		.doc(doc_id)
+		.set(doc)
+		.then(() => {
+			return { ok: true, value: doc_id }
+		})
+		.catch((error) => {
+			return { ok: false, value: error }
+		})
+}
+
+const update_db_document = (collection, doc_id, doc) =>
+	set_db_document(collection, doc_id, doc)
+
+const delete_db_document = (collection, doc_id) => {
+	return db
+		.collection(collection)
+		.doc(doc_id)
+		.delete()
+		.then(() => {
+			return { ok: true, value: `successfully deleted "${doc_id}"` }
+		})
+		.catch((err) => {
+			return { ok: false, value: `failed to delete "${doc_id}"` }
+		})
+}
+
+const create_db_document = (collection, doc) => {
+	const no = new Date(Date.now())
+	const doc_id = generate_doc_id(collection, no)
+
+	return set_db_document(collection, doc_id, doc)
+}
+
+const exists_db_document = async (collection, doc) => {
+	if (typeof doc === 'string') {
+		const ret = await get_db_document(collection, doc)
+		if (!ret.ok || ret.value) {
+			return true
+		}
+		return false
+	}
+	const conditions = []
+	for (const key of Object.keys(doc)) {
+		conditions.push([key, '==', doc[key]])
+	}
+	const docs =
+		conditions.length > 0
+			? await get_db_documents(collection, conditions)
+			: null
+	if (
+		!docs || //empty doc
+		!docs.ok || // error > it is safer to assume it exists
+		(docs.value && docs.value.length > 0)
+	) {
+		return true
+	}
+	return false
+}
+
+const has_role = (uid, role) => {
+	return get_db_document('users', uid).then((ret) => {
+		if (!ret.ok) {
+			return { ok: false, value: ret.value }
+		}
+		if (!ret.value) {
+			return { ok: true, value: false }
+		}
+		return { ok: true, value: ret.value.role === role }
+	})
+}
+
+const role_service = {
+	is_resident: (uid) => has_role(uid, 'resident'),
+	is_admin: (uid) => has_role(uid, 'admin'),
+	is_worker: (uid) => has_role(uid, 'worker'),
+}
 
 app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
 		const body = req.body
 
 		// DO YOUR VALIDATION DIRECTLY IN THE BACKEND
-		if (!body || !body.latitude || !body.longitude || !body.category) {
+		if (!body) {
 			return res.status(400).json({
 				error: 'Missing parameters in request object.',
 			})
 		}
 
-		const now = new Date(Date.now())
-		const new_doc_id = get_new_doc_id('service_requests', now)
-
-		// Create the object directly instead of using the frontend class
-		const service_request = {
-			user_id: req.user.uid,
-			created_at: now.toUTCString(),
-			location: `SRID=4326;POINT(${body.longitude} ${body.latitude})`,
-			sa_ward: body.ward,
-			sa_m_id: body.municipality_id,
-			sa_m_code: body.municipality_code,
-			sa_m_name: body.municipality_name,
-			status: 'pending',
-			category: body.category,
-			description: body.description,
-			image: body.image,
+		const tmp = new Request(body)
+		if (!tmp.input_validate()) {
+			return res.status(400).json({
+				error: 'Missing parameters in request object.',
+			})
 		}
+		const service_request = request_converter.to_firestore(
+			req.user.uid,
+			tmp,
+			new Date(Date.now())
+		)
 
-		await db
-			.collection('service_requests')
-			.doc(new_doc_id)
-			.set(service_request)
-		res.status(200).json(new_doc_id)
+		if (!(await exists_db_document('service_requests', service_request))) {
+			const doc_id = await create_db_document(
+				'service_requests',
+				service_request
+			)
+			res.status(200).json({ data: doc_id })
+		} else {
+			res.status(201).json({ data: 'Request already exists' })
+		}
 	} catch (err) {
 		console.error('Database error:', err)
 		res.status(500).json({ error: 'Internal server error' })

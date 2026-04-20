@@ -153,10 +153,9 @@ describe('Utility Functions', () => {
 				.spyOn(global, 'fetch')
 				.mockResolvedValue(mock_response)
 
-			const result = await get_voting_district_info([-5, 5])
+			const result = await get_voting_district_info(-5, 5)
 			expect(fetch_spy).toHaveBeenCalledWith(
-				'/api/voting-district?latitude=undefined&longitude=-5,5',
-				{ credentials: 'omit' }
+				'https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=5&longitude=-5'
 			)
 			expect(result).toHaveProperty('m_code', 'awez')
 			expect(result).toHaveProperty('m_id', 1)
@@ -172,10 +171,9 @@ describe('Utility Functions', () => {
 				.spyOn(global, 'fetch')
 				.mockResolvedValue(mock_response)
 
-			const result = await get_voting_district_info([-5, 5])
+			const result = await get_voting_district_info(-5, 5)
 			expect(fetch_spy).toHaveBeenCalledWith(
-				'/api/voting-district?latitude=undefined&longitude=-5,5',
-				{ credentials: 'omit' }
+				'https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=5&longitude=-5'
 			)
 			expect(result).toEqual(null)
 			fetch_spy.mockRestore()
@@ -193,10 +191,9 @@ describe('Utility Functions', () => {
 				.spyOn(global, 'fetch')
 				.mockResolvedValue(mock_response)
 
-			const result = await get_voting_district_info([-5, 5])
+			const result = await get_voting_district_info(-5, 5)
 			expect(fetch_spy).toHaveBeenCalledWith(
-				'/api/voting-district?latitude=undefined&longitude=-5,5',
-				{ credentials: 'omit' }
+				'https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=5&longitude=-5'
 			)
 			expect(result).toEqual(null)
 			fetch_spy.mockRestore()
