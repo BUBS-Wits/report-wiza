@@ -167,14 +167,25 @@ function WorkerDashboard() {
                 <div className="worker_requests_grid">
                   {unclaimed_requests.map((request) => (
                     <div key={request.id} className="worker_unclaimed_card">
-                      <RequestCard request={request} />
-                      <button
-                        className="worker_claim_btn"
-                        onClick={() => handle_claim(request.id)}
-                        disabled={claiming_id === request.id}
-                      >
-                        {claiming_id === request.id ? 'Claiming...' : 'Claim'}
-                      </button>
+                      <div className="request_card">
+                        <div className="request_card_top">
+                          <h3>{request.category}</h3>
+                          <span className={`status_badge ${request.status}`}>
+                            {request.status}
+                          </span>
+                        </div>
+                        <p className="request_location">
+                          {request.sa_ward ? `Ward ${request.sa_ward}` : '—'} · {request.sa_m_name || '—'}
+                        </p>
+                        <p className="request_description">{request.description}</p>
+                        <button
+                          className="worker_claim_btn"
+                          onClick={() => handle_claim(request.id)}
+                          disabled={claiming_id === request.id}
+                        >
+                          {claiming_id === request.id ? 'Claiming...' : 'Claim'}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
