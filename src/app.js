@@ -11,6 +11,7 @@ import WorkerVerify from './pages/worker_verify/worker_verify.js'
 import WorkerDashboard from './pages/worker/worker_dashboard.js'
 import WorkerRequestDetail from './pages/worker/request_detail/worker_request_detail.js'
 import CategoryReport from './pages/category_report/category_report.js'
+import WorkerDashboard from './pages/worker_dashboard/worker_dashboard.js'
 import './app.css'
 
 function App() {
@@ -34,6 +35,9 @@ function App() {
 					path="/admin/analytics/category-report"
 					element={<CategoryReport />}
 				/>
+			</Routes>
+			<Routes>
+				<Route path="/worker-dashboard" element={<WorkerDashboard />} />
 			</Routes>
 		</BrowserRouter>
 	)
