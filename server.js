@@ -494,7 +494,6 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		if (!tmp.input_validate()) {
 			return respond.invalid_parameters(res)
 		}
-		console.log('hi')
 		const service_request = request_converter.to_firestore(
 			req.user.uid,
 			tmp,
@@ -502,9 +501,7 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			'SUBMITTED'
 		)
 
-		console.log('hi')
 		if (!(await exists_db_document('service_requests', service_request))) {
-			console.log('hi')
 			const ret = await create_db_document(
 				'service_requests',
 				service_request
