@@ -23,7 +23,9 @@ admin.initializeApp({
 })
 
 const db = admin.firestore()
-db.settings({ databaseId: 'report-wiza-db' })
+db.settings({
+	databaseId: process.env.FIREBASE_DB_NAME || '(default)',
+})
 db.listCollections()
 	.then(() => console.log('Firebase connected.'))
 	.catch((err) => console.error('Firebase failed:', err))
