@@ -1,0 +1,340 @@
+/* ── Navbar — WorkDesk Worker Dashboard ──────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Barlow+Condensed:wght@700&display=swap');
+
+:root {
+	--nav-height       : 56px;
+	--nav-bg           : #ffffff;
+	--nav-border       : #e8e5e0;
+	--nav-amber        : #f59e0b;
+	--nav-amber-dim    : rgba(245, 158, 11, 0.10);
+	--nav-amber-text   : #b45309;
+	--nav-text-primary : #111111;
+	--nav-text-muted   : #94a3b8;
+	--nav-red-dim      : rgba(220, 38, 38, 0.08);
+	--nav-red-border   : rgba(220, 38, 38, 0.25);
+	--nav-red-text     : #b91c1c;
+	--nav-hover        : #fafaf9;
+	--nav-radius       : 6px;
+	--nav-ease         : 0.14s ease;
+}
+
+/* ── Shell ───────────────────────────────────────────────────────────────── */
+
+.wd_navbar {
+	height: var(--nav-height);
+	background: var(--nav-bg);
+	border-bottom: 1px solid var(--nav-border);
+	display: flex;
+	align-items: center;
+	padding: 0 24px;
+	position: sticky;
+	top: 0;
+	z-index: 100;
+	font-family: 'DM Sans', -apple-system, sans-serif;
+	transition: box-shadow var(--nav-ease);
+}
+
+.wd_navbar_scrolled {
+	box-shadow: 0 1px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Logo ────────────────────────────────────────────────────────────────── */
+
+.wd_navbar_logo {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	text-decoration: none;
+	flex-shrink: 0;
+	margin-right: 28px;
+}
+
+.wd_logo_mark {
+	width: 30px;
+	height: 30px;
+	background: var(--nav-amber);
+	border-radius: 5px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	transition: transform var(--nav-ease);
+}
+
+.wd_navbar_logo:hover .wd_logo_mark {
+	transform: scale(1.06);
+}
+
+.wd_logo_text {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 17px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--nav-text-primary);
+	line-height: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.wd_logo_role {
+	font-family: 'DM Sans', sans-serif;
+	font-size: 10px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	color: var(--nav-text-muted);
+	line-height: 1;
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+
+.wd_nav_divider {
+	display: inline-block;
+	width: 1px;
+	height: 20px;
+	background: var(--nav-border);
+	margin: 0 20px;
+	flex-shrink: 0;
+}
+
+/* ── Nav links ───────────────────────────────────────────────────────────── */
+
+.wd_nav_links {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 1;
+}
+
+.wd_nav_link {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 12px;
+	border-radius: var(--nav-radius);
+	font-size: 13px;
+	font-weight: 500;
+	color: #64748b;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: background var(--nav-ease), color var(--nav-ease);
+}
+
+.wd_nav_link:hover {
+	background: var(--nav-hover);
+	color: var(--nav-text-primary);
+}
+
+.wd_nav_link_active {
+	background: var(--nav-amber-dim);
+	color: var(--nav-amber-text);
+}
+
+.wd_nav_link_active:hover {
+	background: rgba(245, 158, 11, 0.15);
+	color: var(--nav-amber-text);
+}
+
+/* ── Nav icon ────────────────────────────────────────────────────────────── */
+
+.nav_icon {
+	width: 15px;
+	height: 15px;
+	flex-shrink: 0;
+	stroke: currentColor;
+	fill: none;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+/* ── Badge ───────────────────────────────────────────────────────────────── */
+
+.wd_nav_badge {
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1;
+	padding: 2px 6px;
+	border-radius: 4px;
+	letter-spacing: 0.02em;
+}
+
+.wd_nav_badge_amber {
+	background: var(--nav-amber);
+	color: #ffffff;
+}
+
+.wd_nav_badge_ghost {
+	background: #f0ede8;
+	color: var(--nav-text-muted);
+}
+
+/* ── Right cluster ───────────────────────────────────────────────────────── */
+
+.wd_nav_right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+/* Notification bell */
+.wd_icon_btn {
+	width: 34px;
+	height: 34px;
+	border-radius: var(--nav-radius);
+	border: 1px solid var(--nav-border);
+	background: transparent;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	text-decoration: none;
+	position: relative;
+	transition: background var(--nav-ease), border-color var(--nav-ease);
+}
+
+.wd_icon_btn:hover {
+	background: var(--nav-hover);
+	border-color: #d4d0ca;
+}
+
+.wd_icon_btn svg {
+	width: 15px;
+	height: 15px;
+	stroke: #64748b;
+	fill: none;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.wd_notif_dot {
+	position: absolute;
+	top: 7px;
+	right: 7px;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--nav-amber);
+	border: 1.5px solid var(--nav-bg);
+}
+
+/* User chip */
+.wd_user_chip {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 10px 4px 4px;
+	border-radius: var(--nav-radius);
+	border: 1px solid var(--nav-border);
+	background: transparent;
+	cursor: pointer;
+	font-family: 'DM Sans', sans-serif;
+	transition: background var(--nav-ease), border-color var(--nav-ease);
+}
+
+.wd_user_chip:hover {
+	background: var(--nav-hover);
+	border-color: #d4d0ca;
+}
+
+.wd_avatar {
+	width: 26px;
+	height: 26px;
+	border-radius: 4px;
+	background: var(--nav-amber-dim);
+	color: var(--nav-amber-text);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 10px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	flex-shrink: 0;
+}
+
+.wd_user_info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: left;
+}
+
+.wd_user_name {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--nav-text-primary);
+	line-height: 1;
+}
+
+.wd_user_role {
+	font-size: 10px;
+	color: var(--nav-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	line-height: 1;
+}
+
+/* ── Logout ──────────────────────────────────────────────────────────────── */
+
+.wd_logout_btn {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 14px;
+	border-radius: var(--nav-radius);
+	border: 1px solid var(--nav-red-border);
+	background: var(--nav-red-dim);
+	color: var(--nav-red-text);
+	font-family: 'DM Sans', sans-serif;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background var(--nav-ease), border-color var(--nav-ease), transform var(--nav-ease);
+}
+
+.wd_logout_btn:hover {
+	background: rgba(220, 38, 38, 0.14);
+	border-color: rgba(220, 38, 38, 0.45);
+	transform: translateY(-1px);
+}
+
+.wd_logout_btn:active {
+	transform: translateY(0);
+}
+
+.wd_logout_btn svg {
+	width: 13px;
+	height: 13px;
+	stroke: var(--nav-red-text);
+	fill: none;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+/* ── Mobile (≤ 768px) ────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+	.wd_navbar {
+		padding: 0 16px;
+	}
+
+	.wd_nav_divider,
+	.wd_nav_links,
+	.wd_logo_role,
+	.wd_user_info {
+		display: none;
+	}
+
+	.wd_navbar_logo {
+		margin-right: 0;
+	}
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { getAuth } from 'firebase/auth'
-import { fetch_worker_dashboard_data } from '../../backend/worker_dashboard_service.js'
+import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import './worker_dashboard.css'
+import { getAuth } from 'firebase/auth'
 
 const STATUSES = ['All', 'Pending', 'Acknowledged', 'Resolved', 'Closed']
 
@@ -10,6 +10,105 @@ const STATUS_BADGE_CLASS = {
 	Acknowledged: 'wd-badge--acknowledged',
 	Resolved: 'wd-badge--resolved',
 	Closed: 'wd-badge--closed',
+}
+
+/* ── Mock data ───────────────────────────────────────────────────────────── */
+
+const MOCK_DATA = {
+	worker: {
+		name: 'Thabo Nkosi',
+		email: 'thabo.nkosi@joburg.gov.za',
+		role: 'Field Worker',
+	},
+	stats: {
+		total: 34,
+		resolved: 21,
+		avg_resolution_days: 3.2,
+		pending: 6,
+		acknowledged: 4,
+	},
+	requests: [
+		{
+			id: 'REQ-0091',
+			category: 'Water & Sanitation',
+			description: 'Burst pipe flooding pavement on Main Rd near Pick n Pay',
+			status: 'Pending',
+			ward: 'Ward 12',
+			updatedAt: '2025-04-22',
+		},
+		{
+			id: 'REQ-0088',
+			category: 'Electricity',
+			description: 'Street light out for 3 weeks — Linden Ave, corner 4th St',
+			status: 'Acknowledged',
+			ward: 'Ward 12',
+			updatedAt: '2025-04-21',
+		},
+		{
+			id: 'REQ-0085',
+			category: 'Roads & Stormwater',
+			description: 'Large pothole causing vehicle damage on Ontdekkers Rd',
+			status: 'Acknowledged',
+			ward: 'Ward 15',
+			updatedAt: '2025-04-20',
+		},
+		{
+			id: 'REQ-0079',
+			category: 'Waste Management',
+			description: 'Illegal dumping site at end of Brickfield Rd — growing weekly',
+			status: 'Pending',
+			ward: 'Ward 12',
+			updatedAt: '2025-04-19',
+		},
+		{
+			id: 'REQ-0074',
+			category: 'Parks & Recreation',
+			description: 'Broken swing set in Linden Park is a safety hazard for children',
+			status: 'Resolved',
+			ward: 'Ward 15',
+			updatedAt: '2025-04-17',
+		},
+		{
+			id: 'REQ-0070',
+			category: 'Water & Sanitation',
+			description: 'Manhole cover missing on 3rd Ave — risk of injury',
+			status: 'Resolved',
+			ward: 'Ward 12',
+			updatedAt: '2025-04-14',
+		},
+		{
+			id: 'REQ-0063',
+			category: 'Electricity',
+			description: 'Exposed wiring on pole outside school — urgent safety concern',
+			status: 'Resolved',
+			ward: 'Ward 15',
+			updatedAt: '2025-04-10',
+		},
+		{
+			id: 'REQ-0055',
+			category: 'Roads & Stormwater',
+			description: 'Collapsed stormwater drain causing flooding in heavy rain',
+			status: 'Closed',
+			ward: 'Ward 12',
+			updatedAt: '2025-04-02',
+		},
+		{
+			id: 'REQ-0049',
+			category: 'Waste Management',
+			description: 'Bin collection skipped for two consecutive weeks — Ward 15',
+			status: 'Closed',
+			ward: 'Ward 15',
+			updatedAt: '2025-03-28',
+		},
+		{
+			id: 'REQ-0041',
+			category: 'Electricity',
+			description: 'Transformer fault causing intermittent power cuts — block 7',
+			status: 'Pending',
+			ward: 'Ward 12',
+			updatedAt: '2025-03-24',
+		},
+	],
 }
 
 /* ── Main component ──────────────────────────────────────────────────────── */
@@ -24,15 +123,15 @@ export default function WorkerDashboard() {
 		setLoading(true)
 		setError(null)
 		try {
-			const auth = getAuth()
-			const user = auth.currentUser
-			if (!user) {
-				throw new Error('Not authenticated.')
-			}
-
-			// Direct call to the client-side Firebase service
-			const data = await fetch_worker_dashboard_data(user.uid)
-			setDashData(data)
+			// ── Swap this block out for the real Firebase call when ready ──
+			await new Promise((r) => setTimeout(r, 600)) // simulate network
+			setDashData(MOCK_DATA)
+			// const auth = getAuth()
+			// const user = auth.currentUser
+			// if (!user) throw new Error('Not authenticated.')
+			// const data = await fetch_worker_dashboard_data(user.uid)
+			// setDashData(data)
+			// ──────────────────────────────────────────────────────────────
 		} catch (err) {
 			setError(err.message || 'Failed to load dashboard.')
 		} finally {
@@ -44,18 +143,11 @@ export default function WorkerDashboard() {
 		loadDashboard()
 	}, [loadDashboard])
 
-	if (loading) {
-		return <LoadingScreen />
-	}
-	if (error) {
-		return <ErrorScreen message={error} onRetry={loadDashboard} />
-	}
-	if (!dashData) {
-		return null
-	}
+	if (loading) return <LoadingScreen />
+	if (error) return <ErrorScreen message={error} onRetry={loadDashboard} />
+	if (!dashData) return null
 
 	const { worker, requests, stats } = dashData
-	const currentUser = getAuth().currentUser
 
 	const filteredRequests =
 		activeFilter === 'All'
@@ -73,31 +165,7 @@ export default function WorkerDashboard() {
 
 	return (
 		<div className="wd-page">
-			{/* ── Header — US-003 ──────────────────────────────────────────── */}
-			<header className="wd-header">
-				<div className="wd-header-left">
-					<span className="wd-app-name">WardWatch</span>
-					<span className="wd-header-divider" />
-					<span className="wd-header-role">Worker portal</span>
-				</div>
-				<div className="wd-worker-chip">
-					<div className="wd-avatar">
-						{(worker?.name ?? currentUser?.displayName ?? 'W')
-							.charAt(0)
-							.toUpperCase()}
-					</div>
-					<div>
-						<div className="wd-worker-name">
-							{worker?.name ??
-								currentUser?.displayName ??
-								'Municipal Worker'}
-						</div>
-						<div className="wd-worker-email">
-							{worker?.email ?? currentUser?.email}
-						</div>
-					</div>
-				</div>
-			</header>
+			<Worker_nav_bar user={worker} />
 
 			<main className="wd-main">
 				{/* ── Performance summary — US-049 ─────────────────────────── */}
@@ -129,9 +197,7 @@ export default function WorkerDashboard() {
 							label="Awaiting action"
 							value={awaitingAction}
 							sub="Pending + acknowledged"
-							valueModifier={
-								awaitingAction > 0 ? 'warning' : null
-							}
+							valueModifier={awaitingAction > 0 ? 'warning' : null}
 						/>
 					</div>
 				</section>
@@ -187,6 +253,7 @@ function StatCard({ label, value, sub, valueModifier }) {
 	]
 		.filter(Boolean)
 		.join(' ')
+
 	return (
 		<div className="wd-stat-card">
 			<div className="wd-stat-label">{label}</div>
@@ -197,7 +264,6 @@ function StatCard({ label, value, sub, valueModifier }) {
 }
 
 function RequestRow({ req }) {
-	// Safely convert the Firestore Timestamp object into a readable date string
 	const displayDate = req.updatedAt?.toMillis
 		? new Date(req.updatedAt.toMillis()).toISOString().split('T')[0]
 		: req.updatedAt
@@ -207,12 +273,9 @@ function RequestRow({ req }) {
 			<span className="wd-req-id">{req.id}</span>
 			<span className="wd-req-cat">{req.category}</span>
 			<span className="wd-req-desc">{req.description}</span>
-			<span
-				className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
-			>
+			<span className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}>
 				{req.status}
 			</span>
-			{/* Render the formatted string instead of the raw object */}
 			<span className="wd-req-meta">
 				{req.ward} · {displayDate}
 			</span>
