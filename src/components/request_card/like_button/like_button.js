@@ -8,37 +8,47 @@ import {
 import './like_button.css'
 
 const LikeButton = ({ requestId, initialLikeCount }) => {
+	const safeRequestId = String(requestId)
+
+	console.log('LikeButton rendering with requestId:', safeRequestId); //to see issue with UI GLITCH
+
 	const [likes, setLikes] = useState(initialLikeCount)
 	const [userLiked, setUserLiked] = useState(false)
 	const [loading, setLoading] = useState(false)
-	const currentUser = auth.currentUser
+	const [currentUser, setCurrentUser] = useState(null)
 
 	useEffect(() => {
-		if (currentUser && requestId) {
-			const checkLike = async () => {
-				const liked = await hasUserLiked(requestId, currentUser.uid)
-				setUserLiked(liked)
+		const unsubscribe = auth.onAuthStateChanged(user => setCurrentUser(user))
+		return () => unsubscribe()
+	}, [])
+
+	useEffect(() => {
+		if (currentUser && safeRequestId) {
+			const check = async () => {
+				try {
+					const liked = await hasUserLiked(safeRequestId, currentUser.uid)
+					setUserLiked(liked)
+				} catch (err) {
+					console.error(err)
+				}
 			}
-			checkLike()
+			check()
 		}
-	}, [currentUser, requestId])
+	}, [currentUser, safeRequestId])
 
 	const handleLike = async () => {
-		if (!currentUser) {
-			return
-		} // safety, button is disabled for non-logged-in
-		if (loading) {
-			return
-		}
+		if (!currentUser) return
+		if (loading) return
 		setLoading(true)
 		try {
+			const safeUid = String(currentUser.uid)
 			if (userLiked) {
-				await removeLike(requestId, currentUser.uid)
-				setLikes((prev) => prev - 1)
+				await removeLike(safeRequestId, safeUid)
+				setLikes(prev => prev - 1)
 				setUserLiked(false)
 			} else {
-				await addLike(requestId, currentUser.uid)
-				setLikes((prev) => prev + 1)
+				await addLike(safeRequestId, safeUid)
+				setLikes(prev => prev + 1)
 				setUserLiked(true)
 			}
 		} catch (error) {
@@ -50,11 +60,7 @@ const LikeButton = ({ requestId, initialLikeCount }) => {
 
 	if (!currentUser) {
 		return (
-			<button
-				className="like_button like_button_disabled"
-				disabled
-				title="Login to like requests"
-			>
+			<button className="like_button like_button_disabled" disabled title="Login to like requests">
 				🤍 {likes}
 			</button>
 		)
