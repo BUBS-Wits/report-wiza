@@ -40,7 +40,9 @@ function RequestPage() {
 	}
 
 	async function on_submit(request) {
-		if (!(await valid_attempt(request))) {return}
+		if (!(await valid_attempt(request))) {
+			return
+		}
 
 		setSubmitting(true)
 		try {

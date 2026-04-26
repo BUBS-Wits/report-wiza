@@ -108,7 +108,9 @@ function WardBoundaries() {
 function FitMapToRequests({ requests }) {
 	const map = useMap()
 	useEffect(() => {
-		if (!requests.length) {return}
+		if (!requests.length) {
+			return
+		}
 		const bounds = L.latLngBounds(
 			requests.map((r) => [r.latitude, r.longitude])
 		)
