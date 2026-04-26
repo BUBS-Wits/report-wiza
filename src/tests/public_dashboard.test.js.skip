@@ -1,131 +1,127 @@
-import React from 'react'
-import { render, screen } from '@testing-library/react'
-import PublicDashboard from '../pages/public_dashboard/public_dashboard'
+// src/tests/public_dashboard.test.js
+import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import PublicDashboard from '../pages/public_dashboard/public_dashboard';
+import { db } from '../firebase_config';
+import { collection, getDocs } from 'firebase/firestore';
 
-// 1. MOCK REACT ROUTER DOM
-jest.mock(
-	'react-router-dom',
-	() => ({
-		Link: ({ children, to }) => (
-			<a href={to} data-testid="mock-link">
-				{children}
-			</a>
-		),
-	}),
-	{ virtual: true }
-)
+// --- Mocks for external dependencies ---
+jest.mock('../firebase_config', () => ({
+  db: {},
+}));
+jest.mock('firebase/firestore', () => ({
+  collection: jest.fn(),
+  getDocs: jest.fn(),
+}));
 
-// 2. MOCK LEAFLET CORE
-jest.mock(
-	'leaflet',
-	() => {
-		const mockIcon = jest.fn()
-		mockIcon.Default = {
-			prototype: { _getIconUrl: jest.fn() },
-			mergeOptions: jest.fn(),
-		}
-		return {
-			Icon: mockIcon,
-			latLngBounds: jest.fn(() => ({})),
-		}
-	},
-	{ virtual: true }
-)
+// Mock leaflet and react-leaflet
+jest.mock('react-leaflet', () => ({
+  MapContainer: ({ children }) => <div data-testid="map-container">{children}</div>,
+  TileLayer: () => null,
+  Marker: () => null,
+  Popup: () => null,
+  useMap: () => ({ invalidateSize: jest.fn() }),
+}));
+jest.mock('leaflet', () => ({
+  Icon: class {},
+  Default: { prototype: { _getIconUrl: null }, mergeOptions: jest.fn() },
+  latLngBounds: jest.fn(() => ({})),
+}));
+jest.mock('esri-leaflet', () => ({
+  featureLayer: jest.fn(() => ({
+    bindPopup: jest.fn().mockReturnThis(),
+    on: jest.fn().mockReturnThis(),
+    addTo: jest.fn().mockReturnThis(),
+    resetStyle: jest.fn(),
+  })),
+}));
 
-// 3. MOCK REACT-LEAFLET
-jest.mock(
-	'react-leaflet',
-	() => ({
-		MapContainer: ({ children }) => (
-			<div data-testid="map-container">{children}</div>
-		),
-		TileLayer: () => <div data-testid="tile-layer"></div>,
-		Marker: ({ children }) => (
-			<div data-testid="map-marker">{children}</div>
-		),
-		Popup: ({ children }) => <div data-testid="map-popup">{children}</div>,
-		useMap: () => ({
-			invalidateSize: jest.fn(),
-			fitBounds: jest.fn(),
-			removeLayer: jest.fn(),
-		}),
-	}),
-	{ virtual: true }
-)
+// Mock RequestCard component
+jest.mock('../components/request_card/request_card.js', () => ({ request }) => (
+  <div data-testid="request-card">{request.category}</div>
+));
 
-// 4. MOCK ESRI-LEAFLET
-// This empty mock prevents the import statement from crashing.
-// The "safeEsri" safeguard inside the component handles the actual logic!
-jest.mock('esri-leaflet', () => ({}), { virtual: true })
+describe('PublicDashboard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-// 5. MOCK REQUEST CARD
-jest.mock('../components/request_card/request_card.js', () => {
-	return function MockRequestCard({ request }) {
-		return (
-			<div data-testid={`request-card-${request.status}`}>
-				{request.category}
-			</div>
-		)
-	}
-})
+  const mockFirestoreData = (docs) => {
+    getDocs.mockResolvedValue({
+      docs: docs.map(doc => ({
+        id: doc.id,
+        data: () => doc.data,
+      })),
+    });
+  };
 
-describe('PublicDashboard Component', () => {
-	it('renders the header and introduction text', () => {
-		render(<PublicDashboard />)
+  it('shows loading state initially', () => {
+    getDocs.mockImplementation(() => new Promise(() => {}));
+    render(<PublicDashboard />);
+    expect(screen.getByText(/Loading dashboard.../i)).toBeInTheDocument();
+  });
 
-		expect(
-			screen.getByText('Community Service Dashboard')
-		).toBeInTheDocument()
-		expect(
-			screen.getByText(
-				/Browse open and recently resolved municipal service requests/i
-			)
-		).toBeInTheDocument()
-		expect(screen.getByTestId('mock-link')).toBeInTheDocument()
-	})
+  it('shows error message when Firestore fetch fails', async () => {
+    getDocs.mockRejectedValue(new Error('Network error'));
+    render(<PublicDashboard />);
+    expect(await screen.findByText(/Could not load requests. Please try again later./i)).toBeInTheDocument();
+  });
 
-	it('calculates and displays the correct summary statistics', () => {
-		render(<PublicDashboard />)
+  it('splits requests into open and resolved correctly', async () => {
+    const mockDocs = [
+      { id: '1', data: { status: 'Open', category: 'Potholes', like_count: 0 } },
+      { id: '2', data: { status: 'Resolved', category: 'Water', like_count: 0 } },
+      { id: '3', data: { status: 'In Progress', category: 'Electricity', like_count: 0 } },
+    ];
+    mockFirestoreData(mockDocs);
+    render(<PublicDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId('map-container')).toBeInTheDocument();
+    });
+    // Open requests count = 2 (Open + In Progress)
+    expect(screen.getByText('2')).toBeInTheDocument();
+    // Resolved requests count = 1
+    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getAllByTestId('request-card')).toHaveLength(3);
+  });
 
-		// Use getAllByText and grab the first element ([0]) since the text
-		// appears in both the summary cards and the section headings!
+  it('displays distinct ward count correctly', async () => {
+    const mockDocs = [
+      { id: '1', data: { status: 'Open', ward: 'Ward 60' } },
+      { id: '2', data: { status: 'Resolved', ward: 'Ward 60' } },
+      { id: '3', data: { status: 'Open', ward: 'Ward 61' } },
+    ];
+    mockFirestoreData(mockDocs);
+    render(<PublicDashboard />);
+    await waitFor(() => {
+      expect(screen.getByTestId('map-container')).toBeInTheDocument();
+    });
+    expect(screen.getByText('2')).toBeInTheDocument(); // distinct wards: 60 and 61
+  });
+});
 
-		const openStat = screen.getAllByText('Open Requests')[0].nextSibling
-		expect(openStat).toHaveTextContent('4')
+// Optional: WKT parser test
+describe('parseWktPoint helper', () => {
+  const parseWktPoint = (locationStr) => {
+    if (!locationStr) return null;
+    const match = locationStr.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/i);
+    if (match) {
+      const lon = parseFloat(match[1]);
+      const lat = parseFloat(match[2]);
+      if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+    }
+    return null;
+  };
 
-		const resolvedStat =
-			screen.getAllByText('Recently Resolved')[0].nextSibling
-		expect(resolvedStat).toHaveTextContent('3')
+  it('parses valid WKT string', () => {
+    const result = parseWktPoint('SRID=4326;POINT(28.0456 -26.2044)');
+    expect(result).toEqual({ lat: -26.2044, lon: 28.0456 });
+  });
 
-		// "Wards Affected" only appears once, so getByText is still safe here
-		const wardsStat = screen.getByText('Wards Affected').nextSibling
-		expect(wardsStat).toHaveTextContent('4')
-	})
-
-	it('renders the map container and legend', () => {
-		render(<PublicDashboard />)
-
-		expect(screen.getByTestId('map-container')).toBeInTheDocument()
-
-		const markers = screen.getAllByTestId('map-marker')
-		expect(markers.length).toBe(7)
-
-		expect(screen.getByText('Open')).toBeInTheDocument()
-		expect(screen.getByText('In Progress')).toBeInTheDocument()
-		expect(screen.getByText('Resolved')).toBeInTheDocument()
-	})
-
-	it('renders the correct number of open and resolved request cards', () => {
-		render(<PublicDashboard />)
-
-		const openCards = screen.queryAllByTestId('request-card-Open')
-		const inProgressCards = screen.queryAllByTestId(
-			'request-card-In Progress'
-		)
-		const resolvedCards = screen.queryAllByTestId('request-card-Resolved')
-
-		expect(openCards.length).toBe(2)
-		expect(inProgressCards.length).toBe(2)
-		expect(resolvedCards.length).toBe(3)
-	})
-})
+  it('returns null for invalid input', () => {
+    expect(parseWktPoint('invalid')).toBeNull();
+    expect(parseWktPoint('')).toBeNull();
+    expect(parseWktPoint(null)).toBeNull();
+  });
+});

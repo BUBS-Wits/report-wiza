@@ -14,25 +14,34 @@ function ResidentRequests() {
   const [error, setError] = useState(null)
 
   // Effect to load requests when component mounts or user changes
+  // Uses onAuthStateChanged to wait for Firebase Auth to confirm login state
   useEffect(() => {
-    const user = auth.currentUser                     // get currently logged-in user
-    if (!user) {
-      setError('Please log in to view your requests.') // not authenticated
-      setLoading(false)
-      return
-    }
-
-    const loadRequests = async () => {
-      try {
-        const data = await fetchResidentRequests(user.uid) // fetch from Firestore
-        setRequests(data)                                   // store in state
-      } catch (err) {
-        setError(err.message)                               // display error
-      } finally {
-        setLoading(false)                                   // done loading
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        setError('Please log in to view your requests.') // not authenticated
+        setLoading(false)
+        return
       }
-    }
-    loadRequests()
+
+      // Retry logic: if first fetch fails, try once more after 1 second
+      const loadWithRetry = async (retry = true) => {
+        try {
+          const data = await fetchResidentRequests(user.uid) // fetch from Firestore
+          setRequests(data)                                   // store in state
+        } catch (err) {
+          console.error('Fetch failed:', err)
+          if (retry) {
+            setTimeout(() => loadWithRetry(false), 1000)      // one retry
+          } else {
+            setError('Could not load your requests. Please refresh the page.')
+          }
+        } finally {
+          setLoading(false)
+        }
+      }
+      await loadWithRetry()
+    })
+    return () => unsubscribe()
   }, []) // empty dependency array means run once on mount
 
   // Show loading spinner / message
