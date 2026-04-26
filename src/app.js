@@ -10,7 +10,7 @@ import AdminDashboard from './pages/admin_dashboard/admin_dashboard.js'
 import WorkerVerify from './pages/worker_verify/worker_verify.js'
 import CategoryReport from './pages/category_report/category_report.js'
 import WorkerDashboard from './pages/worker_dashboard/worker_dashboard.js'
-import ResidentRequests from './pages/resident/resident_requests.js'; //SM added missing route for ResidentRequests
+import ResidentRequests from './pages/resident/resident_requests.js' //SM added missing route for ResidentRequests
 import './app.css'
 
 function App() {
@@ -29,7 +29,10 @@ function App() {
 					path="/admin/analytics/category-report"
 					element={<CategoryReport />}
 				/>
-				<Route path="/resident/requests" element={<ResidentRequests />} />
+				<Route
+					path="/resident/requests"
+					element={<ResidentRequests />}
+				/>
 			</Routes>
 			<Routes>
 				<Route path="/worker-dashboard" element={<WorkerDashboard />} />

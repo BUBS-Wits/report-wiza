@@ -7,110 +7,118 @@ import { hasUserLiked, addLike, removeLike } from '../backend/like_service'
 
 // Mock Firebase auth with onAuthStateChanged
 jest.mock('../firebase_config', () => ({
-  auth: {
-    currentUser: null,
-    onAuthStateChanged: jest.fn((callback) => {
-      callback(null);
-      return () => {};
-    }),
-  },
-}));
-jest.mock('../backend/like_service');
+	auth: {
+		currentUser: null,
+		onAuthStateChanged: jest.fn((callback) => {
+			callback(null)
+			return () => {}
+		}),
+	},
+}))
+jest.mock('../backend/like_service')
 
 describe('LikeButton', () => {
-  const defaultProps = {
-    requestId: 'req123',
-    initialLikeCount: 5,
-  };
+	const defaultProps = {
+		requestId: 'req123',
+		initialLikeCount: 5,
+	}
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Reset the mock to call callback with currentUser
-    auth.onAuthStateChanged.mockImplementation((callback) => {
-      callback(auth.currentUser);
-      return () => {};
-    });
-  });
+	beforeEach(() => {
+		jest.clearAllMocks()
+		// Reset the mock to call callback with currentUser
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
+	})
 
-  it('displays disabled button when user is not logged in', () => {
-    auth.currentUser = null;
-    render(<LikeButton {...defaultProps} />);
-    const button = screen.getByRole('button', { name: /🤍 5/i });
-    expect(button).toBeDisabled();
-    expect(button).toHaveAttribute('title', 'Login to like requests');
-  });
+	it('displays disabled button when user is not logged in', () => {
+		auth.currentUser = null
+		render(<LikeButton {...defaultProps} />)
+		const button = screen.getByRole('button', { name: /🤍 5/i })
+		expect(button).toBeDisabled()
+		expect(button).toHaveAttribute('title', 'Login to like requests')
+	})
 
-  it('displays enabled button and initial like count when user is logged in', async () => {
-    auth.currentUser = { uid: 'user456' };
-    auth.onAuthStateChanged.mockImplementation((callback) => {
-      callback(auth.currentUser);
-      return () => {};
-    });
-    hasUserLiked.mockResolvedValue(false);
-    render(<LikeButton {...defaultProps} />);
-    expect(await screen.findByRole('button', { name: /🤍 5/i })).toBeEnabled();
-  });
+	it('displays enabled button and initial like count when user is logged in', async () => {
+		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
+		hasUserLiked.mockResolvedValue(false)
+		render(<LikeButton {...defaultProps} />)
+		expect(
+			await screen.findByRole('button', { name: /🤍 5/i })
+		).toBeEnabled()
+	})
 
-  it('shows liked state (❤️) if user already liked', async () => {
-    auth.currentUser = { uid: 'user456' };
-    auth.onAuthStateChanged.mockImplementation((callback) => {
-      callback(auth.currentUser);
-      return () => {};
-    });
-    hasUserLiked.mockResolvedValue(true);
-    render(<LikeButton {...defaultProps} />);
-    expect(await screen.findByRole('button', { name: /❤️ 5/i })).toBeInTheDocument();
-  });
+	it('shows liked state (❤️) if user already liked', async () => {
+		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
+		hasUserLiked.mockResolvedValue(true)
+		render(<LikeButton {...defaultProps} />)
+		expect(
+			await screen.findByRole('button', { name: /❤️ 5/i })
+		).toBeInTheDocument()
+	})
 
-  it('calls addLike and increments count when clicking unliked button', async () => {
-    auth.currentUser = { uid: 'user456' };
-    auth.onAuthStateChanged.mockImplementation((callback) => {
-      callback(auth.currentUser);
-      return () => {};
-    });
-    hasUserLiked.mockResolvedValue(false);
-    addLike.mockResolvedValue();
+	it('calls addLike and increments count when clicking unliked button', async () => {
+		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
+		hasUserLiked.mockResolvedValue(false)
+		addLike.mockResolvedValue()
 
-    render(<LikeButton {...defaultProps} />);
-    const button = await screen.findByRole('button', { name: /🤍 5/i });
-    fireEvent.click(button);
+		render(<LikeButton {...defaultProps} />)
+		const button = await screen.findByRole('button', { name: /🤍 5/i })
+		fireEvent.click(button)
 
-    await waitFor(() => {
-      expect(addLike).toHaveBeenCalledWith('req123', 'user456');
-      expect(screen.getByRole('button', { name: /❤️ 6/i })).toBeInTheDocument();
-    });
-  });
+		await waitFor(() => {
+			expect(addLike).toHaveBeenCalledWith('req123', 'user456')
+			expect(
+				screen.getByRole('button', { name: /❤️ 6/i })
+			).toBeInTheDocument()
+		})
+	})
 
-  it('calls removeLike and decrements count when clicking liked button', async () => {
-    auth.currentUser = { uid: 'user456' };
-    auth.onAuthStateChanged.mockImplementation((callback) => {
-      callback(auth.currentUser);
-      return () => {};
-    });
-    hasUserLiked.mockResolvedValue(true);
-    removeLike.mockResolvedValue();
+	it('calls removeLike and decrements count when clicking liked button', async () => {
+		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
+		hasUserLiked.mockResolvedValue(true)
+		removeLike.mockResolvedValue()
 
-    render(<LikeButton {...defaultProps} />);
-    const button = await screen.findByRole('button', { name: /❤️ 5/i });
-    fireEvent.click(button);
+		render(<LikeButton {...defaultProps} />)
+		const button = await screen.findByRole('button', { name: /❤️ 5/i })
+		fireEvent.click(button)
 
-    await waitFor(() => {
-      expect(removeLike).toHaveBeenCalledWith('req123', 'user456');
-      expect(screen.getByRole('button', { name: /🤍 4/i })).toBeInTheDocument();
-    });
-  });
+		await waitFor(() => {
+			expect(removeLike).toHaveBeenCalledWith('req123', 'user456')
+			expect(
+				screen.getByRole('button', { name: /🤍 4/i })
+			).toBeInTheDocument()
+		})
+	})
 
-  it('disables button while loading', async () => {
-    auth.currentUser = { uid: 'user456' };
-    auth.onAuthStateChanged.mockImplementation((callback) => {
-      callback(auth.currentUser);
-      return () => {};
-    });
-    hasUserLiked.mockResolvedValue(false);
-    addLike.mockImplementation(() => new Promise(() => {})); // never resolves
-    render(<LikeButton {...defaultProps} />);
-    const button = await screen.findByRole('button');
-    fireEvent.click(button);
-    expect(button).toBeDisabled();
-  });
-});
+	it('disables button while loading', async () => {
+		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
+		hasUserLiked.mockResolvedValue(false)
+		addLike.mockImplementation(() => new Promise(() => {})) // never resolves
+		render(<LikeButton {...defaultProps} />)
+		const button = await screen.findByRole('button')
+		fireEvent.click(button)
+		expect(button).toBeDisabled()
+	})
+})
