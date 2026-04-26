@@ -57,5 +57,6 @@
 		"test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests",
 		"test:coverage:watch": "react-scripts test --coverage --passWithNoTests"
 	},
+	"type": "module",
 	"version": "0.1.0"
 }

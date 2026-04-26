@@ -60,7 +60,9 @@ export default function WorkerDashboard() {
 
 	/* ── Loading / error guards ───────────────────────────────────────── */
 
-	if (loading) return <LoadingScreen />
+	if (loading) {
+		return <LoadingScreen />
+	}
 
 	if (error) {
 		return (
@@ -71,7 +73,9 @@ export default function WorkerDashboard() {
 		)
 	}
 
-	if (!worker || !stats) return null
+	if (!worker || !stats) {
+		return null
+	}
 
 	/* ── Derived display values ───────────────────────────────────────── */
 
@@ -91,7 +95,7 @@ export default function WorkerDashboard() {
 			: '—'
 
 	const avg_display =
-		stats.avg_resolution_days != null ? stats.avg_resolution_days : '—'
+		stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
 
 	/* ── Render ───────────────────────────────────────────────────────── */
 

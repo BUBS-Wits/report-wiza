@@ -1,3 +1,4 @@
+/* global jest */
 const React = require('react')
 
 module.exports = {
