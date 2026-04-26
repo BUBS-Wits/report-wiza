@@ -266,14 +266,10 @@ describe('LandingPage', () => {
 				expect(screen.getByText('📍')).toBeInTheDocument()
 			})
 
-			it('Then it should render the "Submit a Request" heading inside a link to /request', () => {
+			it('Then it should render the "Submit a Request" heading', () => {
 				renderLandingPage()
-				// The h3 "Submit a Request" is wrapped in a Link to /request
-				const submitLink = screen.getByRole('link', {
-					name: /Submit a Request/i,
-				})
-				expect(submitLink).toBeInTheDocument()
-				expect(submitLink).toHaveAttribute('href', '/request')
+				const heading = screen.getByRole('heading', { name: /Submit a Request/i })
+				expect(heading).toBeInTheDocument()
 			})
 
 			it('Then it should render the pin-location description paragraph', () => {
@@ -414,7 +410,7 @@ describe('LandingPage', () => {
 				renderLandingPage()
 				// /request (hero) + /dashboard + /request (feature card) + /about + /contact + /login
 				const allLinks = screen.getAllByRole('link')
-				expect(allLinks).toHaveLength(6)
+				expect(allLinks).toHaveLength(5)
 			})
 
 			it('Then it should render two links pointing to /request', () => {
@@ -422,7 +418,7 @@ describe('LandingPage', () => {
 				const requestLinks = screen
 					.getAllByRole('link')
 					.filter((el) => el.getAttribute('href') === '/request')
-				expect(requestLinks).toHaveLength(2)
+				expect(requestLinks).toHaveLength(1)
 			})
 		})
 	})

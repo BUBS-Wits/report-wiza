@@ -15,6 +15,13 @@ jest.mock('../backend/admin_firebase.js', () => ({
 	confirm_worker_role: jest.fn(),
 }))
 
+jest.mock('react-router-dom', () => ({
+    Link:         ({ children, to }) => <a href={to}>{children}</a>,
+    useLocation:  () => ({ pathname: '/worker-dashboard' }),
+    useNavigate:  () => jest.fn(),
+    BrowserRouter: ({ children }) => <div>{children}</div>,
+}), { virtual: true })
+
 const mock_navigate = jest.fn()
 jest.mock(
 	'react-router-dom',
@@ -78,6 +85,9 @@ describe('WorkerVerify page', () => {
 
 		describe('When verification fails', () => {
 			it('Then it should show the verification failed message', async () => {
+				// Suppress the expected console.error from the component's catch block
+				jest.spyOn(console, 'error').mockImplementation(() => {})
+
 				isSignInWithEmailLink.mockReturnValue(true)
 				window.localStorage.setItem(
 					'worker_email_for_sign_in',
@@ -92,6 +102,9 @@ describe('WorkerVerify page', () => {
 				})
 				expect(msg).toBeInTheDocument()
 				window.localStorage.removeItem('worker_email_for_sign_in')
+
+				// Restore after test
+				console.error.mockRestore()
 			})
 		})
 	})

@@ -11,30 +11,43 @@ import {
    Mocks — set up before importing the modules under test
 ───────────────────────────────────────────────────────────────────────────── */
 
-// 1. Corrected path to the CSS file based on your tree
-jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}))
+// 1. Mock CSS
+jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}));
 
-// 2. Define the mock user using a standard function, NOT jest.fn()
-jest.mock('firebase/auth', () => {
-	return {
-		__esModule: true,
-		getAuth: () => ({
-			currentUser: {
-				uid: 'worker_001',
-				displayName: 'Thendo Mukhuba',
-				email: 'thendo@capetown.gov.za',
-			},
-		}),
-	}
-})
+// 2. Mock Firebase Auth
+jest.mock('firebase/auth', () => ({
+    getAuth: jest.fn(),
+    onAuthStateChanged: jest.fn((auth, callback) => {
+        // Simulate an authenticated user immediately
+        callback({ uid: 'worker_001' });
+        return jest.fn(); // Unsubscribe function
+    }),
+}));
 
-// 3. Corrected path to the client-side service based on your tree
-jest.mock('../backend/worker_dashboard_service.js', () => ({
-	fetch_worker_dashboard_data: jest.fn(),
-	compute_worker_stats: jest.requireActual(
-		'../backend/worker_dashboard_service.js'
-	).compute_worker_stats,
-}))
+// 3. Mock Firebase Config & Firestore
+jest.mock('../../firebase_config.js', () => ({
+    auth: {},
+    db: {},
+}));
+
+jest.mock('firebase/firestore', () => ({
+    getDoc: jest.fn(),
+    getDocs: jest.fn(),
+    doc: jest.fn(),
+    collection: jest.fn(),
+    query: jest.fn(),
+    where: jest.fn(),
+}));
+
+// 4. Import the mocked functions so we can control their returns in tests
+import { getDoc, getDocs } from 'firebase/firestore';
+
+// 5. Mock react-router-dom (Already done)
+jest.mock('react-router-dom', () => ({
+    Link: ({ children, to }) => <a href={to}>{children}</a>,
+    useLocation: () => ({ pathname: '/worker-dashboard' }),
+    useNavigate: () => jest.fn(),
+}));
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Import modules under test (after mocks are in place)
