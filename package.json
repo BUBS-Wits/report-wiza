@@ -37,6 +37,11 @@
 		"supertest": "^7.2.2",
 		"web-vitals": "^2.1.4"
 	},
+	"jest": {
+    "moduleNameMapper": {
+        "^react-router-dom$": "<rootDir>/src/__mocks__/react-router-dom.js"
+    	}
+	},
 	"name": "report-wiza",
 	"private": true,
 	"proxy": "http://localhost:3000",
@@ -52,6 +57,5 @@
 		"test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests",
 		"test:coverage:watch": "react-scripts test --coverage --passWithNoTests"
 	},
-	"type": "module",
 	"version": "0.1.0"
 }

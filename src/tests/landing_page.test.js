@@ -268,7 +268,9 @@ describe('LandingPage', () => {
 
 			it('Then it should render the "Submit a Request" heading', () => {
 				renderLandingPage()
-				const heading = screen.getByRole('heading', { name: /Submit a Request/i })
+				const heading = screen.getByRole('heading', {
+					name: /Submit a Request/i,
+				})
 				expect(heading).toBeInTheDocument()
 			})
 

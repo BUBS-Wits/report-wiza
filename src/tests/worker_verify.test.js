@@ -15,12 +15,16 @@ jest.mock('../backend/admin_firebase.js', () => ({
 	confirm_worker_role: jest.fn(),
 }))
 
-jest.mock('react-router-dom', () => ({
-    Link:         ({ children, to }) => <a href={to}>{children}</a>,
-    useLocation:  () => ({ pathname: '/worker-dashboard' }),
-    useNavigate:  () => jest.fn(),
-    BrowserRouter: ({ children }) => <div>{children}</div>,
-}), { virtual: true })
+jest.mock(
+	'react-router-dom',
+	() => ({
+		Link: ({ children, to }) => <a href={to}>{children}</a>,
+		useLocation: () => ({ pathname: '/worker-dashboard' }),
+		useNavigate: () => jest.fn(),
+		BrowserRouter: ({ children }) => <div>{children}</div>,
+	}),
+	{ virtual: true }
+)
 
 const mock_navigate = jest.fn()
 jest.mock(

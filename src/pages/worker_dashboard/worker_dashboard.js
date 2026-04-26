@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
-import {
-	doc,
-	getDoc,
-	getDocs,
-	collection,
-	query,
-	where,
-} from 'firebase/firestore'
-import { auth, db } from '../../firebase_config.js'
+import { auth } from '../../firebase_config.js'
+import { fetch_worker_dashboard_data } from '../../backend/worker_dashboard_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import './worker_dashboard.css'
 
@@ -21,135 +14,6 @@ const STATUS_BADGE_CLASS = {
 	Acknowledged: 'wd-badge--acknowledged',
 	Resolved: 'wd-badge--resolved',
 	Closed: 'wd-badge--closed',
-}
-
-// Firestore stores statuses in uppercase — normalise to display form
-const NORMALISE_STATUS = {
-	OPEN: 'Pending',
-	PENDING: 'Pending',
-	ACKNOWLEDGED: 'Acknowledged',
-	IN_PROGRESS: 'Acknowledged',
-	RESOLVED: 'Resolved',
-	CLOSED: 'Closed',
-}
-
-/* ── Data helpers ────────────────────────────────────────────────────────── */
-
-/**
- * Fetch the authenticated worker's profile from the `users` collection.
- */
-const fetch_worker_profile = async (uid) => {
-	const snap = await getDoc(doc(db, 'users', uid))
-	if (!snap.exists()) {
-		throw new Error('Worker profile not found.')
-	}
-	return { uid, ...snap.data() }
-}
-
-/**
- * Fetch all request IDs assigned to this worker via the `assignments`
- * collection, then batch-fetch the corresponding `service_requests` docs.
- *
- * Firestore `in` queries are capped at 30 items, so we chunk the IDs.
- */
-const fetch_assigned_requests = async (worker_uid) => {
-	// Step 1: get all assignment docs for this worker
-	const assignment_snap = await getDocs(
-		query(
-			collection(db, 'assignments'),
-			where('worker_uid', '==', worker_uid)
-		)
-	)
-
-	if (assignment_snap.empty) {
-		return []
-	}
-
-	const request_ids = assignment_snap.docs.map((d) => d.data().request_uid)
-
-	// Step 2: chunk into groups of 30 (Firestore `in` limit)
-	const chunks = []
-	for (let i = 0; i < request_ids.length; i += 30) {
-		chunks.push(request_ids.slice(i, i + 30))
-	}
-
-	// Step 3: fetch each chunk in parallel
-	const chunk_results = await Promise.all(
-		chunks.map((chunk) =>
-			getDocs(
-				query(
-					collection(db, 'service_requests'),
-					where('__name__', 'in', chunk)
-				)
-			)
-		)
-	)
-
-	// Step 4: flatten and normalise
-	const requests = []
-	chunk_results.forEach((snap) => {
-		snap.docs.forEach((d) => {
-			const data = d.data()
-			const raw_status = (data.status ?? '').toUpperCase()
-			const display_status = NORMALISE_STATUS[raw_status] ?? 'Pending'
-
-			requests.push({
-				id: d.id,
-				category: data.category ?? '—',
-				description: data.description ?? '—',
-				status: display_status,
-				ward:
-					data.location?.ward_name ??
-					(data.sa_ward ? `Ward ${data.sa_ward}` : '—'),
-				updatedAt: data.updated_at ?? null,
-				createdAt: data.created_at ?? null,
-			})
-		})
-	})
-
-	// Sort newest first
-	requests.sort((a, b) => {
-		const ts = (t) => (t?.toMillis ? t.toMillis() : 0)
-		return ts(b.updatedAt) - ts(a.updatedAt)
-	})
-
-	return requests
-}
-
-/**
- * Compute avg resolution time in days across all resolved requests
- * that have both created_at and updated_at timestamps.
- */
-const calc_avg_resolution_days = (requests) => {
-	const resolved = requests.filter(
-		(r) => r.status === 'Resolved' && r.createdAt && r.updatedAt
-	)
-	if (!resolved.length) {
-		return null
-	}
-
-	const total_ms = resolved.reduce((sum, r) => {
-		const ms = r.updatedAt.toMillis() - r.createdAt.toMillis()
-		return sum + Math.max(0, ms)
-	}, 0)
-
-	const avg_days = total_ms / resolved.length / (1000 * 60 * 60 * 24)
-	return Math.round(avg_days * 10) / 10 // 1 decimal place
-}
-
-/**
- * Derive the stats object from live requests.
- */
-const derive_stats = (requests) => {
-	const by_status = (s) => requests.filter((r) => r.status === s).length
-
-	return {
-		total: requests.length,
-		resolved: by_status('Resolved'),
-		pending: by_status('Pending'),
-		acknowledged: by_status('Acknowledged'),
-		avg_resolution_days: calc_avg_resolution_days(requests),
-	}
 }
 
 /* ── Main component ──────────────────────────────────────────────────────── */
@@ -168,16 +32,12 @@ export default function WorkerDashboard() {
 		set_loading(true)
 		set_error(null)
 		try {
-			const [profile, assigned] = await Promise.all([
-				fetch_worker_profile(uid),
-				fetch_assigned_requests(uid),
-			])
-
-			set_worker(profile)
-			set_requests(assigned)
-			set_stats(derive_stats(assigned))
+			const { worker, requests, stats } =
+				await fetch_worker_dashboard_data(uid)
+			set_worker(worker)
+			set_requests(requests)
+			set_stats(stats)
 		} catch (err) {
-			console.error('[WorkerDashboard] load error:', err)
 			set_error(err.message || 'Failed to load dashboard.')
 		} finally {
 			set_loading(false)
@@ -200,9 +60,8 @@ export default function WorkerDashboard() {
 
 	/* ── Loading / error guards ───────────────────────────────────────── */
 
-	if (loading) {
-		return <LoadingScreen />
-	}
+	if (loading) return <LoadingScreen />
+
 	if (error) {
 		return (
 			<ErrorScreen
@@ -211,9 +70,8 @@ export default function WorkerDashboard() {
 			/>
 		)
 	}
-	if (!worker || !stats) {
-		return null
-	}
+
+	if (!worker || !stats) return null
 
 	/* ── Derived display values ───────────────────────────────────────── */
 
@@ -233,7 +91,7 @@ export default function WorkerDashboard() {
 			: '—'
 
 	const avg_display =
-		stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
+		stats.avg_resolution_days != null ? stats.avg_resolution_days : '—'
 
 	/* ── Render ───────────────────────────────────────────────────────── */
 
@@ -242,10 +100,10 @@ export default function WorkerDashboard() {
 			<Worker_nav_bar
 				user={{
 					uid: worker.uid,
-					name: worker.display_name,
+					name: worker.name,
 					email: worker.email,
 					role: worker.role,
-					initials: get_initials(worker.display_name),
+					initials: get_initials(worker.name),
 				}}
 			/>
 
@@ -369,7 +227,7 @@ function RequestRow({ req }) {
 
 	return (
 		<div className="wd-req-row">
-			<span className="wd-req-id">{req.id.slice(-8).toUpperCase()}</span>
+			<span className="wd-req-id">{req.id}</span>
 			<span className="wd-req-cat">{req.category}</span>
 			<span className="wd-req-desc">{req.description}</span>
 			<span
