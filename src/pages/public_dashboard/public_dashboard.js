@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import RequestCard from '../../components/request_card/request_card.js' // your corrected path
+import RequestCard from '../../components/request_card/request_card.js'
+import { fetchPublicDashboardData } from '../../backend/public_dashboard_service.js'
 import './public_dashboard.css'
 import * as esri from 'esri-leaflet'
 
@@ -107,9 +108,7 @@ function WardBoundaries() {
 function FitMapToRequests({ requests }) {
 	const map = useMap()
 	useEffect(() => {
-		if (!requests.length) {
-			return
-		}
+		if (!requests.length) return
 		const bounds = L.latLngBounds(
 			requests.map((r) => [r.latitude, r.longitude])
 		)
@@ -119,111 +118,68 @@ function FitMapToRequests({ requests }) {
 }
 
 function getStatusIcon(status) {
-	const s = status.toLowerCase()
-	if (s === 'open') {
-		return openIcon
+	switch (status) {
+		case 'SUBMITTED':
+		case 'UNASSIGNED':
+			return openIcon
+		case 'ASSIGNED':
+		case 'IN_PROGRESS':
+			return inProgressIcon
+		case 'RESOLVED':
+			return resolvedIcon
+		default:
+			return inProgressIcon
 	}
-	if (s === 'in progress') {
-		return inProgressIcon
-	}
-	if (s === 'resolved') {
-		return resolvedIcon
-	}
-	return inProgressIcon
 }
 
 function PublicDashboard() {
-	const openRequests = [
-		{
-			id: 1,
-			category: 'Potholes',
-			status: 'In Progress',
-			ward: 'Ward 60',
-			municipality: 'City of Johannesburg',
-			description:
-				'Large pothole causing traffic delays near the intersection.',
-			latitude: -26.2044,
-			longitude: 28.0456,
-			like_count: 0, // added from your branch
-		},
-		{
-			id: 2,
-			category: 'Water',
-			status: 'Open',
-			ward: 'Ward 60',
-			municipality: 'City of Johannesburg',
-			description: 'Burst pipe reported outside a residential area.',
-			latitude: -26.1958,
-			longitude: 28.0342,
-			like_count: 0,
-		},
-		{
-			id: 3,
-			category: 'Electricity',
-			status: 'Open',
-			ward: 'Ward 63',
-			municipality: 'City of Johannesburg',
-			description:
-				'Power outage affecting multiple streets since early morning.',
-			latitude: -26.1912,
-			longitude: 28.0551,
-			like_count: 0,
-		},
-		{
-			id: 4,
-			category: 'Waste',
-			status: 'In Progress',
-			ward: 'Ward 61',
-			municipality: 'City of Johannesburg',
-			description:
-				'Overflowing refuse site reported near a school entrance.',
-			latitude: -26.2089,
-			longitude: 28.0614,
-			like_count: 0,
-		},
-	]
+	const [active, setActive] = useState([])
+	const [resolved, setResolved] = useState([])
+	const [stats, setStats] = useState({
+		open_count: 0,
+		resolved_count: 0,
+		wards_affected: 0,
+	})
+	const [loading, setLoading] = useState(true)
+	const [error, setError] = useState(null)
 
-	const resolvedRequests = [
-		{
-			id: 5,
-			category: 'Waste',
-			status: 'Resolved',
-			ward: 'Ward 60',
-			municipality: 'City of Johannesburg',
-			description: 'Illegal dumping site cleared by the municipal team.',
-			latitude: -26.2015,
-			longitude: 28.0281,
-			like_count: 0,
-		},
-		{
-			id: 6,
-			category: 'Electricity',
-			status: 'Resolved',
-			ward: 'Ward 124',
-			municipality: 'City of Johannesburg',
-			description: 'Streetlight outage fixed in the area.',
-			latitude: -26.2132,
-			longitude: 28.0397,
-			like_count: 0,
-		},
-		{
-			id: 7,
-			category: 'Water',
-			status: 'Resolved',
-			ward: 'Ward 63',
-			municipality: 'City of Johannesburg',
-			description: 'Water leak repaired outside a community clinic.',
-			latitude: -26.1874,
-			longitude: 28.0488,
-			like_count: 0,
-		},
-	]
+	useEffect(() => {
+		fetchPublicDashboardData()
+			.then(({ active, resolved, stats }) => {
+				setActive(active)
+				setResolved(resolved)
+				setStats(stats)
+			})
+			.catch((err) => {
+				console.error('Failed to load dashboard data:', err)
+				setError(
+					'Failed to load service requests. Please try again later.'
+				)
+			})
+			.finally(() => setLoading(false))
+	}, [])
 
-	const wardsAffected = new Set(
-		[...openRequests, ...resolvedRequests].map((r) => r.ward)
-	).size
+	const allRequests = [...active, ...resolved]
 
-	const allRequests = [...openRequests, ...resolvedRequests]
+	if (loading) {
+		return (
+			<div className="public_dashboard">
+				<div className="dashboard_loading">
+					<p>Loading service requests…</p>
+				</div>
+			</div>
+		)
+	}
+
+	if (error) {
+		return (
+			<div className="public_dashboard">
+				<div className="dashboard_error">
+					<p>{error}</p>
+				</div>
+			</div>
+		)
+	}
 
 	return (
 		<div className="public_dashboard">
@@ -243,17 +199,19 @@ function PublicDashboard() {
 			<section className="summary_grid">
 				<div className="summary_card">
 					<span className="summary_label">Open Requests</span>
-					<span className="summary_value">{openRequests.length}</span>
+					<span className="summary_value">{stats.open_count}</span>
 				</div>
 				<div className="summary_card">
 					<span className="summary_label">Recently Resolved</span>
 					<span className="summary_value">
-						{resolvedRequests.length}
+						{stats.resolved_count}
 					</span>
 				</div>
 				<div className="summary_card">
 					<span className="summary_label">Wards Affected</span>
-					<span className="summary_value">{wardsAffected}</span>
+					<span className="summary_value">
+						{stats.wards_affected}
+					</span>
 				</div>
 			</section>
 
@@ -322,9 +280,15 @@ function PublicDashboard() {
 					</span>
 				</div>
 				<div className="request_list">
-					{openRequests.map((request) => (
-						<RequestCard key={request.id} request={request} />
-					))}
+					{active.length > 0 ? (
+						active.map((request) => (
+							<RequestCard key={request.id} request={request} />
+						))
+					) : (
+						<p className="empty_state">
+							No active requests at this time.
+						</p>
+					)}
 				</div>
 			</section>
 
@@ -336,9 +300,15 @@ function PublicDashboard() {
 					</span>
 				</div>
 				<div className="request_list">
-					{resolvedRequests.map((request) => (
-						<RequestCard key={request.id} request={request} />
-					))}
+					{resolved.length > 0 ? (
+						resolved.map((request) => (
+							<RequestCard key={request.id} request={request} />
+						))
+					) : (
+						<p className="empty_state">
+							No resolved requests to show.
+						</p>
+					)}
 				</div>
 			</section>
 		</div>

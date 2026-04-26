@@ -3,20 +3,20 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Barlow+Condensed:wght@700&display=swap');
 
 :root {
-	--nav-height       : 56px;
-	--nav-bg           : #ffffff;
-	--nav-border       : #e8e5e0;
-	--nav-amber        : #f59e0b;
-	--nav-amber-dim    : rgba(245, 158, 11, 0.10);
-	--nav-amber-text   : #b45309;
-	--nav-text-primary : #111111;
-	--nav-text-muted   : #94a3b8;
-	--nav-red-dim      : rgba(220, 38, 38, 0.08);
-	--nav-red-border   : rgba(220, 38, 38, 0.25);
-	--nav-red-text     : #b91c1c;
-	--nav-hover        : #fafaf9;
-	--nav-radius       : 6px;
-	--nav-ease         : 0.14s ease;
+	--nav-height: 56px;
+	--nav-bg: #ffffff;
+	--nav-border: #e8e5e0;
+	--nav-amber: #f59e0b;
+	--nav-amber-dim: rgba(245, 158, 11, 0.1);
+	--nav-amber-text: #b45309;
+	--nav-text-primary: #111111;
+	--nav-text-muted: #94a3b8;
+	--nav-red-dim: rgba(220, 38, 38, 0.08);
+	--nav-red-border: rgba(220, 38, 38, 0.25);
+	--nav-red-text: #b91c1c;
+	--nav-hover: #fafaf9;
+	--nav-radius: 6px;
+	--nav-ease: 0.14s ease;
 }
 
 /* ── Shell ───────────────────────────────────────────────────────────────── */
@@ -31,7 +31,10 @@
 	position: sticky;
 	top: 0;
 	z-index: 100;
-	font-family: 'DM Sans', -apple-system, sans-serif;
+	font-family:
+		'DM Sans',
+		-apple-system,
+		sans-serif;
 	transition: box-shadow var(--nav-ease);
 }
 
@@ -120,7 +123,9 @@
 	color: #64748b;
 	text-decoration: none;
 	white-space: nowrap;
-	transition: background var(--nav-ease), color var(--nav-ease);
+	transition:
+		background var(--nav-ease),
+		color var(--nav-ease);
 }
 
 .wd_nav_link:hover {
@@ -195,7 +200,9 @@
 	cursor: pointer;
 	text-decoration: none;
 	position: relative;
-	transition: background var(--nav-ease), border-color var(--nav-ease);
+	transition:
+		background var(--nav-ease),
+		border-color var(--nav-ease);
 }
 
 .wd_icon_btn:hover {
@@ -235,7 +242,9 @@
 	background: transparent;
 	cursor: pointer;
 	font-family: 'DM Sans', sans-serif;
-	transition: background var(--nav-ease), border-color var(--nav-ease);
+	transition:
+		background var(--nav-ease),
+		border-color var(--nav-ease);
 }
 
 .wd_user_chip:hover {
@@ -297,7 +306,10 @@
 	letter-spacing: 0.03em;
 	text-transform: uppercase;
 	cursor: pointer;
-	transition: background var(--nav-ease), border-color var(--nav-ease), transform var(--nav-ease);
+	transition:
+		background var(--nav-ease),
+		border-color var(--nav-ease),
+		transform var(--nav-ease);
 }
 
 .wd_logout_btn:hover {
