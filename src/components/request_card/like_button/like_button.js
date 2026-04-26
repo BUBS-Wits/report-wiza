@@ -42,8 +42,12 @@ const LikeButton = ({ requestId, initialLikeCount }) => {
 	}, [currentUser, safeRequestId])
 
 	const handleLike = async () => {
-		if (!currentUser) {return}
-		if (loading) {return}
+		if (!currentUser) {
+			return
+		}
+		if (loading) {
+			return
+		}
 		setLoading(true)
 		try {
 			const safeUid = String(currentUser.uid)

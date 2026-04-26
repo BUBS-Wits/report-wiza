@@ -11,12 +11,16 @@ import { collection, getDocs } from 'firebase/firestore'
 
 // --- Helper to parse SRID=4326;POINT(lon lat) ---
 function parseWktPoint(locationStr) {
-	if (!locationStr) {return null}
+	if (!locationStr) {
+		return null
+	}
 	const match = locationStr.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/i)
 	if (match) {
 		const lon = parseFloat(match[1])
 		const lat = parseFloat(match[2])
-		if (!isNaN(lat) && !isNaN(lon)) {return { lat, lon }}
+		if (!isNaN(lat) && !isNaN(lon)) {
+			return { lat, lon }
+		}
 	}
 	return null
 }
@@ -121,16 +125,24 @@ function WardBoundaries() {
 function FitMapToRequests({ requests }) {
 	const map = useMap()
 	useEffect(() => {
-		if (!requests.length) {return}
+		if (!requests.length) {
+			return
+		}
 		const validRequests = requests.filter((r) => {
-			if (r.latitude && r.longitude) {return true}
+			if (r.latitude && r.longitude) {
+				return true
+			}
 			const coords = parseWktPoint(r.location)
 			return coords !== null
 		})
-		if (validRequests.length === 0) {return}
+		if (validRequests.length === 0) {
+			return
+		}
 		const bounds = L.latLngBounds(
 			validRequests.map((r) => {
-				if (r.latitude && r.longitude) {return [r.latitude, r.longitude]}
+				if (r.latitude && r.longitude) {
+					return [r.latitude, r.longitude]
+				}
 				const coords = parseWktPoint(r.location)
 				return [coords.lat, coords.lon]
 			})
@@ -142,9 +154,15 @@ function FitMapToRequests({ requests }) {
 
 function getStatusIcon(status) {
 	const s = status?.toLowerCase()
-	if (s === 'open') {return openIcon}
-	if (s === 'in progress') {return inProgressIcon}
-	if (s === 'resolved') {return resolvedIcon}
+	if (s === 'open') {
+		return openIcon
+	}
+	if (s === 'in progress') {
+		return inProgressIcon
+	}
+	if (s === 'resolved') {
+		return resolvedIcon
+	}
 	return inProgressIcon
 }
 
@@ -187,11 +205,14 @@ function PublicDashboard() {
 		allRequests.map((req) => req.ward).filter(Boolean)
 	).size
 
-	if (loading)
-		{return (
+	if (loading) {
+		return (
 			<div className="public_dashboard_loading">Loading dashboard...</div>
-		)}
-	if (error) {return <div className="public_dashboard_error">{error}</div>}
+		)
+	}
+	if (error) {
+		return <div className="public_dashboard_error">{error}</div>
+	}
 
 	return (
 		<div className="public_dashboard">
@@ -255,8 +276,9 @@ function PublicDashboard() {
 									lon = coords.lon
 								}
 							}
-							if (lat === undefined || lon === undefined)
-								{return null}
+							if (lat === undefined || lon === undefined) {
+								return null
+							}
 							return (
 								<Marker
 									key={request.id}
