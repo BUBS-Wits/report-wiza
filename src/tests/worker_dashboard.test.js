@@ -8,44 +8,93 @@ import {
 } from '@testing-library/react'
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Mocks — set up before importing the modules under test
+   Mocks — all jest.mock() calls are hoisted by Babel, so order here is
+   cosmetic only. Keep them grouped by concern for readability.
 ───────────────────────────────────────────────────────────────────────────── */
 
-// 1. Corrected path to the CSS file based on your tree
+// ── CSS ──────────────────────────────────────────────────────────────────────
 jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}))
 
-// 2. Define the mock user using a standard function, NOT jest.fn()
-jest.mock('firebase/auth', () => {
+// ── Worker nav bar ────────────────────────────────────────────────────────────
+// Render name & email so the component tests that assert on those values pass.
+jest.mock(
+	'../components/worker_nav_bar/worker_nav_bar.js',
+	() =>
+		function MockWorkerNavBar({ user }) {
+			return (
+				<nav data-testid="worker-nav-bar">
+					<span>{user?.name}</span>
+					<span>{user?.email}</span>
+				</nav>
+			)
+		}
+)
+
+// ── Firebase auth ─────────────────────────────────────────────────────────────
+jest.mock('firebase/auth', () => ({
+	getAuth: jest.fn(),
+	onAuthStateChanged: jest.fn((auth, callback) => {
+		callback({ uid: 'worker_001' })
+		return jest.fn() // unsubscribe
+	}),
+}))
+
+// ── Firebase config ───────────────────────────────────────────────────────────
+jest.mock('../firebase_config.js', () => ({
+	auth: {},
+	db: {},
+}))
+
+// ── Service layer ─────────────────────────────────────────────────────────────
+// fetch_worker_dashboard_data → controlled jest.fn() for component tests.
+// compute_worker_stats        → real pure implementation, inlined so tests
+//                               run without touching Firebase at all.
+jest.mock('../backend/worker_dashboard_service.js', () => {
+	const compute_worker_stats = (requests) => {
+		const by_status = (status) =>
+			requests.filter((r) => r.status === status)
+
+		const resolved = by_status('Resolved')
+		let avg_resolution_days = 0
+
+		if (resolved.length > 0) {
+			const total_ms = resolved.reduce((sum, r) => {
+				const assigned = r.assignedAt?.toMillis?.() ?? 0
+				const resolved_at =
+					r.resolvedAt?.toMillis?.() ?? r.updatedAt?.toMillis?.() ?? 0
+				return sum + Math.max(0, resolved_at - assigned)
+			}, 0)
+
+			avg_resolution_days = parseFloat(
+				(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
+			)
+		}
+
+		return {
+			total: requests.length,
+			resolved: resolved.length,
+			pending: by_status('Pending').length,
+			acknowledged: by_status('Acknowledged').length,
+			closed: by_status('Closed').length,
+			avg_resolution_days,
+		}
+	}
+
 	return {
-		__esModule: true,
-		getAuth: () => ({
-			currentUser: {
-				uid: 'worker_001',
-				displayName: 'Thendo Mukhuba',
-				email: 'thendo@capetown.gov.za',
-			},
-		}),
+		fetch_worker_dashboard_data: jest.fn(),
+		compute_worker_stats,
 	}
 })
 
-// 3. Corrected path to the client-side service based on your tree
-jest.mock('../backend/worker_dashboard_service.js', () => ({
-	fetch_worker_dashboard_data: jest.fn(),
-	compute_worker_stats: jest.requireActual(
-		'../backend/worker_dashboard_service.js'
-	).compute_worker_stats,
-}))
-
 /* ─────────────────────────────────────────────────────────────────────────────
-   Import modules under test (after mocks are in place)
+   Imports — after mocks are declared (hoisting means mocks always win)
 ───────────────────────────────────────────────────────────────────────────── */
 
-// 4. Corrected paths to your component and service
-import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard'
+import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard.js'
 import {
 	fetch_worker_dashboard_data,
 	compute_worker_stats,
-} from '../backend/worker_dashboard_service'
+} from '../backend/worker_dashboard_service.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared fixtures
@@ -178,6 +227,14 @@ describe('compute_worker_stats', () => {
 ───────────────────────────────────────────────────────────────────────────── */
 
 describe('WorkerDashboard component', () => {
+	beforeEach(() => {
+		const { onAuthStateChanged } = require('firebase/auth')
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'worker_001' })
+			return jest.fn()
+		})
+	})
+
 	afterEach(() => {
 		jest.clearAllMocks()
 	})
@@ -194,7 +251,7 @@ describe('WorkerDashboard component', () => {
 		expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
 	})
 
-	test('US-003 — renders worker name in header after data loads', async () => {
+	test('US-003 — renders worker name after data loads', async () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() =>
@@ -202,7 +259,7 @@ describe('WorkerDashboard component', () => {
 		)
 	})
 
-	test('US-003 — renders worker email in header after data loads', async () => {
+	test('US-003 — renders worker email after data loads', async () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() =>
@@ -249,7 +306,6 @@ describe('WorkerDashboard component', () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() => {
-			// Isolate the specific stat card so we don't accidentally match filter counts
 			const card = screen
 				.getByText('Total assigned')
 				.closest('.wd-stat-card')
@@ -261,13 +317,10 @@ describe('WorkerDashboard component', () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() => {
-			// "Resolved" appears multiple times (stat label, filter button, request badge)
-			// Safely get all of them, then find the specific one that is the stat card label
 			const resolvedElements = screen.getAllByText('Resolved')
 			const statLabel = resolvedElements.find((el) =>
 				el.classList.contains('wd-stat-label')
 			)
-
 			const card = statLabel.closest('.wd-stat-card')
 			expect(within(card).getByText(/1/)).toBeInTheDocument()
 		})
@@ -312,7 +365,6 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Assigned request queue'))
 		;['All', 'Pending', 'Acknowledged', 'Resolved', 'Closed'].forEach((s) =>
-			// Target buttons specifically to avoid matching subtext like "All time"
 			expect(
 				screen.getByRole('button', { name: new RegExp(s) })
 			).toBeInTheDocument()
@@ -353,14 +405,11 @@ describe('WorkerDashboard component', () => {
 	})
 
 	test('US-022 — shows empty state message when a filter has no results', async () => {
-		const responseWithNoAcknowledged = {
+		fetch_worker_dashboard_data.mockResolvedValueOnce({
 			...MOCK_SERVICE_RESPONSE,
 			requests: MOCK_REQUESTS.filter((r) => r.status !== 'Acknowledged'),
 			stats: { ...MOCK_STATS, acknowledged: 0 },
-		}
-		fetch_worker_dashboard_data.mockResolvedValueOnce(
-			responseWithNoAcknowledged
-		)
+		})
 
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Assigned request queue'))
@@ -376,7 +425,6 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Potholes'))
 
-		// Isolate the exact row to verify its specific data
 		const row = screen.getByText('REQ-001').closest('.wd-req-row')
 		expect(within(row).getByText(/Ward 12/)).toBeInTheDocument()
 		expect(within(row).getByText('Pending')).toBeInTheDocument()
