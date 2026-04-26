@@ -24,7 +24,7 @@ const RESOLVED_LIMIT = 20
  */
 const normalise_request = (id, data) => {
 	const coords = parseLocation(data.location)
-	if (!coords) return null // skip requests with no valid location
+	if (!coords) {return null} // skip requests with no valid location
 
 	return {
 		id, // string — Firestore doc ID
@@ -69,12 +69,12 @@ export const fetchPublicDashboardData = async () => {
 
 	snapshot.forEach((doc_snap) => {
 		const normalised = normalise_request(doc_snap.id, doc_snap.data())
-		if (!normalised) return
+		if (!normalised) {return}
 
 		wards_seen.add(String(normalised.sa_ward))
 
 		if (normalised.status === 'RESOLVED') {
-			if (resolved.length < RESOLVED_LIMIT) resolved.push(normalised)
+			if (resolved.length < RESOLVED_LIMIT) {resolved.push(normalised)}
 		} else if (ACTIVE_STATUSES.has(normalised.status)) {
 			active.push(normalised)
 		}

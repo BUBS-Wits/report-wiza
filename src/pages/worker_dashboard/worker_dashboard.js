@@ -40,7 +40,7 @@ const NORMALISE_STATUS = {
  */
 const fetch_worker_profile = async (uid) => {
 	const snap = await getDoc(doc(db, 'users', uid))
-	if (!snap.exists()) throw new Error('Worker profile not found.')
+	if (!snap.exists()) {throw new Error('Worker profile not found.')}
 	return { uid, ...snap.data() }
 }
 
@@ -59,7 +59,7 @@ const fetch_assigned_requests = async (worker_uid) => {
 		)
 	)
 
-	if (assignment_snap.empty) return []
+	if (assignment_snap.empty) {return []}
 
 	const request_ids = assignment_snap.docs.map((d) => d.data().request_uid)
 
@@ -120,7 +120,7 @@ const calc_avg_resolution_days = (requests) => {
 	const resolved = requests.filter(
 		(r) => r.status === 'Resolved' && r.createdAt && r.updatedAt
 	)
-	if (!resolved.length) return null
+	if (!resolved.length) {return null}
 
 	const total_ms = resolved.reduce((sum, r) => {
 		const ms = r.updatedAt.toMillis() - r.createdAt.toMillis()
@@ -194,15 +194,15 @@ export default function WorkerDashboard() {
 
 	/* ── Loading / error guards ───────────────────────────────────────── */
 
-	if (loading) return <LoadingScreen />
+	if (loading) {return <LoadingScreen />}
 	if (error)
-		return (
+		{return (
 			<ErrorScreen
 				message={error}
 				onRetry={() => load_dashboard(auth.currentUser?.uid)}
 			/>
-		)
-	if (!worker || !stats) return null
+		)}
+	if (!worker || !stats) {return null}
 
 	/* ── Derived display values ───────────────────────────────────────── */
 

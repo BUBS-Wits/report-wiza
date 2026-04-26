@@ -71,14 +71,14 @@ const TYPE_CONFIG = {
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
 function timeAgo(timestamp) {
-	if (!timestamp) return ''
+	if (!timestamp) {return ''}
 	const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp)
 	const diff = Math.floor((Date.now() - date) / 1000)
 
-	if (diff < 60) return 'just now'
-	if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-	if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-	if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`
+	if (diff < 60) {return 'just now'}
+	if (diff < 3600) {return `${Math.floor(diff / 60)}m ago`}
+	if (diff < 86400) {return `${Math.floor(diff / 3600)}h ago`}
+	if (diff < 604800) {return `${Math.floor(diff / 86400)}d ago`}
 	return date.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
 }
 
@@ -93,17 +93,17 @@ function groupByDate(notifications) {
 		yesterday.setDate(today.getDate() - 1)
 
 		let label
-		if (date.toDateString() === today.toDateString()) label = 'Today'
+		if (date.toDateString() === today.toDateString()) {label = 'Today'}
 		else if (date.toDateString() === yesterday.toDateString())
-			label = 'Yesterday'
+			{label = 'Yesterday'}
 		else
-			label = date.toLocaleDateString('en-ZA', {
+			{label = date.toLocaleDateString('en-ZA', {
 				weekday: 'long',
 				day: 'numeric',
 				month: 'short',
-			})
+			})}
 
-		if (!groups[label]) groups[label] = []
+		if (!groups[label]) {groups[label] = []}
 		groups[label].push(n)
 	})
 	return groups
@@ -129,7 +129,7 @@ export default function NotificationBell({ userUid, role, onOpen }) {
 	/* ── Realtime listener ──────────────────────────────────────────────── */
 
 	useEffect(() => {
-		if (!userUid) return
+		if (!userUid) {return}
 
 		const q = query(
 			collection(db, 'notifications'),
@@ -148,7 +148,7 @@ export default function NotificationBell({ userUid, role, onOpen }) {
 	/* ── Click-outside to close ─────────────────────────────────────────── */
 
 	useEffect(() => {
-		if (!open) return
+		if (!open) {return}
 		function handleClick(e) {
 			if (
 				panelRef.current &&
@@ -167,19 +167,19 @@ export default function NotificationBell({ userUid, role, onOpen }) {
 
 	const handleBellClick = useCallback(() => {
 		setOpen((prev) => {
-			if (!prev && onOpen) onOpen()
+			if (!prev && onOpen) {onOpen()}
 			return !prev
 		})
 	}, [onOpen])
 
 	const markOneRead = useCallback(async (notif) => {
-		if (notif.read) return
+		if (notif.read) {return}
 		await updateDoc(doc(db, 'notifications', notif.id), { read: true })
 	}, [])
 
 	const markAllRead = useCallback(async () => {
 		const unread = notifications.filter((n) => !n.read)
-		if (!unread.length) return
+		if (!unread.length) {return}
 		setMarkingAll(true)
 		try {
 			const batch = writeBatch(db)

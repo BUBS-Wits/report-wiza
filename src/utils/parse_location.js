@@ -6,9 +6,9 @@
  * Returns null if the string is missing or malformed.
  */
 export const parseLocation = (locationStr) => {
-	if (!locationStr || typeof locationStr !== 'string') return null
+	if (!locationStr || typeof locationStr !== 'string') {return null}
 	const match = locationStr.match(/POINT\(([^ ]+) ([^ )]+)\)/)
-	if (!match) return null
+	if (!match) {return null}
 	return {
 		longitude: parseFloat(match[1]),
 		latitude: parseFloat(match[2]),
