@@ -12,11 +12,13 @@ import * as esri from 'esri-leaflet'
 let safeEsri = esri
 if (process.env.NODE_ENV === 'test') {
 	const dummyLayer = {
-		bindPopup: () => this,
-		on: () => this,
-		addTo: () => this,
 		resetStyle: () => {},
 	}
+	// Return dummyLayer to allow method chaining safely
+	dummyLayer.bindPopup = () => dummyLayer
+	dummyLayer.on = () => dummyLayer
+	dummyLayer.addTo = () => dummyLayer
+
 	safeEsri = {
 		featureLayer: () => dummyLayer,
 	}

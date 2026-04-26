@@ -122,7 +122,7 @@ function Worker_nav_bar({
 				{NAV_ITEMS.map((item) => {
 					const is_active =
 						location.pathname === item.to ||
-						(item.to !== '/dashboard' &&
+						(item.to !== '/worker-dashboard' && // <--- FIX: changed from '/dashboard'
 							location.pathname.startsWith(item.to))
 
 					return (
