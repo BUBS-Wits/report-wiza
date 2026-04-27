@@ -7,8 +7,26 @@ import RequestCard from '../../components/request_card/request_card.js'
 import { fetchPublicDashboardData } from '../../backend/public_dashboard_service.js'
 import './public_dashboard.css'
 import * as esri from 'esri-leaflet'
+import { db } from '../../firebase_config.js'
+import { collection, getDocs } from 'firebase/firestore'
 
-// --- SAFEGUARD FOR JEST TESTING ---
+// --- Helper to parse SRID=4326;POINT(lon lat) ---
+function parseWktPoint(locationStr) {
+	if (!locationStr) {
+		return null
+	}
+	const match = locationStr.match(/POINT\(([-\d.]+)\s+([-\d.]+)\)/i)
+	if (match) {
+		const lon = parseFloat(match[1])
+		const lat = parseFloat(match[2])
+		if (!isNaN(lat) && !isNaN(lon)) {
+			return { lat, lon }
+		}
+	}
+	return null
+}
+
+// --- Safeguard for Jest testing (keep as is) ---
 let safeEsri = esri
 if (process.env.NODE_ENV === 'test') {
 	const dummyLayer = {
@@ -24,8 +42,8 @@ if (process.env.NODE_ENV === 'test') {
 	}
 }
 
+// --- Leaflet icon configuration (keep as is) ---
 delete L.Icon.Default.prototype._getIconUrl
-
 L.Icon.Default.mergeOptions({
 	iconRetinaUrl:
 		'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -113,8 +131,24 @@ function FitMapToRequests({ requests }) {
 		if (!requests.length) {
 			return
 		}
+		const validRequests = requests.filter((r) => {
+			if (r.latitude && r.longitude) {
+				return true
+			}
+			const coords = parseWktPoint(r.location)
+			return coords !== null
+		})
+		if (validRequests.length === 0) {
+			return
+		}
 		const bounds = L.latLngBounds(
-			requests.map((r) => [r.latitude, r.longitude])
+			validRequests.map((r) => {
+				if (r.latitude && r.longitude) {
+					return [r.latitude, r.longitude]
+				}
+				const coords = parseWktPoint(r.location)
+				return [coords.lat, coords.lon]
+			})
 		)
 		map.fitBounds(bounds, { padding: [40, 40] })
 	}, [map, requests])
@@ -237,27 +271,43 @@ function PublicDashboard() {
 							attribution="&copy; OpenStreetMap contributors"
 							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 						/>
-						{allRequests.map((request) => (
-							<Marker
-								key={request.id}
-								position={[request.latitude, request.longitude]}
-								icon={getStatusIcon(request.status)}
-							>
-								<Popup>
-									<div>
-										<strong>{request.category}</strong>
-										<br />
-										Status: {request.status}
-										<br />
-										{request.ward}
-										<br />
-										{request.municipality}
-										<br />
-										{request.description}
-									</div>
-								</Popup>
-							</Marker>
-						))}
+						{allRequests.map((request) => {
+							let lat, lon
+							if (request.latitude && request.longitude) {
+								lat = request.latitude
+								lon = request.longitude
+							} else if (request.location) {
+								const coords = parseWktPoint(request.location)
+								if (coords) {
+									lat = coords.lat
+									lon = coords.lon
+								}
+							}
+							if (lat === undefined || lon === undefined) {
+								return null
+							}
+							return (
+								<Marker
+									key={request.id}
+									position={[lat, lon]}
+									icon={getStatusIcon(request.status)}
+								>
+									<Popup>
+										<div>
+											<strong>{request.category}</strong>
+											<br />
+											Status: {request.status}
+											<br />
+											{request.ward}
+											<br />
+											{request.municipality}
+											<br />
+											{request.description}
+										</div>
+									</Popup>
+								</Marker>
+							)
+						})}
 					</MapContainer>
 					<div className="map_legend">
 						<div className="legend_item">

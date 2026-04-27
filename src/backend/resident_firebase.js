@@ -5,8 +5,8 @@ import { collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 export const fetchResidentRequests = async (userUid) => {
 	try {
 		const q = query(
-			collection(db, 'requests'),
-			where('resident_uid', '==', userUid),
+			collection(db, 'service_requests'),
+			where('user_uid', '==', userUid),
 			orderBy('created_at', 'desc')
 		)
 		const snapshot = await getDocs(q)

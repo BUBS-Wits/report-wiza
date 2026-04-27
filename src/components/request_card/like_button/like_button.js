@@ -8,36 +8,55 @@ import {
 import './like_button.css'
 
 const LikeButton = ({ requestId, initialLikeCount }) => {
+	const safeRequestId = String(requestId)
+
+	console.log('LikeButton rendering with requestId:', safeRequestId) //to see issue with UI GLITCH
+
 	const [likes, setLikes] = useState(initialLikeCount)
 	const [userLiked, setUserLiked] = useState(false)
 	const [loading, setLoading] = useState(false)
-	const currentUser = auth.currentUser
+	const [currentUser, setCurrentUser] = useState(null)
 
 	useEffect(() => {
-		if (currentUser && requestId) {
-			const checkLike = async () => {
-				const liked = await hasUserLiked(requestId, currentUser.uid)
-				setUserLiked(liked)
+		const unsubscribe = auth.onAuthStateChanged((user) =>
+			setCurrentUser(user)
+		)
+		return () => unsubscribe()
+	}, [])
+
+	useEffect(() => {
+		if (currentUser && safeRequestId) {
+			const check = async () => {
+				try {
+					const liked = await hasUserLiked(
+						safeRequestId,
+						currentUser.uid
+					)
+					setUserLiked(liked)
+				} catch (err) {
+					console.error(err)
+				}
 			}
-			checkLike()
+			check()
 		}
-	}, [currentUser, requestId])
+	}, [currentUser, safeRequestId])
 
 	const handleLike = async () => {
 		if (!currentUser) {
 			return
-		} // safety, button is disabled for non-logged-in
+		}
 		if (loading) {
 			return
 		}
 		setLoading(true)
 		try {
+			const safeUid = String(currentUser.uid)
 			if (userLiked) {
-				await removeLike(requestId, currentUser.uid)
+				await removeLike(safeRequestId, safeUid)
 				setLikes((prev) => prev - 1)
 				setUserLiked(false)
 			} else {
-				await addLike(requestId, currentUser.uid)
+				await addLike(safeRequestId, safeUid)
 				setLikes((prev) => prev + 1)
 				setUserLiked(true)
 			}

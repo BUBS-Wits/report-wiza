@@ -26,4 +26,5 @@ yarn-debug.log*
 yarn-error.log*
 
 report-wiza*.json
+serviceAccountKey.jsonserviceAccountKey.json
 serviceAccountKey.json

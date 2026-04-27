@@ -5,8 +5,15 @@ import LikeButton from '../components/request_card/like_button/like_button'
 import { auth } from '../firebase_config'
 import { hasUserLiked, addLike, removeLike } from '../backend/like_service'
 
+// Mock Firebase auth with onAuthStateChanged
 jest.mock('../firebase_config', () => ({
-	auth: { currentUser: null },
+	auth: {
+		currentUser: null,
+		onAuthStateChanged: jest.fn((callback) => {
+			callback(null)
+			return () => {}
+		}),
+	},
 }))
 jest.mock('../backend/like_service')
 
@@ -18,6 +25,11 @@ describe('LikeButton', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks()
+		// Reset the mock to call callback with currentUser
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
 	})
 
 	it('displays disabled button when user is not logged in', () => {
@@ -30,6 +42,10 @@ describe('LikeButton', () => {
 
 	it('displays enabled button and initial like count when user is logged in', async () => {
 		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
 		hasUserLiked.mockResolvedValue(false)
 		render(<LikeButton {...defaultProps} />)
 		expect(
@@ -39,6 +55,10 @@ describe('LikeButton', () => {
 
 	it('shows liked state (❤️) if user already liked', async () => {
 		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
 		hasUserLiked.mockResolvedValue(true)
 		render(<LikeButton {...defaultProps} />)
 		expect(
@@ -48,6 +68,10 @@ describe('LikeButton', () => {
 
 	it('calls addLike and increments count when clicking unliked button', async () => {
 		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
 		hasUserLiked.mockResolvedValue(false)
 		addLike.mockResolvedValue()
 
@@ -65,6 +89,10 @@ describe('LikeButton', () => {
 
 	it('calls removeLike and decrements count when clicking liked button', async () => {
 		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
 		hasUserLiked.mockResolvedValue(true)
 		removeLike.mockResolvedValue()
 
@@ -82,6 +110,10 @@ describe('LikeButton', () => {
 
 	it('disables button while loading', async () => {
 		auth.currentUser = { uid: 'user456' }
+		auth.onAuthStateChanged.mockImplementation((callback) => {
+			callback(auth.currentUser)
+			return () => {}
+		})
 		hasUserLiked.mockResolvedValue(false)
 		addLike.mockImplementation(() => new Promise(() => {})) // never resolves
 		render(<LikeButton {...defaultProps} />)

@@ -96,8 +96,11 @@ describe('Login page', () => {
 				})
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
-				await waitFor(() =>
-					expect(mock_navigate).toHaveBeenCalledWith('/resident')
+				await waitFor(
+					() =>
+						expect(mock_navigate).toHaveBeenCalledWith(
+							'/resident/requests'
+						) //changed by sibu to expect correct redirect
 				)
 			})
 		})
@@ -160,8 +163,11 @@ describe('Login page', () => {
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
 				await waitFor(() => expect(setDoc).toHaveBeenCalled())
-				await waitFor(() =>
-					expect(mock_navigate).toHaveBeenCalledWith('/resident')
+				await waitFor(
+					() =>
+						expect(mock_navigate).toHaveBeenCalledWith(
+							'/resident/requests'
+						) //changed by sibu to expect correct redirect
 				)
 			})
 		})
