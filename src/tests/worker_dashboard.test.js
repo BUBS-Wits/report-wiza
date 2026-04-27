@@ -366,7 +366,7 @@ describe('WorkerDashboard component', () => {
 		await waitFor(() => screen.getByText('Assigned request queue'))
 		;['All', 'Pending', 'Acknowledged', 'Resolved', 'Closed'].forEach((s) =>
 			expect(
-				screen.getByRole('button', { name: new RegExp(s) })
+				screen.getByRole('button', { name: new RegExp(`^${s}`) })
 			).toBeInTheDocument()
 		)
 	})
@@ -385,8 +385,7 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('REQ-001'))
 
-		fireEvent.click(screen.getByRole('button', { name: /Pending/ }))
-
+		fireEvent.click(screen.getByRole('button', { name: /^Pending/ }))
 		expect(screen.getByText('REQ-001')).toBeInTheDocument()
 		expect(screen.queryByText('REQ-007')).not.toBeInTheDocument()
 		expect(screen.queryByText('REQ-019')).not.toBeInTheDocument()
@@ -398,8 +397,7 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('REQ-019'))
 
-		fireEvent.click(screen.getByRole('button', { name: /Resolved/ }))
-
+		fireEvent.click(screen.getByRole('button', { name: /^Resolved/ }))
 		expect(screen.getByText('REQ-019')).toBeInTheDocument()
 		expect(screen.queryByText('REQ-001')).not.toBeInTheDocument()
 	})

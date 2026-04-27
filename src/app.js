@@ -11,6 +11,7 @@ import WorkerVerify from './pages/worker_verify/worker_verify.js'
 import CategoryReport from './pages/category_report/category_report.js'
 import WorkerDashboard from './pages/worker_dashboard/worker_dashboard.js'
 import WorkerMessages from './pages/worker_messages/worker_messages.js'
+import ResidentDashboard from './pages/resident_dashboard/resident_dashboard.js'
 import './app.css'
 
 function App() {
@@ -25,6 +26,10 @@ function App() {
 				<Route path="/login" element={<Login />} />
 				<Route path="/admin" element={<AdminDashboard />} />
 				<Route path="/worker-verify" element={<WorkerVerify />} />
+				<Route
+					path="/resident-dashboard"
+					element={<ResidentDashboard />}
+				/>
 				<Route
 					path="/worker-dashboard/messages"
 					element={<WorkerMessages />}
