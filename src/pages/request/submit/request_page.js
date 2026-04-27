@@ -98,7 +98,9 @@ function RequestPage() {
 
 	/* ── Form submit handler ──────────────────────────────────────── */
 	async function on_submit(request) {
-		if (!(await valid_attempt(request))) return
+		if (!(await valid_attempt(request))) {
+			return
+		}
 
 		if (!current_user) {
 			// Not logged in — pause and show the account prompt

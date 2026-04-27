@@ -22,7 +22,9 @@ const STATUS_META = {
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 function format_date(ts) {
-	if (!ts) return '—'
+	if (!ts) {
+		return '—'
+	}
 	const d = ts.toDate ? ts.toDate() : new Date(ts)
 	return d.toLocaleDateString('en-ZA', {
 		day: 'numeric',
@@ -65,7 +67,9 @@ export default function ResidentDashboard() {
 			])
 			set_resident(profile)
 			set_requests(reqs)
-			if (reqs.length > 0) set_selected_id(reqs[0].id)
+			if (reqs.length > 0) {
+				set_selected_id(reqs[0].id)
+			}
 		} catch (err) {
 			set_error(err.message || 'Failed to load your dashboard.')
 		} finally {
@@ -90,7 +94,9 @@ export default function ResidentDashboard() {
 	/* ── Unread count ─────────────────────────────────────────────────── */
 
 	useEffect(() => {
-		if (!resident) return
+		if (!resident) {
+			return
+		}
 		return subscribe_to_resident_unread_count(
 			resident.uid,
 			set_unread_total
@@ -280,7 +286,8 @@ export default function ResidentDashboard() {
 					{requests.length === 0 ? (
 						<div className="rd-no-requests">
 							<p>
-								You haven't submitted any service requests yet.
+								You haven&apos;t submitted any service requests
+								yet.
 							</p>
 							<Link to="/request" className="rd-no-requests-cta">
 								Submit your first request →

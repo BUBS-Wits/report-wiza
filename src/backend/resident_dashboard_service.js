@@ -73,7 +73,9 @@ export async function fetch_resident_requests(resident_uid) {
  */
 export async function fetch_resident_profile(resident_uid) {
 	const snap = await getDoc(doc(db, 'users', resident_uid))
-	if (!snap.exists()) throw new Error('Resident profile not found.')
+	if (!snap.exists()) {
+		throw new Error('Resident profile not found.')
+	}
 	return { uid: resident_uid, ...snap.data() }
 }
 

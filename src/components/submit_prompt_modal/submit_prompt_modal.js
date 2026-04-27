@@ -19,9 +19,13 @@ function SubmitPromptModal({ is_open, on_close, on_continue }) {
 
 	// Close on Escape key
 	useEffect(() => {
-		if (!is_open) return
+		if (!is_open) {
+			return
+		}
 		const handle_key = (e) => {
-			if (e.key === 'Escape') on_close()
+			if (e.key === 'Escape') {
+				on_close()
+			}
 		}
 		document.addEventListener('keydown', handle_key)
 		return () => document.removeEventListener('keydown', handle_key)
@@ -37,7 +41,9 @@ function SubmitPromptModal({ is_open, on_close, on_continue }) {
 		e.stopPropagation()
 	}
 
-	if (!is_open) return null
+	if (!is_open) {
+		return null
+	}
 
 	return (
 		<div
