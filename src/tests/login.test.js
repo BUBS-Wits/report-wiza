@@ -97,7 +97,7 @@ describe('Login page', () => {
 				render_login()
 				fireEvent.click(screen.getByText(/sign in with google/i))
 				await waitFor(() =>
-					expect(mock_navigate).toHaveBeenCalledWith('/resident')
+					expect(mock_navigate).toHaveBeenCalledWith('/resident-dashboard')
 				)
 			})
 		})
@@ -161,7 +161,7 @@ describe('Login page', () => {
 				fireEvent.click(screen.getByText(/sign in with google/i))
 				await waitFor(() => expect(setDoc).toHaveBeenCalled())
 				await waitFor(() =>
-					expect(mock_navigate).toHaveBeenCalledWith('/resident')
+					expect(mock_navigate).toHaveBeenCalledWith('/resident-dashboard')
 				)
 			})
 		})
