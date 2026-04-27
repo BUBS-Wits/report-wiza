@@ -4,97 +4,36 @@
 	min-height: 100vh;
 	background: #f9f9f8;
 	font-family:
-		-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		'DM Sans',
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		sans-serif;
 	color: #111;
-}
-
-/* ── Header ───────────────────────────────────────────────────────────────── */
-
-.wd-header {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	justify-content: space-between;
-	padding: 12px 28px;
-	background: #fff;
-	border-bottom: 0.5px solid #e5e5e5;
-	position: sticky;
-	top: 0;
-	z-index: 50;
-}
-
-.wd-header-left {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-}
-
-.wd-app-name {
-	font-weight: 600;
-	font-size: 15px;
-	letter-spacing: -0.01em;
-}
-
-.wd-header-divider {
-	display: inline-block;
-	width: 1px;
-	height: 16px;
-	background: #ddd;
-}
-
-.wd-header-role {
-	font-size: 13px;
-	color: #888;
-}
-
-.wd-worker-chip {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-}
-
-.wd-avatar {
-	width: 34px;
-	height: 34px;
-	border-radius: 50%;
-	background: #eef5fd;
-	color: #1a56a0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 13px;
-	font-weight: 500;
-	flex-shrink: 0;
-}
-
-.wd-worker-name {
-	font-size: 13px;
-	font-weight: 500;
-}
-
-.wd-worker-email {
-	font-size: 11px;
-	color: #888;
 }
 
 /* ── Main layout ──────────────────────────────────────────────────────────── */
 
 .wd-main {
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 28px;
-}
-
-.wd-section {
-	margin-bottom: 32px;
+	max-width: 1100px;
+	width: 100%;
+	padding: 20px 32px 32px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
 }
 
 .wd-section-title {
-	font-size: 12px;
-	font-weight: 500;
+	font-size: 11px;
+	font-weight: 700;
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
-	color: #888;
-	margin-bottom: 12px;
+	letter-spacing: 0.1em;
+	color: #94a3b8;
+	margin-bottom: 10px;
 }
 
 /* ── Stats cards — US-049 ─────────────────────────────────────────────────── */
@@ -102,47 +41,50 @@
 .wd-stats-grid {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 10px;
+	gap: 14px;
 }
-
 .wd-stat-card {
 	background: #fff;
-	border: 0.5px solid #e5e5e5;
-	border-radius: 10px;
-	padding: 16px 18px;
+	border: 1px solid #e8e5e0;
+	border-left: 4px solid #f59e0b;
+	border-radius: 8px;
+	padding: 22px 26px 18px;
 }
 
 .wd-stat-label {
-	font-size: 11px;
-	color: #999;
+	font-size: 12px;
+	color: #94a3b8;
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
-	margin-bottom: 6px;
+	letter-spacing: 0.08em;
+	margin-bottom: 10px;
+	font-weight: 500;
 }
 
 .wd-stat-value {
-	font-size: 32px;
-	font-weight: 500;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 56px;
+	font-weight: 700;
 	line-height: 1;
 	margin-bottom: 6px;
+	color: #111;
 }
 
 .wd-stat-value--success {
-	color: #1a6b3c;
+	color: #15803d;
 }
 .wd-stat-value--warning {
-	color: #92610a;
+	color: #b45309;
 }
 
 .wd-stat-unit {
-	font-size: 16px;
-	color: #999;
+	font-size: 26px;
+	color: #94a3b8;
 	font-weight: 400;
 }
 
 .wd-stat-sub {
-	font-size: 11px;
-	color: #bbb;
+	font-size: 12px;
+	color: #cbd5e1;
 }
 
 /* ── Request queue — US-022 ───────────────────────────────────────────────── */
@@ -151,54 +93,59 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	margin-bottom: 12px;
+	margin-bottom: 10px;
 	flex-wrap: wrap;
 	gap: 10px;
 }
 
 .wd-filter-row {
 	display: flex;
-	gap: 5px;
+	gap: 6px;
 	flex-wrap: wrap;
 }
 
 .wd-filter-btn {
-	font-size: 12px;
-	padding: 4px 12px;
-	border-radius: 100px;
-	border: 0.5px solid #ddd;
+	font-size: 11px;
+	padding: 5px 14px;
+	border-radius: 4px;
+	border: 1px solid #e8e5e0;
 	background: transparent;
-	color: #888;
+	color: #94a3b8;
 	cursor: pointer;
+	font-family: 'DM Sans', sans-serif;
+	font-weight: 500;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
 	display: flex;
 	align-items: center;
 	gap: 5px;
-	font-family: inherit;
-	transition: all 0.1s;
+	transition: all 0.15s;
 }
 
 .wd-filter-btn:hover {
-	background: #f5f5f5;
+	background: #fef9ec;
+	border-color: rgba(245, 158, 11, 0.4);
+	color: #b45309;
 }
 
 .wd-filter-btn--active {
-	background: #fff;
-	border-color: #aaa;
-	color: #111;
-	font-weight: 500;
+	border-color: #f59e0b;
+	color: #b45309;
+	background: rgba(245, 158, 11, 0.08);
+	font-weight: 700;
 }
 
 .wd-filter-count {
 	font-size: 10px;
 	background: rgba(0, 0, 0, 0.07);
-	border-radius: 10px;
+	border-radius: 3px;
 	padding: 1px 5px;
 }
 
 .wd-queue-card {
 	background: #fff;
-	border: 0.5px solid #e5e5e5;
-	border-radius: 12px;
+	border: 1px solid #e8e5e0;
+	border-radius: 8px;
 	overflow: hidden;
 }
 
@@ -206,39 +153,43 @@
 
 .wd-req-row {
 	display: grid;
-	grid-template-columns: 70px 100px 1fr 110px 110px;
+	grid-template-columns: 90px 160px 1fr 140px 140px;
 	align-items: center;
-	padding: 12px 18px;
-	border-bottom: 0.5px solid #f0f0f0;
-	gap: 12px;
+	padding: 16px 24px;
+	border-bottom: 1px solid #f4f1ed;
+	gap: 16px;
+	transition: background 0.1s;
 }
 
+.wd-req-row:hover {
+	background: #fafaf9;
+}
 .wd-req-row:last-child {
 	border-bottom: none;
 }
 
 .wd-req-id {
 	font-family: ui-monospace, monospace;
-	font-size: 11px;
-	color: #bbb;
+	font-size: 12px;
+	color: #cbd5e1;
 }
 
 .wd-req-cat {
-	font-size: 13px;
-	font-weight: 500;
+	font-size: 14px;
+	font-weight: 600;
 }
 
 .wd-req-desc {
-	font-size: 12px;
-	color: #666;
+	font-size: 13px;
+	color: #64748b;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
 .wd-req-meta {
-	font-size: 11px;
-	color: #bbb;
+	font-size: 12px;
+	color: #cbd5e1;
 	text-align: right;
 }
 
@@ -246,36 +197,42 @@
 
 .wd-badge {
 	font-size: 11px;
-	padding: 3px 8px;
-	border-radius: 6px;
-	font-weight: 500;
+	padding: 4px 10px;
+	border-radius: 4px;
+	font-weight: 700;
 	text-align: center;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
 }
 
 .wd-badge--pending {
-	background: #fef9ec;
-	color: #92610a;
+	background: rgba(245, 158, 11, 0.12);
+	color: #b45309;
+	border: 1px solid rgba(245, 158, 11, 0.3);
 }
 .wd-badge--acknowledged {
-	background: #eef5fd;
-	color: #1a56a0;
+	background: rgba(59, 130, 246, 0.08);
+	color: #1d4ed8;
+	border: 1px solid rgba(59, 130, 246, 0.2);
 }
 .wd-badge--resolved {
-	background: #edfaf3;
-	color: #1a6b3c;
+	background: rgba(21, 128, 61, 0.08);
+	color: #15803d;
+	border: 1px solid rgba(21, 128, 61, 0.2);
 }
 .wd-badge--closed {
 	background: #f4f4f4;
-	color: #666;
+	color: #64748b;
+	border: 1px solid #e8e5e0;
 }
 
 /* ── Empty / loading / error states ──────────────────────────────────────── */
 
 .wd-empty-queue {
-	padding: 32px 18px;
+	padding: 40px 24px;
 	text-align: center;
-	font-size: 13px;
-	color: #bbb;
+	font-size: 14px;
+	color: #cbd5e1;
 }
 
 .wd-centered-screen {
@@ -285,31 +242,35 @@
 	align-items: center;
 	justify-content: center;
 	gap: 16px;
-	font-family: -apple-system, sans-serif;
+	font-family: 'DM Sans', sans-serif;
 }
 
 .wd-loading-text {
 	font-size: 14px;
-	color: #999;
+	color: #94a3b8;
 }
-
 .wd-error-text {
 	font-size: 14px;
-	color: #c0392b;
+	color: #b45309;
 	max-width: 360px;
 	text-align: center;
 }
 
 .wd-retry-btn {
-	font-size: 13px;
-	padding: 6px 16px;
-	border: 0.5px solid #ddd;
-	border-radius: 8px;
-	background: #fff;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	padding: 8px 20px;
+	border: 1px solid #f59e0b;
+	border-radius: 6px;
+	background: rgba(245, 158, 11, 0.08);
+	color: #b45309;
 	cursor: pointer;
-	font-family: inherit;
+	font-family: 'DM Sans', sans-serif;
+	transition: background 0.15s;
 }
 
 .wd-retry-btn:hover {
-	background: #f5f5f5;
+	background: rgba(245, 158, 11, 0.16);
 }
