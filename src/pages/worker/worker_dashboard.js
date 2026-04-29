@@ -4,7 +4,7 @@ import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import RequestCard from '../../components/request_card/request_card.js'
-import WorkerDashboard from '../worker_dashboard/worker_dashboard.js'
+// import WorkerDashboard from '../worker_dashboard/worker_dashboard.js'
 import './worker_dashboard.css'
 
 const FILTER_TABS = [
@@ -38,10 +38,12 @@ const SECTIONS = {
 		title: 'Available Requests',
 		description: 'Unclaimed requests you can take ownership of',
 	},
+	/*
 	analytics: {
 		title: 'Analytics',
 		description: 'Worker request analytics',
 	},
+	*/
 }
 
 function WorkerDashboardMain() {
@@ -197,18 +199,22 @@ function WorkerDashboardMain() {
 							</span>
 						)}
 					</div>
+					{/*
 					<div
 						className={`worker_sidebar_item ${active_section === 'analytics' ? 'active' : ''}`}
 						onClick={() => set_active_section('analytics')}
 					>
 						Analytics
 					</div>
+					*/}
+					{/*
 					<div
 						className={`worker_sidebar_item ${active_section === 'messages' ? 'active' : ''}`}
 						onClick={() => navigate('/worker-dashboard/messages')}
 					>
 						Messages
 					</div>
+					*/}
 				</nav>
 				<div className="worker_sidebar_bottom">
 					<div className="worker_sidebar_avatar">
@@ -281,7 +287,6 @@ function WorkerDashboardMain() {
 							)}
 						</>
 					)}
-
 					{active_section === 'available' && (
 						<>
 							{loading ? (
@@ -340,8 +345,7 @@ function WorkerDashboardMain() {
 							)}
 						</>
 					)}
-
-					{active_section === 'analytics' && <WorkerDashboard />}
+					{/*active_section === 'analytics' && <WorkerDashboard />*/}
 				</div>
 			</div>
 		</div>
