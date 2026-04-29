@@ -8,7 +8,7 @@ import {
 	ClaimedRequest,
 	claimed_request_converter,
 } from './backend/claimed_request.js'
-import { STATUS } from './src/constants.js'
+import { STATUS } from './backend/constants.js'
 import http from 'http' // Added for Bug 2 fix
 
 /********************* Setup *********************/

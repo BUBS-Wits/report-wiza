@@ -4,6 +4,7 @@ import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import RequestCard from '../../components/request_card/request_card.js'
+import WorkerDashboard from '../worker_dashboard/worker_dashboard.js'
 import './worker_dashboard.css'
 
 const FILTER_TABS = [
@@ -20,6 +21,27 @@ const STATUS_BADGE_CLASS = {
 	[STATUS.IN_PROGRESS]: 'wd-badge--in-progress',
 	[STATUS.RESOLVED]: 'wd-badge--resolved',
 	[STATUS.CLOSED]: 'wd-badge--closed',
+}
+const SectionHeader = ({ title, description }) => (
+	<div>
+		<h1 className="worker_top_bar_title">{title}</h1>
+		<p className="worker_top_bar_sub">{description}</p>
+	</div>
+)
+
+const SECTIONS = {
+	my_requests: {
+		title: 'My Requests',
+		description: 'Manage and update your assigned service requests',
+	},
+	available: {
+		title: 'Available Requests',
+		description: 'Unclaimed requests you can take ownership of',
+	},
+	analytics: {
+		title: 'Analytics',
+		description: 'Worker request analytics',
+	},
 }
 
 function WorkerDashboardMain() {
@@ -175,6 +197,18 @@ function WorkerDashboardMain() {
 							</span>
 						)}
 					</div>
+					<div
+						className={`worker_sidebar_item ${active_section === 'analytics' ? 'active' : ''}`}
+						onClick={() => set_active_section('analytics')}
+					>
+						Analytics
+					</div>
+					<div
+						className={`worker_sidebar_item ${active_section === 'messages' ? 'active' : ''}`}
+						onClick={() => navigate('/worker-dashboard/messages')}
+					>
+						Messages
+					</div>
 				</nav>
 				<div className="worker_sidebar_bottom">
 					<div className="worker_sidebar_avatar">
@@ -194,16 +228,7 @@ function WorkerDashboardMain() {
 			<div className="worker_main">
 				<div className="worker_top_bar">
 					<div>
-						<h1 className="worker_top_bar_title">
-							{active_section === 'my_requests'
-								? 'My Requests'
-								: 'Available Requests'}
-						</h1>
-						<p className="worker_top_bar_sub">
-							{active_section === 'my_requests'
-								? 'Manage and update your assigned service requests'
-								: 'Unclaimed requests you can take ownership of'}
-						</p>
+						<SectionHeader {...SECTIONS[active_section]} />
 					</div>
 					<button
 						className="worker_signout_btn"
@@ -315,6 +340,8 @@ function WorkerDashboardMain() {
 							)}
 						</>
 					)}
+
+					{active_section === 'analytics' && <WorkerDashboard />}
 				</div>
 			</div>
 		</div>

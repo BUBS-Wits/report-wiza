@@ -146,6 +146,7 @@ export default function WorkerDashboard() {
 
 	return (
 		<div className="wd-page">
+			{/*
 			<Worker_nav_bar
 				user={{
 					uid: worker.uid,
@@ -155,6 +156,7 @@ export default function WorkerDashboard() {
 					initials: get_initials(worker.name),
 				}}
 			/>
+			*/}
 
 			{/*
 			  wd-layout shifts the main content left when the panel is open,
