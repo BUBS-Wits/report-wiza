@@ -1,13 +1,13 @@
 import {
-	collection,
-	addDoc,
-	query,
-	where,
-	orderBy,
-	onSnapshot,
-	writeBatch,
-	doc,
-	serverTimestamp,
+    collection,
+    addDoc,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    writeBatch,
+    doc,
+    serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 
@@ -26,27 +26,27 @@ import { db } from '../firebase_config.js'
  * @returns {function}            - Unsubscribe function — call on unmount
  */
 export function subscribe_to_thread(request_id, on_messages, on_error) {
-	const q = query(
-		collection(db, 'messages'),
-		where('request_id', '==', request_id),
-		orderBy('sent_at', 'asc')
-	)
+    const q = query(
+        collection(db, 'messages'),
+        where('request_id', '==', request_id),
+        orderBy('sent_at', 'asc')
+    )
 
-	const unsub = onSnapshot(
-		q,
-		(snap) => {
-			const messages = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-			on_messages(messages)
-		},
-		(err) => {
-			console.error('[message_service] subscribe_to_thread error:', err)
-			if (on_error) {
-				on_error(err)
-			}
-		}
-	)
+    const unsub = onSnapshot(
+        q,
+        (snap) => {
+            const messages = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+            on_messages(messages)
+        },
+        (err) => {
+            console.error('[message_service] subscribe_to_thread error:', err)
+            if (on_error) {
+                on_error(err)
+            }
+        }
+    )
 
-	return unsub
+    return unsub
 }
 
 /**
@@ -60,26 +60,26 @@ export function subscribe_to_thread(request_id, on_messages, on_error) {
  * @returns {Promise<string>} - The new message document ID
  */
 export async function send_message({
-	request_id,
-	sender_uid,
-	receiver_uid,
-	text,
+    request_id,
+    sender_uid,
+    receiver_uid,
+    text,
 }) {
-	const trimmed = text.trim()
-	if (!trimmed) {
-		throw new Error('Message text cannot be empty.')
-	}
+    const trimmed = text.trim()
+    if (!trimmed) {
+        throw new Error('Message text cannot be empty.')
+    }
 
-	const ref = await addDoc(collection(db, 'messages'), {
-		request_id,
-		sender_uid,
-		receiver_uid,
-		text: trimmed,
-		sent_at: serverTimestamp(),
-		read: false,
-	})
+    const ref = await addDoc(collection(db, 'messages'), {
+        request_id,
+        sender_uid,
+        receiver_uid,
+        text: trimmed,
+        sent_at: serverTimestamp(),
+        read: false,
+    })
 
-	return ref.id
+    return ref.id
 }
 
 /**
@@ -90,19 +90,19 @@ export async function send_message({
  * @param {string} current_uid  - UID of the user opening the thread
  */
 export async function mark_messages_read(messages, current_uid) {
-	const unread = messages.filter(
-		(m) => m.receiver_uid === current_uid && m.read === false
-	)
-	if (!unread.length) {
-		return
-	}
+    const unread = messages.filter(
+        (m) => m.receiver_uid === current_uid && m.read === false
+    )
+    if (!unread.length) {
+        return
+    }
 
-	const batch = writeBatch(db)
-	unread.forEach((m) => {
-		batch.update(doc(db, 'messages', m.id), { read: true })
-	})
+    const batch = writeBatch(db)
+    unread.forEach((m) => {
+        batch.update(doc(db, 'messages', m.id), { read: true })
+    })
 
-	await batch.commit()
+    await batch.commit()
 }
 
 // ─────────────────────────────────────────────
@@ -121,25 +121,25 @@ export async function mark_messages_read(messages, current_uid) {
  * @param {string} params.request_id      - Links notification back to the request
  */
 export async function notify_new_message({
-	receiver_uid,
-	receiver_role,
-	sender_name,
-	text,
-	request_id,
+    receiver_uid,
+    receiver_role,
+    sender_name,
+    text,
+    request_id,
 }) {
-	const body = text.length > 80 ? text.slice(0, 80) + '…' : text
+    const body = text.length > 80 ? text.slice(0, 80) + '…' : text
 
-	await addDoc(collection(db, 'notifications'), {
-		user_uid: receiver_uid,
-		role: receiver_role,
-		type: 'new_message',
-		title: `New message from ${sender_name}`,
-		body,
-		read: false,
-		created_at: serverTimestamp(),
-		request_uid: request_id,
-		metadata: { sender_name },
-	})
+    await addDoc(collection(db, 'notifications'), {
+        user_uid: receiver_uid,
+        role: receiver_role,
+        type: 'new_message',
+        title: `New message from ${sender_name}`,
+        body,
+        read: false,
+        created_at: serverTimestamp(),
+        request_uid: request_id,
+        metadata: { sender_name },
+    })
 }
 
 // ─────────────────────────────────────────────
@@ -154,31 +154,32 @@ export async function notify_new_message({
  * @returns {string}
  */
 export function format_message_time(timestamp) {
-	if (!timestamp) {
-		return ''
-	}
+    if (!timestamp) {
+        return ''
+    }
 
-	const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
-	const now = new Date()
-	const is_today =
-		date.getDate() === now.getDate() &&
-		date.getMonth() === now.getMonth() &&
-		date.getFullYear() === now.getFullYear()
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
+    const now = new Date()
+    const is_today =
+        date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
 
-	const hhmm = date.toLocaleTimeString('en-ZA', {
-		hour: '2-digit',
-		minute: '2-digit',
-		hour12: false,
-	})
+    const hhmm = date.toLocaleTimeString('en-ZA', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    })
 
-	if (is_today) {
-		return hhmm
-	}
+    if (is_today) {
+        return hhmm
+    }
 
-	const day_month = date.toLocaleDateString('en-ZA', {
-		day: 'short',
-		month: 'short',
-	})
+    // FIX: 'day' is now strictly set to 'numeric'
+    const day_month = date.toLocaleDateString('en-ZA', {
+        day: 'numeric',
+        month: 'short',
+    })
 
-	return `${day_month} ${hhmm}`
+    return `${day_month} ${hhmm}`
 }
