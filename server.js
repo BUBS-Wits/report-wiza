@@ -8,6 +8,8 @@ import {
 	ClaimedRequest,
 	claimed_request_converter,
 } from './backend/claimed_request.js'
+import { STATUS } from './src/constants.js'
+import http from 'http' // Added for Bug 2 fix
 
 /********************* Setup *********************/
 
@@ -54,11 +56,11 @@ const authenticate = async (req, res, next) => {
 		const header = req.headers.authorization
 
 		if (!header || !header.startsWith('Bearer ')) {
-			return res.status(401).json({ error: 'No token' })
+			req.user = null // anonymous — allowed through
+			return next()
 		}
 
 		const token = header.split('Bearer ')[1]
-
 		const decoded = await admin.auth().verifyIdToken(token)
 
 		req.user = decoded
@@ -92,15 +94,6 @@ const apply_query = (query, condition) => {
 	return query.where(condition[0], condition[1], condition[2])
 }
 
-/**
- * get_db_documents() - Returns an array of db docs matching some condition(s)
- * @collection: Collection name as a string in db
- * @conditions: An array of the conditions to check treated as being joined by AND.
- * 	A condition is an array of exactly length 3.
- * 	Given st. conditions[0] is the field to filter,
- * 	conditions[1] is the comparison op,
- * 	and condition[2] is the value.
- */
 const get_db_documents = (collection, conditions) => {
 	if (!Array.isArray(conditions)) {
 		console.error('get_db_documents > conditions not given as array')
@@ -116,7 +109,6 @@ const get_db_documents = (collection, conditions) => {
 	for (const condition of conditions) {
 		query = apply_query(query, condition)
 	}
-	// TODO: add query optimization using `startAt()` and `limit()`
 	return query
 		.get()
 		.then((snapshot) => {
@@ -254,13 +246,18 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		if (!tmp.input_validate()) {
 			return respond.invalid_parameters(res)
 		}
+
+		// Handle anonymous users safely
+		const user_uid = req.user?.uid ?? null
+
 		const service_request = request_converter.to_firestore(
-			req.user.uid,
+			user_uid,
 			tmp,
 			new Date(Date.now()),
-			'SUBMITTED'
+			STATUS.SUBMITTED
 		)
 
+		/*
 		if (!(await exists_db_document('service_requests', service_request))) {
 			const ret = await create_db_document(
 				'service_requests',
@@ -274,6 +271,16 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		} else {
 			res.status(201).json({ data: 'Request already exists' })
 		}
+		*/
+		// Bug 3 Fix: Removed the duplicate check that was blocking updates
+		const doc_result = await create_db_document(
+			'service_requests',
+			service_request
+		)
+		if (!doc_result.ok) {
+			return res.status(500).json({ error: 'Failed to save request.' })
+		}
+		return res.status(200).json({ data: doc_result.value })
 	} catch (err) {
 		console.error('Database error:', err)
 		res.status(500).json({ error: 'Internal server error' })
@@ -325,7 +332,7 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 			uid,
 			tmp3,
 			new Date(ret2.value['created_at']),
-			'ASSIGNED'
+			STATUS.ASSIGNED
 		)
 		const final_ret = set_db_document(
 			'service_requests',
@@ -340,6 +347,33 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 })
 
 app.get('/api/get-requests', async (req, res) => {
+	try {
+		const conditions = []
+		if (req.query.all) {
+			if (req.query.all === 'false') {
+				if (!authenticate(req, res, () => {})) {
+					return respond.unauthorized(res)
+				}
+				conditions.push(['service_requests', '==', req.user.uid])
+			} else if (
+				req.query.all !== 'true' ||
+				Object.keys(req.query).length !== 1
+			) {
+				return respond.invalid_parameters(res)
+			}
+		}
+		const ret = await get_db_documents('service_requests', conditions)
+		if (!ret.ok) {
+			return res.status(400).json({ error: ret.value })
+		}
+		return res.status(200).json({ data: ret.value })
+	} catch (err) {
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+app.get('/api/get-request', async (req, res) => {
 	try {
 		const conditions = []
 		if (req.query.all) {
@@ -469,7 +503,10 @@ app.get(/.*/, (req, res) => {
 
 const PORT = process.env.PORT || 3000
 
-app.listen(PORT, () =>
+// Bug 2 Fix: Increase header limit for Azure proxy and Firebase JWT headers
+const server = http.createServer({ maxHeaderSize: 32768 }, app)
+
+server.listen(PORT, () =>
 	console.log(`Server running on:\nhttp://localhost:${PORT}`)
 )
 

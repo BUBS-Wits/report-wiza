@@ -49,7 +49,7 @@ function Login() {
 			} else if (role === 'worker') {
 				navigate('/worker-dashboard')
 			} else {
-				navigate('/resident')
+				navigate('/resident-dashboard')
 			}
 		} catch (err) {
 			if (err.code !== 'auth/popup-closed-by-user') {

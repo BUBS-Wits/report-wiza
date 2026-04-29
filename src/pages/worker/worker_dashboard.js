@@ -1,18 +1,33 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { signOut } from 'firebase/auth'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
+import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import RequestCard from '../../components/request_card/request_card.js'
 import './worker_dashboard.css'
 
-const STATUS_FILTERS = ['ALL', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED']
+const FILTER_TABS = [
+	{ label: 'All', value: null },
+	{ label: STATUS_DISPLAY[STATUS.ASSIGNED], value: STATUS.ASSIGNED },
+	{ label: STATUS_DISPLAY[STATUS.IN_PROGRESS], value: STATUS.IN_PROGRESS },
+	{ label: STATUS_DISPLAY[STATUS.RESOLVED], value: STATUS.RESOLVED },
+	{ label: STATUS_DISPLAY[STATUS.CLOSED], value: STATUS.CLOSED },
+]
 
-function WorkerDashboard() {
+const STATUS_BADGE_CLASS = {
+	[STATUS.SUBMITTED]: 'wd-badge--submitted',
+	[STATUS.ASSIGNED]: 'wd-badge--assigned',
+	[STATUS.IN_PROGRESS]: 'wd-badge--in-progress',
+	[STATUS.RESOLVED]: 'wd-badge--resolved',
+	[STATUS.CLOSED]: 'wd-badge--closed',
+}
+
+function WorkerDashboardMain() {
 	const [my_requests, set_my_requests] = useState([])
 	const [unclaimed_requests, set_unclaimed_requests] = useState([])
-	const [loading, set_loading] = useState(true)
+	const [loading, set_loading] = useState(false)
 	const [claiming_id, set_claiming_id] = useState(null)
-	const [active_filter, set_active_filter] = useState('all')
+	const [active_filter, set_active_filter] = useState(null)
 	const [active_section, set_active_section] = useState('my_requests')
 	const navigate = useNavigate()
 
@@ -55,10 +70,7 @@ function WorkerDashboard() {
 	}
 
 	const load_requests = async () => {
-		if (!auth.currentUser) {
-			navigate('/login')
-			return
-		}
+		set_loading(true)
 		try {
 			const [claimed, unclaimed] = await Promise.all([
 				get_claimed_requests(auth.currentUser.uid),
@@ -75,8 +87,18 @@ function WorkerDashboard() {
 	}
 
 	useEffect(() => {
-		load_requests()
-	}, [navigate])
+		const unsub = onAuthStateChanged(auth, (user) => {
+			if (!auth.currentUser) {
+				navigate('/login')
+				return
+			}
+			if (loading) {
+				return
+			}
+			load_requests()
+		})
+		return unsub
+	}, [navigate, active_section]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	const handle_signout = async () => {
 		await signOut(auth)
@@ -118,9 +140,15 @@ function WorkerDashboard() {
 	}
 
 	const filtered_requests =
-		active_filter === 'ALL'
+		active_filter === null
 			? my_requests
-			: my_requests.filter((r) => r.status === active_filter)
+			: active_filter === STATUS.SUBMITTED
+				? my_requests.filter(
+						(r) =>
+							r.status === STATUS.SUBMITTED ||
+							r.status === STATUS.ASSIGNED
+					)
+				: my_requests.filter((r) => r.status === active_filter)
 
 	return (
 		<div className="worker_page">
@@ -189,13 +217,15 @@ function WorkerDashboard() {
 					{active_section === 'my_requests' && (
 						<>
 							<div className="worker_filters">
-								{STATUS_FILTERS.map((f) => (
+								{FILTER_TABS.map((f) => (
 									<button
 										key={f}
-										className={`worker_filter_btn ${active_filter === f ? 'active' : ''}`}
-										onClick={() => set_active_filter(f)}
+										className={`worker_filter_btn ${active_filter === f.value ? 'active' : ''}`}
+										onClick={() =>
+											set_active_filter(f.value)
+										}
 									>
-										{f.replace('_', ' ')}
+										{f.label}
 									</button>
 								))}
 							</div>
@@ -246,9 +276,13 @@ function WorkerDashboard() {
 												<div className="request_card_top">
 													<h3>{request.category}</h3>
 													<span
-														className={`status_badge ${request.status}`}
+														className={`status_badge ${STATUS_BADGE_CLASS[request.status]}`}
 													>
-														{request.status}
+														{
+															STATUS_DISPLAY[
+																request.status
+															]
+														}
 													</span>
 												</div>
 												<p className="request_location">
@@ -287,4 +321,4 @@ function WorkerDashboard() {
 	)
 }
 
-export default WorkerDashboard
+export default WorkerDashboardMain

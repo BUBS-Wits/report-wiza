@@ -9,29 +9,42 @@ import {
 	deleteDoc,
 } from 'firebase/firestore'
 
-// Check if the current user has already liked a specific request
+const toStr = (id) => String(id)
+
 export const hasUserLiked = async (requestId, userId) => {
-	const likeRef = doc(db, 'requests', requestId, 'likes', userId)
+	const likeRef = doc(
+		db,
+		'requests',
+		toStr(requestId),
+		'likes',
+		toStr(userId)
+	)
 	const likeSnap = await getDoc(likeRef)
 	return likeSnap.exists()
 }
 
-// Add a like for the current user
 export const addLike = async (requestId, userId) => {
-	const likeRef = doc(db, 'requests', requestId, 'likes', userId)
-	const requestRef = doc(db, 'requests', requestId)
+	const likeRef = doc(
+		db,
+		'requests',
+		toStr(requestId),
+		'likes',
+		toStr(userId)
+	)
+	const requestRef = doc(db, 'requests', toStr(requestId))
 	await setDoc(likeRef, { likedAt: new Date() })
-	await updateDoc(requestRef, {
-		like_count: increment(1),
-	})
+	await updateDoc(requestRef, { like_count: increment(1) })
 }
 
-// Remove a like (unlike)
 export const removeLike = async (requestId, userId) => {
-	const likeRef = doc(db, 'requests', requestId, 'likes', userId)
-	const requestRef = doc(db, 'requests', requestId)
+	const likeRef = doc(
+		db,
+		'requests',
+		toStr(requestId),
+		'likes',
+		toStr(userId)
+	)
+	const requestRef = doc(db, 'requests', toStr(requestId))
 	await deleteDoc(likeRef)
-	await updateDoc(requestRef, {
-		like_count: increment(-1),
-	})
+	await updateDoc(requestRef, { like_count: increment(-1) })
 }

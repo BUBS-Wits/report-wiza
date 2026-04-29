@@ -6,46 +6,97 @@ import {
 	waitFor,
 	within,
 } from '@testing-library/react'
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Mocks — set up before importing the modules under test
+   Mocks — all jest.mock() calls are hoisted by Babel, so order here is
+   cosmetic only. Keep them grouped by concern for readability.
 ───────────────────────────────────────────────────────────────────────────── */
 
-// 1. Corrected path to the CSS file based on your tree
+// ── CSS ──────────────────────────────────────────────────────────────────────
 jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}))
 
-// 2. Define the mock user using a standard function, NOT jest.fn()
-jest.mock('firebase/auth', () => {
+// ── Worker nav bar ────────────────────────────────────────────────────────────
+// Render name & email so the component tests that assert on those values pass.
+jest.mock(
+	'../components/worker_nav_bar/worker_nav_bar.js',
+	() =>
+		function MockWorkerNavBar({ user }) {
+			return (
+				<nav data-testid="worker-nav-bar">
+					<span>{user?.name}</span>
+					<span>{user?.email}</span>
+				</nav>
+			)
+		}
+)
+
+// ── Firebase auth ─────────────────────────────────────────────────────────────
+jest.mock('firebase/auth', () => ({
+	getAuth: jest.fn(),
+	onAuthStateChanged: jest.fn((auth, callback) => {
+		callback({ uid: 'worker_001' })
+		return jest.fn() // unsubscribe
+	}),
+}))
+
+// ── Firebase config ───────────────────────────────────────────────────────────
+jest.mock('../firebase_config.js', () => ({
+	auth: {},
+	db: {},
+}))
+
+// ── Service layer ─────────────────────────────────────────────────────────────
+// fetch_worker_dashboard_data → controlled jest.fn() for component tests.
+// compute_worker_stats        → real pure implementation, inlined so tests
+//                               run without touching Firebase at all.
+jest.mock('../backend/worker_dashboard_service.js', () => {
+	const compute_worker_stats = (requests) => {
+		const t = jest.requireActual('../constants.js')
+		const by_status = (status) =>
+			requests.filter((r) => r.status === status)
+
+		const resolved = by_status(t.STATUS.RESOLVED)
+		let avg_resolution_days = 0
+
+		if (resolved.length > 0) {
+			const total_ms = resolved.reduce((sum, r) => {
+				const assigned = r.assignedAt?.toMillis?.() ?? 0
+				const resolved_at =
+					r.resolvedAt?.toMillis?.() ?? r.updatedAt?.toMillis?.() ?? 0
+				return sum + Math.max(0, resolved_at - assigned)
+			}, 0)
+
+			avg_resolution_days = parseFloat(
+				(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
+			)
+		}
+
+		return {
+			total: requests.length,
+			resolved: resolved.length,
+			pending: by_status(t.STATUS.ASSIGNED).length,
+			acknowledged: by_status(t.STATUS.IN_PROGRESS).length,
+			closed: by_status(t.STATUS.CLOSED).length,
+			avg_resolution_days,
+		}
+	}
+
 	return {
-		__esModule: true,
-		getAuth: () => ({
-			currentUser: {
-				uid: 'worker_001',
-				displayName: 'Thendo Mukhuba',
-				email: 'thendo@capetown.gov.za',
-			},
-		}),
+		fetch_worker_dashboard_data: jest.fn(),
+		compute_worker_stats,
 	}
 })
 
-// 3. Corrected path to the client-side service based on your tree
-jest.mock('../backend/worker_dashboard_service.js', () => ({
-	fetch_worker_dashboard_data: jest.fn(),
-	compute_worker_stats: jest.requireActual(
-		'../backend/worker_dashboard_service.js'
-	).compute_worker_stats,
-}))
-
 /* ─────────────────────────────────────────────────────────────────────────────
-   Import modules under test (after mocks are in place)
+   Imports — after mocks are declared (hoisting means mocks always win)
 ───────────────────────────────────────────────────────────────────────────── */
 
-// 4. Corrected paths to your component and service
-import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard'
+import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard.js'
 import {
 	fetch_worker_dashboard_data,
 	compute_worker_stats,
-} from '../backend/worker_dashboard_service'
+} from '../backend/worker_dashboard_service.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared fixtures
@@ -62,7 +113,7 @@ const MOCK_REQUESTS = [
 		description: 'Large pothole on Main Rd',
 		ward: 'Ward 12',
 		municipality: 'City of Cape Town',
-		status: 'Pending',
+		status: STATUS.ASSIGNED,
 		priority: 'High',
 		assignedAt: mockTimestamp('2026-04-15T00:00:00Z'),
 		updatedAt: mockTimestamp('2026-04-15T00:00:00Z'),
@@ -73,7 +124,7 @@ const MOCK_REQUESTS = [
 		description: 'Burst pipe on Elm Street',
 		ward: 'Ward 12',
 		municipality: 'City of Cape Town',
-		status: 'Acknowledged',
+		status: STATUS.IN_PROGRESS,
 		priority: 'Critical',
 		assignedAt: mockTimestamp('2026-04-14T00:00:00Z'),
 		updatedAt: mockTimestamp('2026-04-17T00:00:00Z'),
@@ -84,7 +135,7 @@ const MOCK_REQUESTS = [
 		description: 'Missed bin collection',
 		ward: 'Ward 12',
 		municipality: 'City of Cape Town',
-		status: 'Resolved',
+		status: STATUS.RESOLVED,
 		priority: 'Low',
 		assignedAt: mockTimestamp('2026-04-08T00:00:00Z'),
 		updatedAt: mockTimestamp('2026-04-10T00:00:00Z'),
@@ -96,7 +147,7 @@ const MOCK_REQUESTS = [
 		description: 'No water pressure',
 		ward: 'Ward 15',
 		municipality: 'City of Cape Town',
-		status: 'Closed',
+		status: STATUS.CLOSED,
 		priority: 'High',
 		assignedAt: mockTimestamp('2026-04-01T00:00:00Z'),
 		updatedAt: mockTimestamp('2026-04-03T00:00:00Z'),
@@ -150,7 +201,9 @@ describe('compute_worker_stats', () => {
 	})
 
 	test('avg_resolution_days is 0 when no requests are resolved', () => {
-		const unresolved = MOCK_REQUESTS.filter((r) => r.status !== 'Resolved')
+		const unresolved = MOCK_REQUESTS.filter(
+			(r) => r.status !== STATUS.RESOLVED
+		)
 		const stats = compute_worker_stats(unresolved)
 		expect(stats.avg_resolution_days).toBe(0)
 	})
@@ -158,12 +211,12 @@ describe('compute_worker_stats', () => {
 	test('handles multiple resolved requests and rounds to 1 decimal', () => {
 		const requests = [
 			{
-				status: 'Resolved',
+				status: STATUS.RESOLVED,
 				assignedAt: mockTimestamp('2026-04-01T00:00:00Z'),
 				resolvedAt: mockTimestamp('2026-04-04T00:00:00Z'),
 			},
 			{
-				status: 'Resolved',
+				status: STATUS.RESOLVED,
 				assignedAt: mockTimestamp('2026-04-01T00:00:00Z'),
 				resolvedAt: mockTimestamp('2026-04-03T00:00:00Z'),
 			},
@@ -178,6 +231,14 @@ describe('compute_worker_stats', () => {
 ───────────────────────────────────────────────────────────────────────────── */
 
 describe('WorkerDashboard component', () => {
+	beforeEach(() => {
+		const { onAuthStateChanged } = require('firebase/auth')
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'worker_001' })
+			return jest.fn()
+		})
+	})
+
 	afterEach(() => {
 		jest.clearAllMocks()
 	})
@@ -194,7 +255,7 @@ describe('WorkerDashboard component', () => {
 		expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
 	})
 
-	test('US-003 — renders worker name in header after data loads', async () => {
+	test('US-003 — renders worker name after data loads', async () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() =>
@@ -202,7 +263,7 @@ describe('WorkerDashboard component', () => {
 		)
 	})
 
-	test('US-003 — renders worker email in header after data loads', async () => {
+	test('US-003 — renders worker email after data loads', async () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() =>
@@ -249,9 +310,8 @@ describe('WorkerDashboard component', () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() => {
-			// Isolate the specific stat card so we don't accidentally match filter counts
 			const card = screen
-				.getByText('Total assigned')
+				.getByText(`Total ${STATUS_DISPLAY[STATUS.ASSIGNED]}`)
 				.closest('.wd-stat-card')
 			expect(within(card).getByText(/4/)).toBeInTheDocument()
 		})
@@ -261,13 +321,12 @@ describe('WorkerDashboard component', () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() => {
-			// "Resolved" appears multiple times (stat label, filter button, request badge)
-			// Safely get all of them, then find the specific one that is the stat card label
-			const resolvedElements = screen.getAllByText('Resolved')
+			const resolvedElements = screen.getAllByText(
+				STATUS_DISPLAY[STATUS.RESOLVED]
+			)
 			const statLabel = resolvedElements.find((el) =>
 				el.classList.contains('wd-stat-label')
 			)
-
 			const card = statLabel.closest('.wd-stat-card')
 			expect(within(card).getByText(/1/)).toBeInTheDocument()
 		})
@@ -311,10 +370,15 @@ describe('WorkerDashboard component', () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Assigned request queue'))
-		;['All', 'Pending', 'Acknowledged', 'Resolved', 'Closed'].forEach((s) =>
-			// Target buttons specifically to avoid matching subtext like "All time"
+		;[
+			'All',
+			STATUS_DISPLAY[STATUS.ASSIGNED],
+			STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			STATUS_DISPLAY[STATUS.RESOLVED],
+			STATUS_DISPLAY[STATUS.CLOSED],
+		].forEach((s) =>
 			expect(
-				screen.getByRole('button', { name: new RegExp(s) })
+				screen.getByRole('button', { name: new RegExp(`^${s}`) })
 			).toBeInTheDocument()
 		)
 	})
@@ -333,8 +397,11 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('REQ-001'))
 
-		fireEvent.click(screen.getByRole('button', { name: /Pending/ }))
-
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: new RegExp('^' + STATUS_DISPLAY[STATUS.ASSIGNED]),
+			})
+		)
 		expect(screen.getByText('REQ-001')).toBeInTheDocument()
 		expect(screen.queryByText('REQ-007')).not.toBeInTheDocument()
 		expect(screen.queryByText('REQ-019')).not.toBeInTheDocument()
@@ -346,28 +413,36 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('REQ-019'))
 
-		fireEvent.click(screen.getByRole('button', { name: /Resolved/ }))
-
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: new RegExp('^' + STATUS_DISPLAY[STATUS.RESOLVED]),
+			})
+		)
 		expect(screen.getByText('REQ-019')).toBeInTheDocument()
 		expect(screen.queryByText('REQ-001')).not.toBeInTheDocument()
 	})
 
 	test('US-022 — shows empty state message when a filter has no results', async () => {
-		const responseWithNoAcknowledged = {
+		fetch_worker_dashboard_data.mockResolvedValueOnce({
 			...MOCK_SERVICE_RESPONSE,
-			requests: MOCK_REQUESTS.filter((r) => r.status !== 'Acknowledged'),
+			requests: MOCK_REQUESTS.filter(
+				(r) => r.status !== STATUS.IN_PROGRESS
+			),
 			stats: { ...MOCK_STATS, acknowledged: 0 },
-		}
-		fetch_worker_dashboard_data.mockResolvedValueOnce(
-			responseWithNoAcknowledged
-		)
+		})
 
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Assigned request queue'))
 
-		fireEvent.click(screen.getByRole('button', { name: /Acknowledged/ }))
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: new RegExp(STATUS_DISPLAY[STATUS.IN_PROGRESS]),
+			})
+		)
 		expect(
-			screen.getByText('No acknowledged requests assigned to you.')
+			screen.getByText(
+				`No ${STATUS_DISPLAY[STATUS.IN_PROGRESS].toLowerCase()} requests assigned to you.`
+			)
 		).toBeInTheDocument()
 	})
 
@@ -376,9 +451,12 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Potholes'))
 
-		// Isolate the exact row to verify its specific data
 		const row = screen.getByText('REQ-001').closest('.wd-req-row')
 		expect(within(row).getByText(/Ward 12/)).toBeInTheDocument()
-		expect(within(row).getByText('Pending')).toBeInTheDocument()
+		expect(
+			within(row).getByText(
+				new RegExp('^' + STATUS_DISPLAY[STATUS.ASSIGNED], 'i')
+			)
+		).toBeInTheDocument()
 	})
 })

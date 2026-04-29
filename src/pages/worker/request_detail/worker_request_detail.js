@@ -3,12 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { auth, db, storage } from '../../../firebase_config.js'
 import { update_request_status } from '../../../backend/worker_firebase.js'
+import { STATUS, STATUS_DISPLAY } from '../../../constants.js'
 import './worker_request_detail.css'
 
-const VALID_STATUSES = ['ASSIGNED', 'IN_PROGRESS', 'RESOLVED']
+const VALID_STATUSES = [
+	{ label: STATUS_DISPLAY[STATUS.ASSIGNED], value: STATUS.ASSIGNED },
+	{ label: STATUS_DISPLAY[STATUS.IN_PROGRESS], value: STATUS.IN_PROGRESS },
+	{ label: STATUS_DISPLAY[STATUS.RESOLVED], value: STATUS.RESOLVED },
+]
 
 function WorkerRequestDetail() {
-	const { id } = useParams()
+	const { request_uid } = useParams()
 	const navigate = useNavigate()
 	const [request, set_request] = useState(null)
 	const [loading, set_loading] = useState(true)
@@ -19,9 +24,8 @@ function WorkerRequestDetail() {
 	useEffect(() => {
 		const load = async () => {
 			try {
-				console.log('hi')
 				const token = await auth.currentUser.getIdToken()
-				const ret = await fetch('/api/get-unclaimed-requests', {
+				const ret = await fetch('/api/get-claimed-requests', {
 					method: 'GET',
 					headers: {
 						'Content-Type': 'application/json',
@@ -35,25 +39,27 @@ function WorkerRequestDetail() {
 				const tmp = await ret.json()
 				const data = tmp.data
 				for (const doc of data) {
-					set_request(doc)
+					if (doc.id === request_uid) {
+						set_request(doc)
+					}
 				}
 			} catch (err) {
 				console.error(err)
-				navigate('/worker')
+				navigate('/worker-dashboard')
 			} finally {
 				set_loading(false)
 			}
 		}
 		load()
-	}, [id, navigate])
+	}, [request_uid, navigate])
 
 	const handle_status_update = async (new_status) => {
 		set_updating(true)
 		set_message(null)
 		try {
-			await update_request_status(id, new_status)
+			await update_request_status(request_uid, new_status)
 			set_request((prev) => ({ ...prev, status: new_status }))
-			set_message(`Status updated to "${new_status.replace('_', ' ')}"`)
+			set_message(`Status updated to "${STATUS_DISPLAY[new_status]}"`)
 			set_is_error(false)
 		} catch (err) {
 			set_message(err.message)
@@ -75,7 +81,7 @@ function WorkerRequestDetail() {
 			<div className="wr_header">
 				<button
 					className="wr_back_btn"
-					onClick={() => navigate('/worker')}
+					onClick={() => navigate('/worker-dashboard')}
 				>
 					← Back
 				</button>
@@ -86,8 +92,10 @@ function WorkerRequestDetail() {
 				<div className="wr_card">
 					<div className="wr_card_top">
 						<h2 className="wr_category">{request.category}</h2>
-						<span className={`wr_status_badge ${request.status}`}>
-							{request.status}
+						<span
+							className={`wr_status_badge ${STATUS_DISPLAY[request.status].toLowerCase()}`}
+						>
+							{STATUS_DISPLAY[request.status]}
 						</span>
 					</div>
 
@@ -123,12 +131,16 @@ function WorkerRequestDetail() {
 					<div className="wr_status_buttons">
 						{VALID_STATUSES.map((status) => (
 							<button
-								key={status}
-								className={`wr_status_btn ${request.status === status ? 'active' : ''}`}
-								onClick={() => handle_status_update(status)}
-								disabled={updating || request.status === status}
+								key={status.value}
+								className={`wr_status_btn ${request.status === status.value ? 'active' : ''}`}
+								onClick={() =>
+									handle_status_update(status.value)
+								}
+								disabled={
+									updating || request.status === status.value
+								}
 							>
-								{status.replace('_', ' ')}
+								{status.label}
 							</button>
 						))}
 					</div>
