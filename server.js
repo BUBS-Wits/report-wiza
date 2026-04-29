@@ -346,6 +346,7 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 	}
 })
 
+/* /api/get-requests?all={true|false} */
 app.get('/api/get-requests', async (req, res) => {
 	try {
 		const conditions = []
