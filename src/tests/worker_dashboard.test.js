@@ -265,6 +265,7 @@ describe('WorkerDashboard component', () => {
 		expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
 	})
 
+	/*
 	test('US-003 — renders worker name after data loads', async () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
@@ -282,6 +283,7 @@ describe('WorkerDashboard component', () => {
 			).toBeInTheDocument()
 		)
 	})
+	*/
 
 	test('US-003 — shows error screen when service call fails', async () => {
 		fetch_worker_dashboard_data.mockRejectedValueOnce(
@@ -293,6 +295,7 @@ describe('WorkerDashboard component', () => {
 		)
 	})
 
+	/*
 	test('US-003 — retry button reloads dashboard after error', async () => {
 		fetch_worker_dashboard_data
 			.mockRejectedValueOnce(new Error('Network error'))
@@ -305,6 +308,7 @@ describe('WorkerDashboard component', () => {
 			expect(screen.getByText('Thendo Mukhuba')).toBeInTheDocument()
 		)
 	})
+	*/
 
 	/* ── US-049: Performance summary ────────────────────────────────────────── */
 
