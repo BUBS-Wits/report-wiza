@@ -70,23 +70,38 @@ export default function WorkerDashboard() {
 
 	/* ── Panel helpers ────────────────────────────────────────────────── */
 
-	const open_panel = (req) => {
+	const open_panel = useCallback((req) => {
 		set_selected_req(req)
 		requestAnimationFrame(() => set_panel_visible(true))
-	}
+	}, [])
 
-	const close_panel = () => {
+	const close_panel = useCallback(() => {
 		set_panel_visible(false)
 		setTimeout(() => set_selected_req(null), 280)
-	}
+	}, [])
 
-	const toggle_panel = (req) => {
-		if (selected_req?.id === req.id) {
-			close_panel()
-		} else {
-			open_panel(req)
+	const toggle_panel = useCallback(
+		(req) => {
+			if (selected_req?.id === req.id) {
+				close_panel()
+			} else {
+				open_panel(req)
+			}
+		},
+		[selected_req, close_panel, open_panel]
+	)
+
+	/* ── Close panel on Escape ────────────────────────────────────────── */
+
+	useEffect(() => {
+		const on_key = (e) => {
+			if (e.key === 'Escape') {
+				close_panel()
+			}
 		}
-	}
+		window.addEventListener('keydown', on_key)
+		return () => window.removeEventListener('keydown', on_key)
+	}, [close_panel])
 
 	/* ── Close panel on Escape ────────────────────────────────────────── */
 

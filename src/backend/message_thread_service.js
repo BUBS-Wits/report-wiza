@@ -175,8 +175,9 @@ export function format_message_time(timestamp) {
 		return hhmm
 	}
 
+	// FIX: 'day' is now strictly set to 'numeric'
 	const day_month = date.toLocaleDateString('en-ZA', {
-		day: 'short',
+		day: 'numeric',
 		month: 'short',
 	})
 
