@@ -53,7 +53,7 @@ function WorkerVerify() {
 				set_status('success')
 
 				// Redirect to worker dashboard after short delay
-				setTimeout(() => navigate('/worker'), 1500)
+				setTimeout(() => navigate('/worker-dashboard'), 1500)
 			} catch (err) {
 				console.error(err)
 				set_status('error')
