@@ -101,7 +101,7 @@ export default function WorkerDashboard() {
 		}
 		window.addEventListener('keydown', on_key)
 		return () => window.removeEventListener('keydown', on_key)
-	}, [close_panel])
+	}, [])
 
 	/* ── Guards ───────────────────────────────────────────────────────── */
 
