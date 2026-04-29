@@ -1,474 +1,350 @@
-import React, { useState, useEffect, useCallback } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { signOut, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
-import { fetch_worker_dashboard_data } from '../../backend/worker_dashboard_service.js'
-import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
-import MessageThread from '../../components/message_thread/message_thread.js'
+import RequestCard from '../../components/request_card/request_card.js'
 import './worker_dashboard.css'
 
-/* ── Constants ───────────────────────────────────────────────────────────── */
-
-const STATUSES = [
-	'All',
-	STATUS_DISPLAY[STATUS.ASSIGNED],
-	STATUS_DISPLAY[STATUS.IN_PROGRESS],
-	STATUS_DISPLAY[STATUS.RESOLVED],
-	STATUS_DISPLAY[STATUS.CLOSED],
+const FILTER_TABS = [
+	{ label: 'All', value: null },
+	{ label: STATUS_DISPLAY[STATUS.ASSIGNED], value: STATUS.ASSIGNED },
+	{ label: STATUS_DISPLAY[STATUS.IN_PROGRESS], value: STATUS.IN_PROGRESS },
+	{ label: STATUS_DISPLAY[STATUS.RESOLVED], value: STATUS.RESOLVED },
+	{ label: STATUS_DISPLAY[STATUS.CLOSED], value: STATUS.CLOSED },
 ]
 
 const STATUS_BADGE_CLASS = {
-	Pending: 'wd-badge--assigned',
-	Acknowledged: 'wd-badge--in-progress',
-	Resolved: 'wd-badge--resolved',
-	Closed: 'wd-badge--closed',
+	[STATUS.SUBMITTED]: 'wd-badge--submitted',
+	[STATUS.ASSIGNED]: 'wd-badge--assigned',
+	[STATUS.IN_PROGRESS]: 'wd-badge--in-progress',
+	[STATUS.RESOLVED]: 'wd-badge--resolved',
+	[STATUS.CLOSED]: 'wd-badge--closed',
+}
+const SectionHeader = ({ title, description }) => (
+	<div>
+		<h1 className="worker_top_bar_title">{title}</h1>
+		<p className="worker_top_bar_sub">{description}</p>
+	</div>
+)
+
+const SECTIONS = {
+	my_requests: {
+		title: 'My Requests',
+		description: 'Manage and update your assigned service requests',
+	},
+	available: {
+		title: 'Available Requests',
+		description: 'Unclaimed requests you can take ownership of',
+	},
+	/*
+	analytics: {
+		title: 'Analytics',
+		description: 'Worker request analytics',
+	},
+	*/
 }
 
-/* ── Main component ──────────────────────────────────────────────────────── */
+function WorkerDashboard() {
+	const [my_requests, set_my_requests] = useState([])
+	const [unclaimed_requests, set_unclaimed_requests] = useState([])
+	const [loading, set_loading] = useState(false)
+	const [claiming_id, set_claiming_id] = useState(null)
+	const [active_filter, set_active_filter] = useState(null)
+	const [active_section, set_active_section] = useState('my_requests')
+	const navigate = useNavigate()
 
-export default function WorkerDashboard() {
-	const [worker, set_worker] = useState(null)
-	const [requests, set_requests] = useState([])
-	const [stats, set_stats] = useState(null)
-	const [loading, set_loading] = useState(true)
-	const [error, set_error] = useState(null)
-	const [active_filter, set_filter] = useState('All')
-	const [selected_req, set_selected_req] = useState(null) // drives the panel
-	const [panel_visible, set_panel_visible] = useState(false) // drives CSS transition
+	const get_claimed_requests = async () => {
+		const token = await auth.currentUser.getIdToken()
+		const ret = await fetch('/api/get-claimed-requests', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+		if (!ret.ok) {
+			console.error('Failed: ', await ret.json())
+			return []
+		}
+		const tmp = await ret.json()
+		const data = tmp.data
+		console.log('claimed: ', data)
+		return data
+	}
 
-	/* ── Load dashboard data ──────────────────────────────────────────── */
+	const get_unclaimed_requests = async () => {
+		const token = await auth.currentUser.getIdToken()
+		const ret = await fetch('/api/get-unclaimed-requests', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+		})
+		if (!ret.ok) {
+			console.error('Failed: ', await ret.json())
+			return []
+		}
+		const tmp = await ret.json()
+		const data = tmp.data
+		console.log('unclaimed: ', data)
+		return data
+	}
 
-	const load_dashboard = useCallback(async (uid) => {
+	const load_requests = async () => {
 		set_loading(true)
-		set_error(null)
 		try {
-			const { worker, requests, stats } =
-				await fetch_worker_dashboard_data(uid)
-			set_worker(worker)
-			set_requests(requests)
-			set_stats(stats)
+			const [claimed, unclaimed] = await Promise.all([
+				get_claimed_requests(auth.currentUser.uid),
+				get_unclaimed_requests(),
+			])
+			console.log(claimed, unclaimed)
+			set_my_requests(claimed)
+			set_unclaimed_requests(unclaimed)
 		} catch (err) {
-			set_error(err.message || 'Failed to load dashboard.')
+			console.error(err)
 		} finally {
 			set_loading(false)
 		}
-	}, [])
-
-	/* ── Auth ─────────────────────────────────────────────────────────── */
+	}
 
 	useEffect(() => {
 		const unsub = onAuthStateChanged(auth, (user) => {
-			if (!user) {
-				set_error('You are not logged in.')
-				set_loading(false)
+			if (!auth.currentUser) {
+				navigate('/login')
 				return
 			}
-			load_dashboard(user.uid)
+			if (loading) {
+				return
+			}
+			load_requests()
 		})
 		return unsub
-	}, [load_dashboard])
+	}, [navigate, active_section])
 
-	/* ── Panel helpers ────────────────────────────────────────────────── */
-
-	const open_panel = useCallback((req) => {
-		set_selected_req(req)
-		requestAnimationFrame(() => set_panel_visible(true))
-	}, [])
-
-	const close_panel = useCallback(() => {
-		set_panel_visible(false)
-		setTimeout(() => set_selected_req(null), 280)
-	}, [])
-
-	const toggle_panel = useCallback(
-		(req) => {
-			if (selected_req?.id === req.id) {
-				close_panel()
-			} else {
-				open_panel(req)
-			}
-		},
-		[selected_req, close_panel, open_panel]
-	)
-
-	/* ── Close panel on Escape ────────────────────────────────────────── */
-
-	useEffect(() => {
-		const on_key = (e) => {
-			if (e.key === 'Escape') {
-				close_panel()
-			}
-		}
-		window.addEventListener('keydown', on_key)
-		return () => window.removeEventListener('keydown', on_key)
-	}, [])
-
-	/* ── Guards ───────────────────────────────────────────────────────── */
-
-	if (loading) {
-		return <LoadingScreen />
+	const handle_signout = async () => {
+		await signOut(auth)
+		navigate('/login')
 	}
 
-	if (error) {
-		return (
-			<ErrorScreen
-				message={error}
-				onRetry={() => load_dashboard(auth.currentUser?.uid)}
-			/>
+	const claim_request = async (request_id) => {
+		const token = await auth.currentUser.getIdToken()
+		const req = await fetch(
+			`/api/claim-request?request_uid=${request_id}`,
+			{
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+			}
 		)
+		if (!req.ok) {
+			alert('Failed to claim request. Browse console logs.')
+			console.error('Failed:\n', await req.json())
+			return
+		}
+		console.log(await req.json())
+		return
 	}
 
-	if (!worker || !stats) {
-		return null
+	const handle_claim = async (request_id) => {
+		set_claiming_id(request_id)
+		try {
+			await claim_request(request_id, auth.currentUser.uid)
+			await load_requests()
+			set_active_section('my_requests')
+		} catch (err) {
+			console.error(err)
+		} finally {
+			set_claiming_id(null)
+		}
 	}
-
-	/* ── Derived values ───────────────────────────────────────────────── */
 
 	const filtered_requests =
-		active_filter === 'All'
-			? requests
-			: requests.filter((r) => STATUS_DISPLAY[r.status] === active_filter)
-
-	const count_by_status = (status) =>
-		requests.filter((r) => STATUS_DISPLAY[r.status] === status).length
-
-	const awaiting_action = stats.pending + stats.acknowledged
-
-	const resolved_pct =
-		stats.total > 0
-			? `${Math.round((stats.resolved / stats.total) * 100)}% of assigned`
-			: '—'
-
-	const avg_display =
-		stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
-
-	/* ── Render ───────────────────────────────────────────────────────── */
+		active_filter === null
+			? my_requests
+			: active_filter === STATUS.SUBMITTED
+				? my_requests.filter(
+						(r) =>
+							r.status === STATUS.SUBMITTED ||
+							r.status === STATUS.ASSIGNED
+					)
+				: my_requests.filter((r) => r.status === active_filter)
 
 	return (
-		<div className="wd-page">
-			<Worker_nav_bar
-				user={{
-					uid: worker.uid,
-					name: worker.name,
-					email: worker.email,
-					role: worker.role,
-					initials: get_initials(worker.name),
-				}}
-			/>
-
-			{/*
-			  wd-layout shifts the main content left when the panel is open,
-			  making room for the slide-in panel alongside it on desktop.
-			  On mobile the panel overlays on top of the backdrop.
-			*/}
-			<div
-				className={`wd-layout${selected_req ? ' wd-layout--panel-open' : ''}`}
-			>
-				<main className="wd-main">
-					{/* ── Performance summary ─────────────────────────────── */}
-					<section className="wd-section">
-						<h2 className="wd-section-title">
-							Performance summary
-						</h2>
-						<div className="wd-stats-grid">
-							<StatCard
-								label={
-									'Total ' + STATUS_DISPLAY[STATUS.ASSIGNED]
-								}
-								value={stats.total}
-								sub="All time"
-							/>
-							<StatCard
-								label={STATUS_DISPLAY[STATUS.RESOLVED]}
-								value={stats.resolved}
-								sub={resolved_pct}
-								value_modifier="success"
-							/>
-							<StatCard
-								label="Avg. resolution time"
-								value={
-									avg_display !== '—' ? (
-										<>
-											{avg_display}
-											<span className="wd-stat-unit">
-												{' '}
-												d
-											</span>
-										</>
-									) : (
-										'—'
-									)
-								}
-								sub="Across resolved requests"
-							/>
-							<StatCard
-								label="Awaiting action"
-								value={awaiting_action}
-								sub={`${STATUS_DISPLAY[STATUS.ASSIGNED]} + ${STATUS_DISPLAY[STATUS.IN_PROGRESS]}`}
-								value_modifier={
-									awaiting_action > 0 ? 'warning' : null
-								}
-							/>
+		<div className="worker_page">
+			<aside className="worker_sidebar">
+				<div className="worker_sidebar_logo">
+					REPORT-<span>WIZA</span>
+				</div>
+				<div className="worker_sidebar_role">Worker Portal</div>
+				<nav className="worker_sidebar_nav">
+					<div
+						className={`worker_sidebar_item ${active_section === 'my_requests' ? 'active' : ''}`}
+						onClick={() => set_active_section('my_requests')}
+					>
+						My Requests
+					</div>
+					<div
+						className={`worker_sidebar_item ${active_section === 'available' ? 'active' : ''}`}
+						onClick={() => set_active_section('available')}
+					>
+						Available Requests
+						{unclaimed_requests.length > 0 && (
+							<span className="worker_sidebar_badge">
+								{unclaimed_requests.length}
+							</span>
+						)}
+					</div>
+					<div
+						className={`worker_sidebar_item ${active_section === 'analytics' ? 'active' : ''}`}
+						onClick={() => navigate('/worker-analytics')}
+					>
+						Analytics
+					</div>
+					<div
+						className={`worker_sidebar_item ${active_section === 'messages' ? 'active' : ''}`}
+						onClick={() => navigate('/worker-dashboard/messages')}
+					>
+						Messages
+					</div>
+				</nav>
+				<div className="worker_sidebar_bottom">
+					<div className="worker_sidebar_avatar">
+						{auth.currentUser?.displayName?.[0] || 'W'}
+					</div>
+					<div className="worker_sidebar_user_info">
+						<div className="worker_sidebar_user_name">
+							{auth.currentUser?.displayName || 'Worker'}
 						</div>
-					</section>
+						<div className="worker_sidebar_user_role">
+							Municipal Worker
+						</div>
+					</div>
+				</div>
+			</aside>
 
-					{/* ── Request queue ───────────────────────────────────── */}
-					<section className="wd-section">
-						<div className="wd-queue-top-row">
-							<h2
-								className="wd-section-title"
-								style={{ marginBottom: 0 }}
-							>
-								Assigned request queue
-							</h2>
-							<div className="wd-filter-row">
-								{STATUSES.map((s) => (
+			<div className="worker_main">
+				<div className="worker_top_bar">
+					<div>
+						<SectionHeader {...SECTIONS[active_section]} />
+					</div>
+					<button
+						className="worker_signout_btn"
+						onClick={handle_signout}
+					>
+						Sign out
+					</button>
+				</div>
+
+				<div className="worker_content">
+					{active_section === 'my_requests' && (
+						<>
+							<div className="worker_filters">
+								{FILTER_TABS.map((f) => (
 									<button
-										key={s}
-										onClick={() => set_filter(s)}
-										className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
+										key={f}
+										className={`worker_filter_btn ${active_filter === f.value ? 'active' : ''}`}
+										onClick={() =>
+											set_active_filter(f.value)
+										}
 									>
-										{s}
-										{s !== 'All' && (
-											<span className="wd-filter-count">
-												{count_by_status(s)}
-											</span>
-										)}
+										{f.label}
 									</button>
 								))}
 							</div>
-						</div>
-
-						<div className="wd-queue-card">
-							{filtered_requests.length === 0 ? (
-								<EmptyQueue filter={active_filter} />
+							{loading ? (
+								<p className="worker_loading">
+									Loading requests...
+								</p>
+							) : filtered_requests.length === 0 ? (
+								<p className="worker_empty">
+									No requests found.
+								</p>
 							) : (
-								filtered_requests.map((req) => (
-									<RequestRow
-										key={req.id}
-										req={req}
-										is_selected={
-											selected_req?.id === req.id
-										}
-										on_click={() => toggle_panel(req)}
-									/>
-								))
+								<div className="worker_requests_grid">
+									{filtered_requests.map((request) => (
+										<div
+											key={request.id}
+											className="worker_card_wrapper"
+											onClick={() =>
+												navigate(
+													`/worker/requests/${request.id}`
+												)
+											}
+										>
+											<RequestCard request={request} />
+										</div>
+									))}
+								</div>
 							)}
-						</div>
-					</section>
-				</main>
-
-				{/* ── Slide-in detail + message panel ─────────────────────── */}
-				{selected_req && (
-					<aside
-						className={`wd-detail-panel${panel_visible ? ' wd-detail-panel--visible' : ''}`}
-						aria-label="Request detail and messaging"
-					>
-						<RequestDetailPanel
-							req={selected_req}
-							worker={worker}
-							on_close={close_panel}
-						/>
-					</aside>
-				)}
-			</div>
-
-			{/* ── Mobile backdrop ─────────────────────────────────────────── */}
-			{selected_req && (
-				<div
-					className={`wd-backdrop${panel_visible ? ' wd-backdrop--visible' : ''}`}
-					onClick={close_panel}
-					aria-hidden="true"
-				/>
-			)}
-		</div>
-	)
-}
-
-/* ── RequestDetailPanel ──────────────────────────────────────────────────── */
-
-/**
- * Rendered inside the slide-in panel when a row is clicked.
- * Shows request metadata then embeds MessageThread.
- *
- * Expects these extra fields on req (beyond what RequestRow uses):
- *   req.user_uid       {string}  Firebase UID of the resident — required for messaging
- *   req.resident_name  {string}  Display name of the resident — optional
- */
-function RequestDetailPanel({ req, worker, on_close }) {
-	const display_date = req.updatedAt?.toMillis
-		? new Date(req.updatedAt.toMillis()).toISOString().split('T')[0]
-		: (req.updatedAt ?? '—')
-
-	const resident_name = req.resident_name || 'Resident'
-
-	return (
-		<div className="wd-panel-inner">
-			{/* Header */}
-			<div className="wd-panel-header">
-				<div className="wd-panel-header-left">
-					<span className="wd-panel-req-id">{req.id}</span>
-					<span
-						className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
-					>
-						{STATUS_DISPLAY[req.status]}
-					</span>
+						</>
+					)}
+					{active_section === 'available' && (
+						<>
+							{loading ? (
+								<p className="worker_loading">Loading...</p>
+							) : unclaimed_requests.length === 0 ? (
+								<p className="worker_empty">
+									No unclaimed requests.
+								</p>
+							) : (
+								<div className="worker_requests_grid">
+									{unclaimed_requests.map((request) => (
+										<div
+											key={request.id}
+											className="worker_unclaimed_card"
+										>
+											<div className="request_card">
+												<div className="request_card_top">
+													<h3>{request.category}</h3>
+													<span
+														className={`status_badge ${STATUS_BADGE_CLASS[request.status]}`}
+													>
+														{
+															STATUS_DISPLAY[
+																request.status
+															]
+														}
+													</span>
+												</div>
+												<p className="request_location">
+													{request.sa_ward
+														? `Ward ${request.sa_ward}`
+														: '—'}{' '}
+													· {request.sa_m_name || '—'}
+												</p>
+												<p className="request_description">
+													{request.description}
+												</p>
+												<button
+													className="worker_claim_btn"
+													onClick={() =>
+														handle_claim(request.id)
+													}
+													disabled={
+														claiming_id ===
+														request.id
+													}
+												>
+													{claiming_id === request.id
+														? 'Claiming...'
+														: 'Claim'}
+												</button>
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+						</>
+					)}
+					{/*active_section === 'analytics' && <WorkerDashboard />*/}
 				</div>
-				<button
-					className="wd-panel-close"
-					onClick={on_close}
-					aria-label="Close panel"
-				>
-					<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-						<path
-							d="M3 3l10 10M13 3L3 13"
-							stroke="currentColor"
-							strokeWidth="1.75"
-							strokeLinecap="round"
-						/>
-					</svg>
-				</button>
-			</div>
-
-			{/* Metadata */}
-			<dl className="wd-panel-meta">
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Category</dt>
-					<dd className="wd-panel-meta-value">{req.category}</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Ward</dt>
-					<dd className="wd-panel-meta-value">{req.ward}</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Last updated</dt>
-					<dd className="wd-panel-meta-value">{display_date}</dd>
-				</div>
-				<div className="wd-panel-meta-row wd-panel-meta-row--full">
-					<dt className="wd-panel-meta-label">Description</dt>
-					<dd className="wd-panel-meta-value wd-panel-meta-desc">
-						{req.description}
-					</dd>
-				</div>
-			</dl>
-
-			{/* Section label */}
-			<div className="wd-panel-divider">
-				<span>Conversation with resident</span>
-			</div>
-
-			{/* MessageThread */}
-			<div className="wd-panel-thread">
-				{req.user_uid ? (
-					<MessageThread
-						request_id={req.id}
-						current_uid={worker.uid}
-						current_name={worker.name}
-						current_role="worker"
-						other_uid={req.user_uid}
-						other_name={resident_name}
-					/>
-				) : (
-					<p className="wd-panel-no-resident">
-						Resident information unavailable — messaging is disabled
-						for this request.
-					</p>
-				)}
 			</div>
 		</div>
 	)
 }
 
-/* ── Utility ─────────────────────────────────────────────────────────────── */
-
-function get_initials(name = '') {
-	return name
-		.split(' ')
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((w) => w[0].toUpperCase())
-		.join('')
-}
-
-/* ── Sub-components ──────────────────────────────────────────────────────── */
-
-function StatCard({ label, value, sub, value_modifier }) {
-	const cls = [
-		'wd-stat-value',
-		value_modifier && `wd-stat-value--${value_modifier}`,
-	]
-		.filter(Boolean)
-		.join(' ')
-
-	return (
-		<div className="wd-stat-card">
-			<div className="wd-stat-label">{label}</div>
-			<div className={cls}>{value}</div>
-			<div className="wd-stat-sub">{sub}</div>
-		</div>
-	)
-}
-
-/**
- * RequestRow — now a <button> so it's keyboard-accessible.
- * New props vs the original:
- *   is_selected  {boolean}   highlights the row while its panel is open
- *   on_click     {function}  toggles the detail panel
- */
-function RequestRow({ req, is_selected, on_click }) {
-	const display_date = req.updatedAt?.toMillis
-		? new Date(req.updatedAt.toMillis()).toISOString().split('T')[0]
-		: (req.updatedAt ?? '—')
-
-	return (
-		<button
-			className={`wd-req-row${is_selected ? ' wd-req-row--selected' : ''}`}
-			onClick={on_click}
-			aria-pressed={is_selected}
-			aria-label={`Open request ${req.id} — ${req.category}, ${STATUS_DISPLAY[req.status]}`}
-		>
-			<span className="wd-req-id">{req.id}</span>
-			<span className="wd-req-cat">{req.category}</span>
-			<span className="wd-req-desc">{req.description}</span>
-			<span
-				className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
-			>
-				{STATUS_DISPLAY[req.status]}
-			</span>
-			<span className="wd-req-meta">
-				{req.ward} · {display_date}
-			</span>
-			<span className="wd-req-chevron" aria-hidden="true">
-				›
-			</span>
-		</button>
-	)
-}
-
-function EmptyQueue({ filter }) {
-	return (
-		<div className="wd-empty-queue">
-			No {filter === 'All' ? '' : `${filter.toLowerCase()} `}requests
-			assigned to you.
-		</div>
-	)
-}
-
-function LoadingScreen() {
-	return (
-		<div className="wd-centered-screen">
-			<div className="wd-loading-text">Loading dashboard…</div>
-		</div>
-	)
-}
-
-function ErrorScreen({ message, onRetry }) {
-	return (
-		<div className="wd-centered-screen">
-			<div className="wd-error-text">{message}</div>
-			<button className="wd-retry-btn" onClick={onRetry}>
-				Try again
-			</button>
-		</div>
-	)
-}
+export default WorkerDashboard

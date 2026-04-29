@@ -1,7 +1,7 @@
 import {
 	compute_worker_stats,
 	fetch_worker_dashboard_data,
-} from '../backend/worker_dashboard_service.js'
+} from '../backend/worker_analytics_service.js'
 import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────

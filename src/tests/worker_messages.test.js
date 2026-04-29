@@ -5,7 +5,7 @@ import '@testing-library/jest-dom'
 
 import WorkerMessages from '../pages/worker_messages/worker_messages.js'
 import { onAuthStateChanged } from 'firebase/auth'
-import { fetch_worker_dashboard_data } from '../backend/worker_dashboard_service.js'
+import { fetch_worker_dashboard_data } from '../backend/worker_analytics_service.js'
 import { subscribe_to_worker_conversations } from '../backend/worker_conversations_service.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ jest.mock('firebase/auth', () => ({
 	onAuthStateChanged: jest.fn(),
 }))
 
-jest.mock('../backend/worker_dashboard_service.js', () => ({
+jest.mock('../backend/worker_analytics_service.js', () => ({
 	fetch_worker_dashboard_data: jest.fn(),
 }))
 

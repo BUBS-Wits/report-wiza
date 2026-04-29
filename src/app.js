@@ -8,10 +8,10 @@ import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/submit/request_page.js'
 import AdminDashboard from './pages/admin_dashboard/admin_dashboard.js'
 import WorkerVerify from './pages/worker_verify/worker_verify.js'
-import WorkerDashboardMain from './pages/worker/worker_dashboard.js'
-import WorkerRequestDetail from './pages/worker/request_detail/worker_request_detail.js'
-import CategoryReport from './pages/category_report/category_report.js'
 import WorkerDashboard from './pages/worker_dashboard/worker_dashboard.js'
+import WorkerRequestDetail from './pages/worker_dashboard/request_detail/worker_request_detail.js'
+import CategoryReport from './pages/category_report/category_report.js'
+import WorkerAnalytics from './pages/worker_analytics/worker_analytics.js'
 import WorkerMessages from './pages/worker_messages/worker_messages.js'
 import ResidentDashboard from './pages/resident_dashboard/resident_dashboard.js'
 import './app.css'
@@ -28,10 +28,7 @@ function App() {
 				<Route path="/login" element={<Login />} />
 				<Route path="/admin" element={<AdminDashboard />} />
 				<Route path="/worker-verify" element={<WorkerVerify />} />
-				<Route
-					path="/worker-dashboard"
-					element={<WorkerDashboardMain />}
-				/>
+				<Route path="/worker-dashboard" element={<WorkerDashboard />} />
 				<Route
 					path="/worker/requests/:request_uid"
 					element={<WorkerRequestDetail />}
@@ -50,7 +47,7 @@ function App() {
 				/>
 			</Routes>
 			<Routes>
-				<Route path="/worker" element={<WorkerDashboard />} />
+				<Route path="/worker-analytics" element={<WorkerAnalytics />} />
 			</Routes>
 		</BrowserRouter>
 	)

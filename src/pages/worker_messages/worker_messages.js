@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
-import { fetch_worker_dashboard_data } from '../../backend/worker_dashboard_service.js'
+import { fetch_worker_dashboard_data } from '../../backend/worker_analytics_service.js'
 import { subscribe_to_worker_conversations } from '../../backend/worker_conversations_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import MessageThread from '../../components/message_thread/message_thread.js'

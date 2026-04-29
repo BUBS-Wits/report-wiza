@@ -15,7 +15,7 @@ import '@testing-library/jest-dom'
 ───────────────────────────────────────────────────────────────────────────── */
 
 // ── CSS ──────────────────────────────────────────────────────────────────────
-jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}))
+jest.mock('../pages/worker_analytics/worker_analytics.css', () => ({}))
 
 // ── Worker nav bar ────────────────────────────────────────────────────────────
 jest.mock(
@@ -57,7 +57,7 @@ jest.mock('../firebase_config.js', () => ({
 }))
 
 // ── Service layer ─────────────────────────────────────────────────────────────
-jest.mock('../backend/worker_dashboard_service.js', () => {
+jest.mock('../backend/worker_analytics_service.js', () => {
 	const compute_worker_stats = (requests) => {
 		const t = jest.requireActual('../constants.js')
 		const by_status = (status) =>
@@ -99,11 +99,11 @@ jest.mock('../backend/worker_dashboard_service.js', () => {
    Imports
 ───────────────────────────────────────────────────────────────────────────── */
 
-import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard.js'
+import WorkerDashboard from '../pages/worker_analytics/worker_analytics.js'
 import {
 	fetch_worker_dashboard_data,
 	compute_worker_stats,
-} from '../backend/worker_dashboard_service.js'
+} from '../backend/worker_analytics_service.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared fixtures
