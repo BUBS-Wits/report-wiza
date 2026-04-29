@@ -199,22 +199,18 @@ function WorkerDashboardMain() {
 							</span>
 						)}
 					</div>
-					{/*
 					<div
 						className={`worker_sidebar_item ${active_section === 'analytics' ? 'active' : ''}`}
-						onClick={() => set_active_section('analytics')}
+						onClick={() => navigate('/worker')}
 					>
 						Analytics
 					</div>
-					*/}
-					{/*
 					<div
 						className={`worker_sidebar_item ${active_section === 'messages' ? 'active' : ''}`}
 						onClick={() => navigate('/worker-dashboard/messages')}
 					>
 						Messages
 					</div>
-					*/}
 				</nav>
 				<div className="worker_sidebar_bottom">
 					<div className="worker_sidebar_avatar">
