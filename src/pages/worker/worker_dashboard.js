@@ -98,7 +98,7 @@ function WorkerDashboardMain() {
 			load_requests()
 		})
 		return unsub
-	}, [navigate, active_section]) // eslint-disable-line react-hooks/exhaustive-deps
+	}, [navigate, active_section])
 
 	const handle_signout = async () => {
 		await signOut(auth)

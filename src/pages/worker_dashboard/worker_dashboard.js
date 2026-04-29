@@ -103,18 +103,6 @@ export default function WorkerDashboard() {
 		return () => window.removeEventListener('keydown', on_key)
 	}, [close_panel])
 
-	/* ── Close panel on Escape ────────────────────────────────────────── */
-
-	useEffect(() => {
-		const on_key = (e) => {
-			if (e.key === 'Escape') {
-				close_panel()
-			}
-		}
-		window.addEventListener('keydown', on_key)
-		return () => window.removeEventListener('keydown', on_key)
-	}, [])
-
 	/* ── Guards ───────────────────────────────────────────────────────── */
 
 	if (loading) {
