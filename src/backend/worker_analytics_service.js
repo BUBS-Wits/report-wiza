@@ -7,18 +7,7 @@ import {
 	getDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
-
-/* ── Constants ───────────────────────────────────────────────────────────── */
-
-// Normalise Firestore status strings to display form
-const NORMALISE_STATUS = {
-	OPEN: 'Pending',
-	PENDING: 'Pending',
-	ACKNOWLEDGED: 'Acknowledged',
-	IN_PROGRESS: 'Acknowledged',
-	RESOLVED: 'Resolved',
-	CLOSED: 'Closed',
-}
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -77,7 +66,7 @@ const fetch_assigned_requests = async (worker_uid) => {
 	chunk_results.forEach((snap) => {
 		snap.docs.forEach((d) => {
 			const data = d.data()
-			const raw_status = (data.status ?? '').toUpperCase()
+			const raw_status = data.status ?? 0
 
 			requests.push({
 				id: d.id,
@@ -87,7 +76,7 @@ const fetch_assigned_requests = async (worker_uid) => {
 					data.location?.ward_name ??
 					(data.sa_ward ? `Ward ${data.sa_ward}` : 'Unknown ward'),
 				municipality: data.municipality ?? 'Unknown municipality',
-				status: NORMALISE_STATUS[raw_status] ?? 'Pending',
+				status: data.status ?? 1,
 				priority: data.priority ?? 'Medium',
 				assignedAt: data.assigned_at ?? null,
 				updatedAt: data.updated_at ?? null,
@@ -114,7 +103,7 @@ const fetch_assigned_requests = async (worker_uid) => {
 export const compute_worker_stats = (requests) => {
 	const by_status = (status) => requests.filter((r) => r.status === status)
 
-	const resolved = by_status('Resolved')
+	const resolved = by_status(STATUS.RESOLVED)
 
 	let avg_resolution_days = 0
 	if (resolved.length > 0) {
@@ -133,9 +122,9 @@ export const compute_worker_stats = (requests) => {
 	return {
 		total: requests.length,
 		resolved: resolved.length,
-		pending: by_status('Pending').length,
-		acknowledged: by_status('Acknowledged').length,
-		closed: by_status('Closed').length,
+		pending: by_status(STATUS.ASSIGNED).length,
+		acknowledged: by_status(STATUS.IN_PROGRESS).length,
+		closed: by_status(STATUS.CLOSED).length,
 		avg_resolution_days,
 	}
 }

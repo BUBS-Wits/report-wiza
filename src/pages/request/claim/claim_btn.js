@@ -14,21 +14,24 @@ function ClaimBtn({ request_id }) {
 		}
 		set_claiming(1)
 		try {
-			const user_creq_ref = doc(db, 'claimed_requests', request_id)
-			if (!(await getDoc(user_creq_ref)).exists()) {
-				throw new Error(
-					`Service request "${request_id}" already claimed.`
-				)
+			const token = await auth.currentUser.getIdToken()
+			const req = await fetch(
+				`/api/claim-request?request_uid=${request_id}`,
+				{
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			)
+			if (!req.ok) {
+				alert('Failed to claim request. Browse console logs.')
+				console.error('Failed:\n', await req.json())
+				return
 			}
-			const user_sreq_ref = doc(db, 'service_requests', request_id)
-			if (!(await getDoc(user_sreq_ref)).exists()) {
-				throw new Error(
-					`Service request "${request_id}" does not exist.`
-				)
-			}
-			setDoc(user_creq_ref, {
-				worker_id: auth.currentUser.uid,
-			})
+			alert('Request successfully claimed.')
+			console.log(await req.json())
 		} catch (err) {
 			console.error(`Failed to claim request "${request_id}"`)
 			console.error(err)

@@ -20,41 +20,6 @@ const NAV_ITEMS = [
 		),
 	},
 	{
-		key: 'queue',
-		label: 'My Queue',
-		to: '/worker-dashboard/queue',
-		badge: 14,
-		icon: (
-			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
-				<path d="M2 4h12M2 8h12M2 12h8" />
-			</svg>
-		),
-	},
-	{
-		key: 'available',
-		label: 'Available',
-		to: '/worker-dashboard/available',
-		badge: 6,
-		badgeStyle: 'ghost',
-		icon: (
-			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
-				<circle cx="8" cy="8" r="6" />
-				<path d="M8 5v3l2 2" />
-			</svg>
-		),
-	},
-	{
-		key: 'history',
-		label: 'History',
-		to: '/worker-dashboard/history',
-		icon: (
-			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
-				<path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2z" />
-				<path d="M8 5v3.5l2.5 1.5" />
-			</svg>
-		),
-	},
-	{
 		key: 'messages',
 		label: 'Messages',
 		to: '/worker-dashboard/messages',

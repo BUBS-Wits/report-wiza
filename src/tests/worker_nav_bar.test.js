@@ -82,28 +82,10 @@ describe('Worker Navbar Component', () => {
 		render(<Worker_nav_bar />)
 
 		expect(screen.getByText('Overview')).toBeInTheDocument()
-		expect(screen.getByText('My Queue')).toBeInTheDocument()
-		expect(screen.getByText('Available')).toBeInTheDocument()
-		expect(screen.getByText('History')).toBeInTheDocument()
 		expect(screen.getByText('Messages')).toBeInTheDocument()
 
 		// Check for specific badges
-		expect(screen.getByText('14')).toBeInTheDocument() // Queue badge
-		expect(screen.getByText('6')).toBeInTheDocument() // Available badge
 		expect(screen.getByText('3')).toBeInTheDocument() // Messages badge
-	})
-
-	test('applies active class to the current route', () => {
-		// Simulate being on the Queue page
-		mockLocation = { pathname: '/worker-dashboard/queue' }
-
-		render(<Worker_nav_bar />)
-
-		const queueLink = screen.getByTestId('link-/worker-dashboard/queue')
-		const overviewLink = screen.getByTestId('link-/worker-dashboard')
-
-		expect(queueLink).toHaveClass('wd_nav_link_active')
-		expect(overviewLink).not.toHaveClass('wd_nav_link_active')
 	})
 
 	test('applies scrolled styling when window is scrolled down', () => {

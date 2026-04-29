@@ -1,7 +1,8 @@
 import {
 	compute_worker_stats,
 	fetch_worker_dashboard_data,
-} from '../backend/worker_dashboard_service.js'
+} from '../backend/worker_analytics_service.js'
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Mocks
@@ -55,12 +56,12 @@ describe('Worker Dashboard Service', () => {
 
 		test('correctly tallies request statuses', () => {
 			const requests = [
-				{ status: 'Pending' },
-				{ status: 'Pending' },
-				{ status: 'Acknowledged' },
-				{ status: 'Resolved' },
-				{ status: 'Closed' },
-				{ status: 'Closed' },
+				{ status: STATUS.ASSIGNED },
+				{ status: STATUS.ASSIGNED },
+				{ status: STATUS.IN_PROGRESS },
+				{ status: STATUS.RESOLVED },
+				{ status: STATUS.CLOSED },
+				{ status: STATUS.CLOSED },
 			]
 
 			const stats = compute_worker_stats(requests)
@@ -75,17 +76,17 @@ describe('Worker Dashboard Service', () => {
 			const now = Date.now()
 			const requests = [
 				{
-					status: 'Resolved',
+					status: STATUS.RESOLVED,
 					assignedAt: mockTimestamp(now),
 					resolvedAt: mockTimestamp(now + ONE_DAY_MS * 2), // 2 days
 				},
 				{
-					status: 'Resolved',
+					status: STATUS.RESOLVED,
 					assignedAt: mockTimestamp(now),
 					resolvedAt: mockTimestamp(now + ONE_DAY_MS * 4), // 4 days
 				},
 				{
-					status: 'Pending', // Should be ignored in avg calculation
+					status: STATUS.ASSIGNED, // Should be ignored in avg calculation
 					assignedAt: mockTimestamp(now),
 				},
 			]
@@ -99,7 +100,7 @@ describe('Worker Dashboard Service', () => {
 			const now = Date.now()
 			const requests = [
 				{
-					status: 'Resolved',
+					status: STATUS.RESOLVED,
 					assignedAt: mockTimestamp(now),
 					updatedAt: mockTimestamp(now + ONE_DAY_MS * 1.5), // 1.5 days
 				},
@@ -180,7 +181,7 @@ describe('Worker Dashboard Service', () => {
 					{
 						id: 'req_1',
 						data: () => ({
-							status: 'OPEN',
+							status: STATUS.ASSIGNED,
 							category: 'Pothole',
 							updated_at: mockUpdatedAt1,
 							location: { ward_name: 'Ward 10' },
@@ -189,7 +190,7 @@ describe('Worker Dashboard Service', () => {
 					{
 						id: 'req_2',
 						data: () => ({
-							status: 'IN_PROGRESS',
+							status: STATUS.IN_PROGRESS,
 							category: 'Water Leak',
 							updated_at: mockUpdatedAt2,
 							sa_ward: '15',
@@ -205,11 +206,11 @@ describe('Worker Dashboard Service', () => {
 
 			// Should be sorted by newest updated first (req_2 then req_1)
 			expect(data.requests[0].id).toBe('req_2')
-			expect(data.requests[0].status).toBe('Acknowledged') // IN_PROGRESS -> Acknowledged
+			expect(data.requests[0].status).toBe(STATUS.IN_PROGRESS) // IN_PROGRESS -> Acknowledged
 			expect(data.requests[0].ward).toBe('Ward 15') // Fallback to sa_ward
 
 			expect(data.requests[1].id).toBe('req_1')
-			expect(data.requests[1].status).toBe('Pending') // OPEN -> Pending
+			expect(data.requests[1].status).toBe(STATUS.ASSIGNED) // OPEN -> Pending
 			expect(data.requests[1].ward).toBe('Ward 10')
 
 			// Verify stats were computed
