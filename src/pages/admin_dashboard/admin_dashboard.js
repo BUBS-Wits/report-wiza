@@ -11,6 +11,7 @@ import WorkersList from '../../components/workers_list/workers_list.js'
 import './admin_dashboard.css'
 import AdminRequests from '../../components/admin_requests/admin_requests.js'
 
+
 function AdminDashboard({ section = 'workers' }) {
 	const [active_section, set_active_section] = useState(section)
 	const [workers, set_workers] = useState([])
@@ -18,6 +19,9 @@ function AdminDashboard({ section = 'workers' }) {
 	const [revoking_uid, set_revoking_uid] = useState(null)
 	const [message, set_message] = useState(null)
 	const [is_error, set_is_error] = useState(false)
+	useEffect(() => {
+		set_active_section(section)
+	}, [section])
 
 	const load_workers = async () => {
 		set_workers_loading(true)
