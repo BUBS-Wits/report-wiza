@@ -97,16 +97,18 @@ const STALE_DAYS = 3
 
 export const fetch_stale_requests = async () => {
 	try {
-		const cutoff = Timestamp.fromMillis(
-			Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000
-		)
-		const q = query(
-			collection(db, 'service_requests'),
-			where('status', '==', 'pending'),
-			where('created_at', '<=', cutoff)
-		)
-		const snapshot = await getDocs(q)
-		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+		const cutoff = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000)
+		const snapshot = await getDocs(collection(db, 'service_requests'))
+		const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+
+		return all.filter((r) => {
+			// status 0 or 1 means not resolved/closed
+			const is_open = r.status === 0 || r.status === 1
+			// created_at is a string so parse it
+			const created = new Date(r.created_at)
+			const is_stale = created < cutoff
+			return is_open && is_stale
+		})
 	} catch (error) {
 		console.error('Error fetching stale requests:', error)
 		throw new Error('Could not load stale requests. Try again.')
@@ -195,12 +197,35 @@ export const fetch_worker_performance = async () => {
 				name: w.data().display_name ?? 'Unknown',
 				total: worker_requests.length,
 				resolved: resolved.length,
-				pending: worker_requests.filter((r) => r.status === 'pending').length,
+				pending: worker_requests.filter((r) => r.status === 0).length,
 				avg_days,
 			}
 		})
 	} catch (error) {
 		console.error('Error fetching worker performance:', error)
 		throw new Error('Could not load worker performance. Try again.')
+	}
+}
+
+// Fetch all requests for admin view
+export const fetch_admin_requests = async () => {
+	try {
+		const snapshot = await getDocs(collection(db, 'service_requests'))
+		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+	} catch (error) {
+		console.error('Error fetching requests:', error)
+		throw new Error('Could not load requests. Try again.')
+	}
+}
+
+// Fetch workers for assignment dropdown
+export const fetch_workers_for_assign = async () => {
+	try {
+		const q = query(collection(db, 'users'), where('role', '==', 'worker'))
+		const snapshot = await getDocs(q)
+		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+	} catch (error) {
+		console.error('Error fetching workers:', error)
+		throw new Error('Could not load workers. Try again.')
 	}
 }

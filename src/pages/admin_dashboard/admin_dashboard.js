@@ -9,9 +9,10 @@ import StatCards from '../../components/stat_cards/stat_cards.js'
 import RegisterWorker from '../../components/register_worker/register_worker.js'
 import WorkersList from '../../components/workers_list/workers_list.js'
 import './admin_dashboard.css'
+import AdminRequests from '../../components/admin_requests/admin_requests.js'
 
-function AdminDashboard() {
-	const [active_section, set_active_section] = useState('workers')
+function AdminDashboard({ section = 'workers' }) {
+	const [active_section, set_active_section] = useState(section)
 	const [workers, set_workers] = useState([])
 	const [workers_loading, set_workers_loading] = useState(true)
 	const [revoking_uid, set_revoking_uid] = useState(null)
@@ -76,12 +77,7 @@ function AdminDashboard() {
 					</>
 				)
 			case 'requests':
-				return (
-					<div className="admin_placeholder">
-						<p>Requests section — coming soon</p>
-						<span>US026, US027, US028, US029, US030</span>
-					</div>
-				)
+	return <AdminRequests />
 			case 'messaging':
 				return (
 					<div className="admin_placeholder">

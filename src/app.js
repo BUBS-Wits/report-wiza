@@ -24,23 +24,17 @@ function App() {
 				<Route path="/dashboard" element={<PublicDashboard />} />
 				<Route path="/request" element={<RequestPage />} />
 				<Route path="/login" element={<Login />} />
-				<Route path="/admin" element={<AdminDashboard />} />
 				<Route path="/worker-verify" element={<WorkerVerify />} />
-				<Route
-					path="/resident-dashboard"
-					element={<ResidentDashboard />}
-				/>
-				<Route
-					path="/worker-dashboard/messages"
-					element={<WorkerMessages />}
-				/>
-				<Route
-					path="/admin/analytics/category-report"
-					element={<CategoryReport />}
-				/>
-			</Routes>
-			<Routes>
 				<Route path="/worker-dashboard" element={<WorkerDashboard />} />
+				<Route path="/worker-dashboard/messages" element={<WorkerMessages />} />
+				<Route path="/resident-dashboard" element={<ResidentDashboard />} />
+				<Route path="/admin" element={<AdminDashboard section="workers" />} />
+				<Route path="/admin/workers" element={<AdminDashboard section="workers" />} />
+				<Route path="/admin/requests" element={<AdminDashboard section="requests" />} />
+				<Route path="/admin/residents" element={<AdminDashboard section="residents" />} />
+				<Route path="/admin/messaging" element={<AdminDashboard section="messaging" />} />
+				<Route path="/admin/settings" element={<AdminDashboard section="settings" />} />
+				<Route path="/admin/analytics/category-report" element={<CategoryReport />} />
 			</Routes>
 		</BrowserRouter>
 	)
