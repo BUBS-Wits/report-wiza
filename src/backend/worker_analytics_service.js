@@ -78,17 +78,19 @@ const fetch_assigned_requests = async (worker_uid) => {
 				municipality: data.municipality ?? 'Unknown municipality',
 				status: data.status ?? 1,
 				priority: data.priority ?? 'Medium',
-				assignedAt: data.assigned_at ?? null,
-				updatedAt: data.updated_at ?? null,
-				...(data.resolved_at ? { resolvedAt: data.resolved_at } : {}),
+				assigned_at: data.assigned_at ?? null,
+				updated_at: data.updated_at ?? null,
+				...(data.resolved_at ? { resolved_at: data.resolved_at } : {}),
 			})
 		})
 	})
 
 	// Sort newest-updated first
 	requests.sort((a, b) => {
-		const ts = (t) => t?.toMillis?.() ?? 0
-		return ts(b.updatedAt) - ts(a.updatedAt)
+		const timeA = a.updated_at ? new Date(a.updated_at).getTime() : 0
+		const timeB = b.updated_at ? new Date(b.updated_at).getTime() : 0
+
+		return timeB - timeA
 	})
 
 	return requests
@@ -108,15 +110,26 @@ export const compute_worker_stats = (requests) => {
 	let avg_resolution_days = 0
 	if (resolved.length > 0) {
 		const total_ms = resolved.reduce((sum, r) => {
-			const assigned = r.assignedAt?.toMillis?.() ?? 0
-			const resolved_at =
-				r.resolvedAt?.toMillis?.() ?? r.updatedAt?.toMillis?.() ?? 0
-			return sum + Math.max(0, resolved_at - assigned)
+			console.info(r)
+			if (!r.assigned_at || !r.updated_at) {
+				return sum
+			}
+
+			const start = new Date(r.assigned_at).getTime()
+			const end = new Date(r.updated_at).getTime()
+
+			const duration = end > start ? end - start : 0
+			console.info(duration)
+
+			return sum + duration
 		}, 0)
 
 		avg_resolution_days = parseFloat(
 			(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
 		)
+		console.info(total_ms)
+		console.info(total_ms / resolved.length)
+		console.info(avg_resolution_days)
 	}
 
 	return {

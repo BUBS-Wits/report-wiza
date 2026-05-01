@@ -336,6 +336,7 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 		const ret2 = await update_db_document('service_requests', request_uid, [
 			['status', STATUS.ASSIGNED],
 			['updated_at', new Date().toUTCString()],
+			['assigned_at', new Date().toUTCString()],
 		])
 		if (!ret2.ok || ret2.value === null) {
 			return res.status(400).json({

@@ -12,6 +12,10 @@ import { onAuthStateChanged } from 'firebase/auth'
    Mocks (Paths resolved relative to src/tests/)
 ───────────────────────────────────────────────────────────────────────────── */
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
 jest.mock('../pages/request/submit/request_page.css', () => ({}))
 jest.mock('../firebase_config.js', () => ({ auth: {} }))
 jest.mock('../constants.js', () => ({ WARD_API: 'mock-api-url' }))

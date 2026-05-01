@@ -8,6 +8,10 @@ import { STATUS, STATUS_DISPLAY } from '../constants.js'
    Mocks
 ───────────────────────────────────────────────────────────────────────────── */
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
 jest.mock('firebase/firestore', () => ({
 	collection: jest.fn(),
 	query: jest.fn(),
@@ -73,21 +77,31 @@ describe('Worker Dashboard Service', () => {
 		})
 
 		test('calculates average resolution days correctly', () => {
-			const now = Date.now()
+			const now = new Date()
 			const requests = [
 				{
 					status: STATUS.RESOLVED,
-					assignedAt: mockTimestamp(now),
-					resolvedAt: mockTimestamp(now + ONE_DAY_MS * 2), // 2 days
+					assigned_at: now.toUTCString(),
+					updated_at: new Date(
+						now.getTime() + ONE_DAY_MS * 2
+					).toUTCString(), // 2 days
+					resolved_at: new Date(
+						now.getTime() + ONE_DAY_MS * 2
+					).toUTCString(), // 4 days
 				},
 				{
 					status: STATUS.RESOLVED,
-					assignedAt: mockTimestamp(now),
-					resolvedAt: mockTimestamp(now + ONE_DAY_MS * 4), // 4 days
+					assigned_at: now.toUTCString(),
+					updated_at: new Date(
+						now.getTime() + ONE_DAY_MS * 4
+					).toUTCString(), // 4 days
+					resolved_at: new Date(
+						now.getTime() + ONE_DAY_MS * 4
+					).toUTCString(), // 4 days
 				},
 				{
 					status: STATUS.ASSIGNED, // Should be ignored in avg calculation
-					assignedAt: mockTimestamp(now),
+					assigned_at: now.toUTCString(),
 				},
 			]
 
@@ -97,12 +111,14 @@ describe('Worker Dashboard Service', () => {
 		})
 
 		test('falls back to updatedAt if resolvedAt is missing', () => {
-			const now = Date.now()
+			const now = new Date()
 			const requests = [
 				{
 					status: STATUS.RESOLVED,
-					assignedAt: mockTimestamp(now),
-					updatedAt: mockTimestamp(now + ONE_DAY_MS * 1.5), // 1.5 days
+					assigned_at: now.toUTCString(),
+					updated_at: new Date(
+						now.getTime() + ONE_DAY_MS * 1.5
+					).toUTCString(), // 1.5 days
 				},
 			]
 
@@ -173,8 +189,8 @@ describe('Worker Dashboard Service', () => {
 			})
 
 			// 3. Mock service_requests chunk fetch response
-			const mockUpdatedAt1 = mockTimestamp(1000)
-			const mockUpdatedAt2 = mockTimestamp(5000) // Newer
+			const mockUpdatedAt1 = new Date(Date.now() + 1000)
+			const mockUpdatedAt2 = new Date(Date.now() + 5000) // Newer
 
 			getDocs.mockResolvedValueOnce({
 				docs: [

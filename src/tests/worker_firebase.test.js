@@ -4,6 +4,10 @@ import {
 } from '../backend/worker_firebase'
 import { getDocs, updateDoc, getDoc } from 'firebase/firestore'
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
 jest.mock('firebase/firestore', () => ({
 	getDocs: jest.fn(),
 	updateDoc: jest.fn(),

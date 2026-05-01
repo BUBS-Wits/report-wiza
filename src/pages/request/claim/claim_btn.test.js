@@ -2,6 +2,10 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
 jest.mock('../../../firebase_config.js', () => ({
 	auth: {
 		currentUser: {
