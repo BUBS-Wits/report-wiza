@@ -1,4 +1,5 @@
-import { image_validate } from '../../utility.js'
+import { image_validate } from './utility.js'
+
 const PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'><rect width='256' height='256' fill='%23e0e0e0'/><rect x='32' y='32' width='192' height='192' fill='none' stroke='%239e9e9e' stroke-width='4'/><line x1='32' y1='32' x2='224' y2='224' stroke='%239e9e9e' stroke-width='4'/><line x1='224' y1='32' x2='32' y2='224' stroke='%239e9e9e' stroke-width='4'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23757575' font-family='Arial, sans-serif' font-size='20'>No Image</text></svg>`
 
 export class Request {
@@ -36,8 +37,8 @@ export class Request {
 				this.loc_info = json.loc_info
 				this.loc_info.ward = Number(this.loc_info.ward)
 				this.loc_info.m_id = Number(this.loc_info.m_id)
-				if (typeof json.status === 'number') {
-					this.status = Number(json.status)
+				if (json.status) {
+					this.status = json.status?.trim()
 				}
 			}
 		} catch (err) {}
@@ -54,7 +55,7 @@ export class Request {
 		if (
 			this.category &&
 			this.description &&
-			this.image &&
+			typeof this.image === 'string' &&
 			this.longitude !== undefined &&
 			this.latitude !== undefined &&
 			this.loc_info &&
@@ -132,7 +133,6 @@ export const request_converter = {
 			status: ustatus,
 			category: request.category,
 			description: request.description,
-			image: request.image,
 		}
 	},
 	from_firestore: function (snapshot, options) {

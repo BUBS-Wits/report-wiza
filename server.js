@@ -1,15 +1,23 @@
+import { Readable } from 'node:stream'
 import express from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
+import {
+	S3Client,
+	ListBucketsCommand,
+	PutObjectCommand,
+	GetObjectCommand,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import http from 'http'
 import { Request, request_converter } from './backend/request.js'
 import {
 	ClaimedRequest,
 	claimed_request_converter,
 } from './backend/claimed_request.js'
 import { STATUS } from './backend/constants.js'
-import http from 'http' // Added for Bug 2 fix
 
 /********************* Setup *********************/
 
@@ -39,6 +47,106 @@ db.listCollections()
 	.catch((err) =>
 		console.error(`Firebase failed to connect using db '${db_name}':`, err)
 	)
+
+const b2_client = new S3Client({
+	endpoint: process.env.B2_ENDPOINT,
+	region: process.env.B2_REGION,
+	credentials: {
+		accessKeyId: process.env.B2_KEY_ID_RO,
+		secretAccessKey: process.env.B2_APPLICATION_KEY_RO,
+	},
+})
+
+b2_client
+	.send(new ListBucketsCommand({}))
+	.then((response) => {
+		console.log('Buckets in BlackBlaze account:')
+		if (
+			response.Buckets.map((e) => e.Name).indexOf(process.env.B2_BUCKET) <
+			0
+		) {
+			throw new Error(`"${process.env.B2_BUCKET}" bucket not created`)
+		}
+		response.Buckets.forEach((bucket) => {
+			console.log(`\t${bucket.Name}`)
+		})
+	})
+	.catch((err) => {
+		console.error('Error listing buckets:', err)
+	})
+const B2_SIGNED_URL_EXPIRES_IN = 5 * 24 * 60 * 60 // 5 days in seconds
+
+/********************* B2 Backend *********************/
+
+const get_content_type = (data_uri) => {
+	return data_uri.split(';')[0].split(':')[1]
+}
+
+const b2_get_content_command = (key_name) => {
+	return new GetObjectCommand({
+		Bucket: process.env.B2_BUCKET,
+		Key: key_name,
+	})
+}
+
+const b2_get_signed_url = (command) => {
+	return getSignedUrl(b2_client, command, {
+		expiresIn: B2_SIGNED_URL_EXPIRES_IN,
+	})
+		.then((response) => {
+			return { ok: true, value: response }
+		})
+		.catch((err) => {
+			console.error('get_signed_url > error getting signed url:', err)
+			return { ok: false, value: err }
+		})
+}
+
+const b2_key_to_signed_url = (key_name) => {
+	const command = b2_get_content_command(key_name)
+	return b2_get_signed_url(command)
+}
+
+const b2_upload_data_uri = (data_uri, key_name) => {
+	const base64Content = data_uri.split(',')[1]
+	const buffer = Buffer.from(base64Content, 'base64')
+	const file_stream = Readable.from(buffer)
+
+	const mime_type = get_content_type(data_uri)
+
+	return b2_client
+		.send(
+			new PutObjectCommand({
+				Bucket: process.env.B2_BUCKET,
+				Key: key_name,
+				Body: file_stream,
+				ContentType: mime_type,
+				ContentLength: buffer.length,
+			})
+		)
+		.then((response) => {
+			console.log(
+				`upload_file > uploaded (${buffer.length} bytes): ${JSON.stringify(response, null, 2)}`
+			)
+			return { ok: true, value: response }
+		})
+		.catch((err) => {
+			console.error('upload_file > error uploading file:', err)
+			return { ok: false, value: err }
+		})
+}
+
+const b2_get_content = (key_name) => {
+	return b2_client
+		.send(b2_get_content_command(key_name))
+		.then((response) => {
+			return { ok: true, value: response }
+		})
+		.catch((err) => {
+			console.error('b2_get_content > error getting file:', err)
+			return { ok: false, value: err }
+		})
+}
 
 /********************* Backend *********************/
 
@@ -251,17 +359,18 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
 		const body = req.body
 
-		// DO YOUR VALIDATION DIRECTLY IN THE BACKEND
-		if (!body) {
+		if (!body || !body.image || !/^data:/.test(body.image)) {
 			return respond.invalid_parameters(res)
 		}
+
+		let image = body.image
+		body.image = ''
 
 		const tmp = new Request(body)
 		if (!tmp.input_validate()) {
 			return respond.invalid_parameters(res)
 		}
 
-		// Handle anonymous users safely
 		const user_uid = req.user?.uid ?? null
 
 		const service_request = request_converter.to_firestore(
@@ -272,22 +381,6 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			STATUS.SUBMITTED
 		)
 
-		/*
-		if (!(await exists_db_document('service_requests', service_request))) {
-			const ret = await create_db_document(
-				'service_requests',
-				service_request
-			)
-			if (ret.ok) {
-				return res.status(200).json({ data: ret.value })
-			} else {
-				return res.status(400).json({ error: ret.value })
-			}
-		} else {
-			res.status(201).json({ data: 'Request already exists' })
-		}
-		*/
-		// Bug 3 Fix: Removed the duplicate check that was blocking updates
 		const doc_result = await create_db_document(
 			'service_requests',
 			service_request
@@ -295,6 +388,30 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 		if (!doc_result.ok) {
 			console.error(doc_result.value)
 			return res.status(500).json({ error: 'Failed to save request.' })
+		}
+		let ret = await b2_upload_data_uri(image, doc_result.value)
+		if (!ret.ok) {
+			console.error(ret.value)
+			await delete_db_document('service_requests', doc_result.value)
+			return res.status(500).json({ error: 'Failed to upload image.' })
+		}
+		const mime_type = get_content_type(image)
+		const key_name = doc_result.value
+		ret = await b2_key_to_signed_url(key_name)
+		if (!ret.ok) {
+			console.error(ret.value)
+			await delete_db_document('service_requests', doc_result.value)
+			return res
+				.status(500)
+				.json({ error: `Failed to get signed url of "${key_name}"` })
+		}
+		ret = await update_db_document('service_requests', doc_result.value, [
+			['image', ret.value],
+		])
+		if (!ret.ok) {
+			console.error(ret.value)
+			await delete_db_document('service_requests', doc_result.value)
+			return res.status(500).json({ error: 'Failed to save signed url.' })
 		}
 		return res.status(200).json({ data: doc_result.value })
 	} catch (err) {

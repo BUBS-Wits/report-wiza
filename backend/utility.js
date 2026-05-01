@@ -21,6 +21,9 @@ export async function get_data_uri(file) {
 }
 
 export async function image_validate(image) {
+	if (typeof image === 'string' && image === '') {
+		return true
+	}
 	if (!image) {
 		return false
 	}

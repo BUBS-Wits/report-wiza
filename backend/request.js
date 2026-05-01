@@ -55,7 +55,7 @@ export class Request {
 		if (
 			this.category &&
 			this.description &&
-			this.image &&
+			typeof this.image === 'string' &&
 			this.longitude !== undefined &&
 			this.latitude !== undefined &&
 			this.loc_info &&
@@ -133,7 +133,6 @@ export const request_converter = {
 			status: ustatus,
 			category: request.category,
 			description: request.description,
-			image: request.image,
 		}
 	},
 	from_firestore: function (snapshot, options) {
