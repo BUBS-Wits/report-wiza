@@ -80,6 +80,13 @@ jest.mock('../components/sidebar/sidebar.js', () => {
 	}
 })
 
+jest.mock('../components/admin_requests/admin_requests.js', () => {
+	function MockAdminRequests() {
+		return <div>Requests section — coming soon</div>
+	}
+	return MockAdminRequests
+})
+
 // ---------------------------------------------------------------------------
 // Test Suite
 // ---------------------------------------------------------------------------

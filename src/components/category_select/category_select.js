@@ -14,8 +14,8 @@ function CategorySelect({ value, onChange }) {
 				const all = await fetch_categories()
 				// Only show active categories to residents
 				const active = all
-					.filter((c) => c.active)
-					.map((c) => c.name)
+    .filter((c) => c.active)
+    .map((c) => c.name)
 				set_categories(active)
 			} catch (err) {
 				console.error('Failed to load categories:', err)
