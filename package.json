@@ -48,7 +48,8 @@
 	"private": true,
 	"proxy": "http://localhost:3000",
 	"scripts": {
-		"build": "react-scripts build",
+		"sync": "node scripts/sync_shared.js",
+		"build": "npm run sync && react-scripts build",
 		"dev": "react-scripts start",
 		"eject": "react-scripts eject",
 		"format": "prettier --write \"**/*.js\" \"**/*.html\" \"**/*.css\" \"*.js\"",
