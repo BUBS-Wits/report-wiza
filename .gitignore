@@ -27,3 +27,6 @@ yarn-error.log*
 
 report-wiza*.json
 serviceAccountKey.json
+
+*.zip
+src/app copy.js
