@@ -85,7 +85,7 @@ jest.mock('../components/admin_requests/admin_requests.js', () => {
 		return <div>Requests section — coming soon</div>
 	}
 	return MockAdminRequests
-})
+}, { virtual: true })
 
 // ---------------------------------------------------------------------------
 // Test Suite
