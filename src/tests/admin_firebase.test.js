@@ -17,6 +17,10 @@ import {
 	serverTimestamp,
 } from 'firebase/firestore'
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Mocks
+───────────────────────────────────────────────────────────────────────────── */
+
 jest.mock('firebase/auth', () => ({
 	sendSignInLinkToEmail: jest.fn(),
 }))
@@ -37,22 +41,29 @@ jest.mock('../firebase_config.js', () => ({
 	db: {},
 }))
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   Test Suite
+───────────────────────────────────────────────────────────────────────────── */
+
 describe('Admin Firebase Service', () => {
 	let consoleErrorSpy
 
 	beforeEach(() => {
 		jest.clearAllMocks()
 
+		// Mock implementations to survive CRA's resetMocks
 		serverTimestamp.mockReturnValue('mock-timestamp')
 		doc.mockImplementation((db, coll, id) => `${coll}/${id}`)
 		collection.mockImplementation((db, coll) => coll)
 		query.mockImplementation((coll, condition) => `query-${coll}`)
 		where.mockImplementation((field, op, val) => `${field}${op}${val}`)
 
+		// Spy on console.error to keep test logs clean during expected error tests
 		consoleErrorSpy = jest
 			.spyOn(console, 'error')
 			.mockImplementation(() => {})
 
+		// Mock localStorage
 		Storage.prototype.setItem = jest.fn()
 	})
 
@@ -78,11 +89,14 @@ describe('Admin Firebase Service', () => {
 				'test@capetown.gov.za',
 				expect.objectContaining({ handleCodeInApp: true })
 			)
+
 			expect(setDoc).toHaveBeenCalledTimes(1)
+
 			expect(window.localStorage.setItem).toHaveBeenCalledWith(
 				'worker_email_for_sign_in',
 				'test@capetown.gov.za'
 			)
+
 			expect(result).toEqual({ success: true })
 		})
 
@@ -136,6 +150,25 @@ describe('Admin Firebase Service', () => {
 			)
 
 			expect(updateDoc).toHaveBeenCalledTimes(2)
+
+			// First call: update users collection
+			expect(updateDoc).toHaveBeenNthCalledWith(1, 'users/user_123', {
+				role: 'worker',
+				email: 'worker@test.com',
+				name: 'John Doe',
+				phone: '1234567890',
+				verified_at: 'mock-timestamp',
+			})
+
+			// Second call: update pending_workers collection
+			expect(updateDoc).toHaveBeenNthCalledWith(
+				2,
+				'pending_workers/worker@test.com',
+				{
+					status: 'verified',
+				}
+			)
+
 			expect(result).toEqual({ success: true })
 		})
 
@@ -162,6 +195,7 @@ describe('Admin Firebase Service', () => {
 			expect(collection).toHaveBeenCalledWith(expect.anything(), 'users')
 			expect(where).toHaveBeenCalledWith('role', '==', 'worker')
 			expect(getDocs).toHaveBeenCalledTimes(1)
+
 			expect(workers).toEqual([
 				{ id: 'worker_1', name: 'Alice' },
 				{ id: 'worker_2', name: 'Bob' },
