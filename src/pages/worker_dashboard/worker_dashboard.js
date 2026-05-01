@@ -133,6 +133,11 @@ export default function WorkerDashboard() {
 		requestAnimationFrame(() => set_panel_visible(true))
 	}, [])
 
+	const active_section_ref = useRef(active_section)
+	useEffect(() => {
+		active_section_ref.current = active_section
+	}, [active_section])
+
 	const close_panel = useCallback(() => {
 		set_panel_visible(false)
 		setTimeout(() => set_selected_req(null), 280)
@@ -140,11 +145,13 @@ export default function WorkerDashboard() {
 			if (!data) {
 				return
 			}
-			set_requests((prev_section) =>
-				active_section === 'queue' ? data.claimed : data.unclaimed
+			set_requests(
+				active_section_ref.current === 'queue'
+					? data.claimed
+					: data.unclaimed
 			)
 		})
-	}, [])
+	}, [load_dashboard])
 
 	const toggle_panel = useCallback(
 		(req) => {
