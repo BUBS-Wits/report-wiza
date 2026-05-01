@@ -19,7 +19,7 @@ const is_production = window.location.hostname !== 'localhost'
 
 const action_code_settings = {
 	url: is_production
-		? 'https://report-wiza-heeba2h0cbgacjc6.italynorth-01.azurewebsites.net/worker-verify'
+		? 'https://webapp-report-wiza.azurewebsites.net/worker-verify'
 		: 'http://localhost:3000/worker-verify',
 	handleCodeInApp: true,
 }
