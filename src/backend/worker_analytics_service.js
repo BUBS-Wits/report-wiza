@@ -126,7 +126,7 @@ export const compute_worker_stats = (requests) => {
 		avg_resolution_days = parseFloat(
 			(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
 		)
-		console.info('Avg. Resolution Days: ' + avg_resolution_days)
+		console.debug('Avg. Resolution Days: ' + avg_resolution_days)
 	}
 
 	return {

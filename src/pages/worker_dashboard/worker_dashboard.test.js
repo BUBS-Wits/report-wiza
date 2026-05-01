@@ -19,6 +19,10 @@ jest.mock('../../firebase_config.js', () => ({
 	},
 }))
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
 // Grab live references after mock is established
 const { auth } = require('../../firebase_config.js')
 const mock_current_user = auth.currentUser
