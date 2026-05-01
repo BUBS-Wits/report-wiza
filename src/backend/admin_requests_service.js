@@ -54,6 +54,25 @@ export const close_request = async (request_id, admin_uid, comment) => {
 }
 
 // ── US029 — Manage categories ─────────────────────────────────────────────
+// ── US029 — Seed default categories (run once) ────────────────────────────
+export const seed_categories = async () => {
+	const defaults = ['water', 'sewage', 'electricity', 'road']
+	try {
+		const existing = await getDocs(collection(db, 'categories'))
+		if (existing.docs.length > 0){ return }// already seeded
+		for (const name of defaults) {
+			await addDoc(collection(db, 'categories'), {
+				name,
+				active: true,
+				created_at: serverTimestamp(),
+			})
+		}
+		return { success: true }
+	} catch (error) {
+		console.error('Error seeding categories:', error)
+		throw new Error('Could not seed categories.')
+	}
+}
 
 export const fetch_categories = async () => {
 	try {
@@ -79,15 +98,13 @@ export const add_category = async (name) => {
 	}
 }
 
-export const remove_category = async (category_id) => {
+export const remove_category = async (category_id, active) => {
 	try {
-		await updateDoc(doc(db, 'categories', category_id), {
-			active: false,
-		})
+		await updateDoc(doc(db, 'categories', category_id), { active })
 		return { success: true }
 	} catch (error) {
-		console.error('Error removing category:', error)
-		throw new Error('Could not remove category. Try again.')
+		console.error('Error updating category:', error)
+		throw new Error('Could not update category. Try again.')
 	}
 }
 

@@ -9,6 +9,7 @@ import {
 } from '../../backend/admin_requests_service.js'
 import { auth } from '../../firebase_config.js'
 import './admin_requests.css'
+import AdminCategories from '../admin_categories/admin_categories.js'
 
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical']
 
@@ -123,7 +124,7 @@ function AdminRequests() {
 
 	const show_message = (text, is_error = false) => {
 		set_message({ text, is_error })
-		setTimeout(() => set_message(null), 0)
+		setTimeout(() => set_message(null), 3000)
 	}
 
 	if (loading) {
@@ -160,6 +161,12 @@ function AdminRequests() {
 					Stale requests
 					<span className="ar_tab_count">{stale_requests.length}</span>
 				</button>
+                <button
+	className={`ar_tab ${active_tab === 'categories' ? 'ar_tab_active' : ''}`}
+	onClick={() => set_active_tab('categories')}
+>
+	Categories
+</button>
 			</div>
 
 			{/* ── All requests table — US027 + US028 ── */}
@@ -292,7 +299,7 @@ function AdminRequests() {
 					)}
 				</div>
 			)}
-
+            {active_tab === 'categories' && <AdminCategories />}
 			{/* ── Close modal — US028 ── */}
 			{close_modal && (
 				<div className="ar_modal_overlay">
