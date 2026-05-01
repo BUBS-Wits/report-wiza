@@ -148,6 +148,24 @@ const b2_get_content = (key_name) => {
 		})
 }
 
+const b2_get_expiry_from_signed_url = (signed_url) => {
+	const url = new URL(signed_url)
+	const date = url.searchParams.get('X-Amz-Date')
+	const expires_in = url.searchParams.get('X-Amz-Expires')
+
+	const created = new Date(
+		date.replace(
+			/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/,
+			'$1-$2-$3T$4:$5:$6Z'
+		)
+	)
+	return new Date(created.getTime() + parseInt(expires_in) * 1000)
+}
+
+const b2_is_expired = (signed_url) => {
+	return b2_get_expiry_from_signed_url(signed_url) < new Date()
+}
+
 /********************* Backend *********************/
 
 app.use(express.json({ limit: '10mb' }))
