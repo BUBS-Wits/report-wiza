@@ -10,7 +10,10 @@ const pairs = [
 	['shared/request.js', 'backend/request.js'],
 ]
 
+console.log(`=== SYNCING ===`)
 for (const [src, dest] of pairs) {
+	console.log(`Syncing "${dest}" to "${src}"`)
 	mkdirSync(dirname(dest), { recursive: true })
 	copyFileSync(src, dest)
 }
+console.log(`=== END ===`)
