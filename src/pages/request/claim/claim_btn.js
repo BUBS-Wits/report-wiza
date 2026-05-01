@@ -4,7 +4,7 @@ import { collection, setDoc, getDoc, doc } from 'firebase/firestore'
 import { auth, db, storage } from '../../../firebase_config.js'
 import YellowBtn from '../../../components/buttons/yellow_btn.js'
 
-function ClaimBtn({ request_id }) {
+function ClaimBtn({ request_uid, post_claim }) {
 	const [claiming, set_claiming] = useState(0)
 	const navigate = useNavigate()
 
@@ -16,7 +16,7 @@ function ClaimBtn({ request_id }) {
 		try {
 			const token = await auth.currentUser.getIdToken()
 			const req = await fetch(
-				`/api/claim-request?request_uid=${request_id}`,
+				`/api/claim-request?request_uid=${request_uid}`,
 				{
 					method: 'GET',
 					headers: {
@@ -32,8 +32,9 @@ function ClaimBtn({ request_id }) {
 			}
 			alert('Request successfully claimed.')
 			console.log(await req.json())
+			post_claim()
 		} catch (err) {
-			console.error(`Failed to claim request "${request_id}"`)
+			console.error(`Failed to claim request "${request_uid}"`)
 			console.error(err)
 		} finally {
 			set_claiming(0)
@@ -41,10 +42,7 @@ function ClaimBtn({ request_id }) {
 	}
 
 	return (
-		<YellowBtn
-			text={claiming ? 'Loading' : 'Claim'}
-			onClick={{ on_claim }}
-		/>
+		<YellowBtn text={claiming ? 'Loading' : 'Claim'} onClick={on_claim} />
 	)
 }
 

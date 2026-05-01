@@ -6,7 +6,6 @@ import {
 	getDocs,
 	doc,
 	updateDoc,
-	serverTimestamp,
 } from 'firebase/firestore'
 
 export const get_claimed_requests = async (worker_uid) => {
@@ -42,7 +41,7 @@ export const claim_request = async (request_id, worker_uid) => {
 		await updateDoc(request_ref, {
 			assigned_worker_uid: worker_uid,
 			status: 'assigned',
-			updated_at: serverTimestamp(),
+			updated_at: new Date().toUTCString(),
 		})
 		return { success: true }
 	} catch (error) {
@@ -56,7 +55,7 @@ export const update_request_status = async (request_id, new_status) => {
 		const request_ref = doc(db, 'service_requests', request_id)
 		await updateDoc(request_ref, {
 			status: new_status,
-			updated_at: serverTimestamp(),
+			updated_at: new Date().toUTCString(),
 		})
 		return { success: true }
 	} catch (error) {

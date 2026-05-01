@@ -13,6 +13,8 @@ export class Request {
 	) {
 		try {
 			if (typeof category === 'string') {
+				this.created_at = new Date()
+				this.updated_at = new Date()
 				this.category = category?.trim()
 				this.description = description?.trim()
 				this.image = image
@@ -21,6 +23,12 @@ export class Request {
 				this.loc_info = location_info
 			} else if (typeof category === 'object') {
 				const json = category
+				this.created_at = json.created_at
+					? new Date(json.created_at)
+					: new Date()
+				this.updated_at = json.updated_at
+					? new Date(json.updated_at)
+					: new Date()
 				this.category = json.category?.trim()
 				this.description = json.description?.trim()
 				this.image = json.image
@@ -110,11 +118,12 @@ export class Request {
 }
 
 export const request_converter = {
-	to_firestore: function (user_uid, request, now, ustatus) {
+	to_firestore: function (user_uid, request, created, updated, ustatus) {
 		const municipality = request.get_municipality()
 		return {
 			user_uid,
-			created_at: now.toUTCString(),
+			created_at: created.toUTCString(),
+			updated_at: updated.toUTCString(),
 			location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
 			sa_ward: request.get_ward(),
 			sa_province: request.get_province(),

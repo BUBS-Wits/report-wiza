@@ -7,15 +7,37 @@ import './worker_nav_bar.css'
 
 const NAV_ITEMS = [
 	{
-		key: 'overview',
-		label: 'Overview',
-		to: '/worker-dashboard',
+		key: 'queue',
+		label: 'My Queue',
+		to: '#',
+		badge: 0,
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
-				<rect x="1" y="1" width="6" height="6" rx="1" />
-				<rect x="9" y="1" width="6" height="6" rx="1" />
-				<rect x="1" y="9" width="6" height="6" rx="1" />
-				<rect x="9" y="9" width="6" height="6" rx="1" />
+				<path d="M2 4h12M2 8h12M2 12h8" />
+			</svg>
+		),
+	},
+	{
+		key: 'available',
+		label: 'Available',
+		to: '#',
+		badge: 0,
+		badgeStyle: 'ghost',
+		icon: (
+			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
+				<circle cx="8" cy="8" r="6" />
+				<path d="M8 5v3l2 2" />
+			</svg>
+		),
+	},
+	{
+		key: 'history',
+		label: 'History',
+		to: '/worker-dashboard/history',
+		icon: (
+			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
+				<path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2z" />
+				<path d="M8 5v3.5l2.5 1.5" />
 			</svg>
 		),
 	},
@@ -34,6 +56,9 @@ const NAV_ITEMS = [
 
 function Worker_nav_bar({
 	user = { initials: 'JD', name: 'Jane Doe', role: 'Field Worker' },
+	requests = { claimed: 0, unclaimed: 0 },
+	sections = { queue_onclick: null, available_onclick: null },
+	active_section = 'queue',
 }) {
 	const [scrolled, set_scrolled] = useState(false)
 	const location = useLocation()
@@ -55,6 +80,26 @@ function Worker_nav_bar({
 			(item.key === 'notifications' || item.key === 'messages') &&
 			item.badge
 	)
+
+	const get_badge = (item) => {
+		if (item.key === 'available') {
+			return requests.unclaimed
+		} else if (item.key === 'queue') {
+			return requests.claimed
+		} else {
+			return item.badge
+		}
+	}
+
+	const get_onclick = (item) => {
+		if (item.key === 'available') {
+			return sections.available_onclick
+		} else if (item.key === 'queue') {
+			return sections.queue_onclick
+		} else {
+			return null
+		}
+	}
 
 	return (
 		<nav
@@ -85,21 +130,19 @@ function Worker_nav_bar({
 			{/* Nav links */}
 			<div className="wd_nav_links">
 				{NAV_ITEMS.map((item) => {
-					const is_active =
-						location.pathname === item.to ||
-						(item.to !== '/worker-dashboard' && // <--- FIX: changed from '/dashboard'
-							location.pathname.startsWith(item.to))
+					const is_active = active_section === item.key
 
 					return (
 						<Link
 							key={item.key}
 							to={item.to}
+							onClick={get_onclick(item)}
 							className={`wd_nav_link ${is_active ? 'wd_nav_link_active' : ''}`}
 							aria-current={is_active ? 'page' : undefined}
 						>
 							{item.icon}
 							{item.label}
-							{item.badge ? (
+							{get_badge(item) ? (
 								<span
 									className={`wd_nav_badge ${
 										item.badgeStyle === 'ghost'
@@ -107,7 +150,7 @@ function Worker_nav_bar({
 											: 'wd_nav_badge_amber'
 									}`}
 								>
-									{item.badge}
+									{get_badge(item)}
 								</span>
 							) : null}
 						</Link>

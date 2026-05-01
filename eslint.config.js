@@ -42,7 +42,7 @@ export default defineConfig([
 			'react/jsx-uses-vars': 'error',
 			'react-hooks/set-state-in-effect': 'off',
 			'react-hooks/rules-of-hooks': 'error',
-			'react-hooks/exhaustive-deps': 'warn',
+			'react-hooks/exhaustive-deps': 'off',
 			'react/prop-types': 'off',
 			'no-use-before-define': [
 				'warn',

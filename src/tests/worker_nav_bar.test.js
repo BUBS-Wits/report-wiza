@@ -81,7 +81,6 @@ describe('Worker Navbar Component', () => {
 	test('renders all navigation items correctly', () => {
 		render(<Worker_nav_bar />)
 
-		expect(screen.getByText('Overview')).toBeInTheDocument()
 		expect(screen.getByText('Messages')).toBeInTheDocument()
 
 		// Check for specific badges

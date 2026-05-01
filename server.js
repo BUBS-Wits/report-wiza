@@ -29,7 +29,7 @@ admin.initializeApp({
 	credential: admin.credential.cert(service_account),
 })
 
-const db_name = process.env.FIREBASE_DB_NAME || '(default)'
+const db_name = process.env.REACT_APP_FIREBASE_DB_NAME || '(default)'
 const db = admin.firestore()
 db.settings({
 	databaseId: db_name,
@@ -166,8 +166,22 @@ const set_db_document = (collection, doc_id, doc) => {
 		})
 }
 
-const update_db_document = (collection, doc_id, doc) =>
-	set_db_document(collection, doc_id, doc)
+const update_db_document = (collection, doc_id, fields) => {
+	const replacements = {}
+	for (const field of fields) {
+		replacements[field[0]] = field[1]
+	}
+	return db
+		.collection(collection)
+		.doc(doc_id)
+		.update(replacements)
+		.then(() => {
+			return { ok: true, value: doc_id }
+		})
+		.catch((error) => {
+			return { ok: false, value: error }
+		})
+}
 
 const delete_db_document = (collection, doc_id) => {
 	return db
@@ -254,6 +268,7 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			user_uid,
 			tmp,
 			new Date(Date.now()),
+			new Date(Date.now()),
 			STATUS.SUBMITTED
 		)
 
@@ -278,6 +293,7 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 			service_request
 		)
 		if (!doc_result.ok) {
+			console.error(doc_result.value)
 			return res.status(500).json({ error: 'Failed to save request.' })
 		}
 		return res.status(200).json({ data: doc_result.value })
@@ -301,44 +317,32 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 		if (!request_uid || Object.keys(req.query).length !== 1) {
 			return respond.invalid_parameters(res)
 		}
-		const tmp = await get_db_documents('assignments', [
-			['request_uid', '==', request_uid],
-		])
-		if (tmp.ok && tmp.value.length > 0) {
+
+		if (await exists_db_document('assignments', request_uid)) {
 			return res.status(201).json({
 				data: 'Request already claimed in db.',
 			})
 		}
 		const tmp2 = new ClaimedRequest(request_uid, uid)
 		const claimed_request = claimed_request_converter.to_firestore(tmp2)
-		const ret = await create_db_document('assignments', claimed_request)
+		const ret = await set_db_document(
+			'assignments',
+			request_uid,
+			claimed_request
+		)
 		if (!ret.ok) {
 			return res.status(400).json({ error: ret.value })
 		}
-		const ret2 = await get_db_document('service_requests', request_uid)
-		if (!ret2.ok) {
+		const ret2 = await update_db_document('service_requests', request_uid, [
+			['status', STATUS.ASSIGNED],
+			['updated_at', new Date().toUTCString()],
+		])
+		if (!ret2.ok || ret2.value === null) {
 			return res.status(400).json({
 				error: ret2.value,
 				dd: 'Created assignment but failed to change status',
 			})
 		}
-		if (ret2.value === null) {
-			return res.status(401).json({
-				error: 'Created assignment but failed to change status',
-			})
-		}
-		const tmp3 = request_converter.from_firestore_doc(ret2.value, {})
-		const new_request = request_converter.to_firestore(
-			uid,
-			tmp3,
-			new Date(ret2.value['created_at']),
-			STATUS.ASSIGNED
-		)
-		const final_ret = set_db_document(
-			'service_requests',
-			request_uid,
-			new_request
-		)
 		return res.status(200).json({ data: ret.value })
 	} catch (err) {
 		console.error('Database error:', err)
@@ -348,33 +352,6 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 
 /* /api/get-requests?all={true|false} */
 app.get('/api/get-requests', async (req, res) => {
-	try {
-		const conditions = []
-		if (req.query.all) {
-			if (req.query.all === 'false') {
-				if (!authenticate(req, res, () => {})) {
-					return respond.unauthorized(res)
-				}
-				conditions.push(['service_requests', '==', req.user.uid])
-			} else if (
-				req.query.all !== 'true' ||
-				Object.keys(req.query).length !== 1
-			) {
-				return respond.invalid_parameters(res)
-			}
-		}
-		const ret = await get_db_documents('service_requests', conditions)
-		if (!ret.ok) {
-			return res.status(400).json({ error: ret.value })
-		}
-		return res.status(200).json({ data: ret.value })
-	} catch (err) {
-		console.error('Database error:', err)
-		res.status(500).json({ error: 'Internal server error' })
-	}
-})
-
-app.get('/api/get-request', async (req, res) => {
 	try {
 		const conditions = []
 		if (req.query.all) {
@@ -432,12 +409,16 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 			}
 			claimed_requests.push({
 				id: data.id,
+				created_at: data.created_at,
+				updated_at: data.updated_at,
 				status: data.status,
 				category: data.category,
 				description: data.description,
+				image: data.image,
 				location: data.location,
 				sa_ward: data['sa_ward'],
 				sa_m_name: data['sa_m_name'],
+				sa_province: data['sa_province'],
 			})
 		}
 		return res.status(200).json({ data: claimed_requests })
@@ -458,30 +439,27 @@ app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 		if (!is_worker.value && !is_admin.value) {
 			return respond.unauthorized(res)
 		}
-
-		let ret = await get_db_documents('assignments', [])
-		if (!ret.ok) {
-			return res.status(400).json({ error: ret.value })
-		}
-		const claimed_requests = ret.value.map((doc) => doc.request_uid)
-
-		ret = await get_db_documents('service_requests', [])
+		const ret = await get_db_documents('service_requests', [])
 		if (!ret.ok) {
 			return res.status(400).json({ error: ret.value })
 		}
 		const requests = []
 		for (const doc of ret.value) {
-			if (claimed_requests.indexOf(doc.id) !== -1) {
+			if (await exists_db_document('assignments', doc.id)) {
 				continue
 			}
 			requests.push({
 				id: doc.id,
+				created_at: doc.created_at,
+				updated_at: doc.updated_at,
 				status: doc.status,
 				category: doc.category,
 				description: doc.description,
+				image: doc.image,
 				location: doc.location,
 				sa_ward: doc['sa_ward'],
 				sa_m_name: doc['sa_m_name'],
+				sa_province: doc['sa_province'],
 			})
 		}
 		return res.status(200).json({ data: requests })
