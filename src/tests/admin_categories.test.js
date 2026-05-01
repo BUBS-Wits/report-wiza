@@ -145,9 +145,7 @@ describe('AdminCategories — US029', () => {
 			const input = screen.getByPlaceholderText('New category name...')
 			fireEvent.change(input, { target: { value: 'water' } })
 			fireEvent.click(screen.getByText('Add category'))
-			expect(
-				screen.getByText(/already exists/i)
-			).toBeInTheDocument()
+			expect(screen.getByText(/already exists/i)).toBeInTheDocument()
 		})
 
 		it('Then it should call add_category and reload on success', async () => {
@@ -168,7 +166,9 @@ describe('AdminCategories — US029', () => {
 			fireEvent.change(input, { target: { value: 'roads' } })
 			fireEvent.click(screen.getByText('Add category'))
 
-			await waitFor(() => expect(add_category).toHaveBeenCalledWith('roads'))
+			await waitFor(() =>
+				expect(add_category).toHaveBeenCalledWith('roads')
+			)
 		})
 
 		it('Then it should trigger add on Enter key press', async () => {
@@ -186,12 +186,16 @@ describe('AdminCategories — US029', () => {
 			fireEvent.change(input, { target: { value: 'parks' } })
 			fireEvent.keyDown(input, { key: 'Enter' })
 
-			await waitFor(() => expect(add_category).toHaveBeenCalledWith('parks'))
+			await waitFor(() =>
+				expect(add_category).toHaveBeenCalledWith('parks')
+			)
 		})
 
 		it('Then it should show an error message if add_category fails', async () => {
 			fetch_categories.mockResolvedValueOnce(mock_categories)
-			add_category.mockRejectedValueOnce(new Error('Could not add category. Try again.'))
+			add_category.mockRejectedValueOnce(
+				new Error('Could not add category. Try again.')
+			)
 
 			render(<AdminCategories />)
 			await waitFor(() =>

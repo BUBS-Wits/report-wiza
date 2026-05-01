@@ -173,7 +173,9 @@ describe('AdminRequests', () => {
 			fetch_stale_requests.mockResolvedValueOnce([])
 			render(<AdminRequests />)
 			await waitFor(() =>
-				expect(screen.getByText(/no requests found/i)).toBeInTheDocument()
+				expect(
+					screen.getByText(/no requests found/i)
+				).toBeInTheDocument()
 			)
 		})
 	})
@@ -190,7 +192,10 @@ describe('AdminRequests', () => {
 			const selects = screen.getAllByRole('combobox')
 			fireEvent.change(selects[0], { target: { value: 'High' } })
 			await waitFor(() =>
-				expect(set_request_priority).toHaveBeenCalledWith('req-001', 'High')
+				expect(set_request_priority).toHaveBeenCalledWith(
+					'req-001',
+					'High'
+				)
 			)
 		})
 
@@ -229,9 +234,7 @@ describe('AdminRequests', () => {
 			)
 			fireEvent.click(screen.getByText('Close'))
 			fireEvent.click(screen.getByText('Confirm close'))
-			expect(
-				screen.getByText(/comment is required/i)
-			).toBeInTheDocument()
+			expect(screen.getByText(/comment is required/i)).toBeInTheDocument()
 		})
 
 		it('Then submitting with a comment should call close_request', async () => {
@@ -298,7 +301,9 @@ describe('AdminRequests', () => {
 			)
 			fireEvent.click(screen.getByText(/stale requests/i))
 			await waitFor(() =>
-				expect(screen.getByText(/no stale requests/i)).toBeInTheDocument()
+				expect(
+					screen.getByText(/no stale requests/i)
+				).toBeInTheDocument()
 			)
 		})
 

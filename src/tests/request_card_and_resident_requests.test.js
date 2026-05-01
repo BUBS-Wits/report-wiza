@@ -142,9 +142,8 @@ describe('ResidentRequests', () => {
 			render(<ResidentRequests />)
 			await waitFor(() =>
 				expect(
-					screen.getByText(
-						(content) =>
-							content.includes('submitted any service requests')
+					screen.getByText((content) =>
+						content.includes('submitted any service requests')
 					)
 				).toBeInTheDocument()
 			)
