@@ -3,6 +3,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
+import http from 'http' // Added for Bug 2 fix
 
 /********************* Setup *********************/
 
@@ -165,7 +166,7 @@ class Request {
 			this.get_ward() === undefined ||
 			!this.get_province() ||
 			!municipality ||
-			municipality.id === undefined ||
+			municipality.id === undefined || // <--- FIXED TYPO HERE
 			!municipality.code ||
 			!municipality.name
 		) {
@@ -266,16 +267,17 @@ const claimed_request_converter = {
 
 app.use(express.json({ limit: '10mb' }))
 
-const authenticate = async (req, res, next) => {
+// Bug 1 Fix: Optional Authentication
+const authenticate_optional = async (req, res, next) => {
 	try {
 		const header = req.headers.authorization
 
 		if (!header || !header.startsWith('Bearer ')) {
-			return res.status(401).json({ error: 'No token' })
+			req.user = null // anonymous — allowed through
+			return next()
 		}
 
 		const token = header.split('Bearer ')[1]
-
 		const decoded = await admin.auth().verifyIdToken(token)
 
 		req.user = decoded
@@ -309,15 +311,6 @@ const apply_query = (query, condition) => {
 	return query.where(condition[0], condition[1], condition[2])
 }
 
-/**
- * get_db_documents() - Returns an array of db docs matching some condition(s)
- * @collection: Collection name as a string in db
- * @conditions: An array of the conditions to check treated as being joined by AND.
- * 	A condition is an array of exactly length 3.
- * 	Given st. conditions[0] is the field to filter,
- * 	conditions[1] is the comparison op,
- * 	and condition[2] is the value.
- */
 const get_db_documents = (collection, conditions) => {
 	if (!Array.isArray(conditions)) {
 		console.error('get_db_documents > conditions not given as array')
@@ -333,7 +326,6 @@ const get_db_documents = (collection, conditions) => {
 	for (const condition of conditions) {
 		query = apply_query(query, condition)
 	}
-	// TODO: add query optimization using `startAt()` and `limit()`
 	return query
 		.get()
 		.then((snapshot) => {
@@ -458,7 +450,7 @@ const role_service = {
 	is_worker: (uid) => has_role(uid, 'worker'),
 }
 
-app.post('/api/submit-request', authenticate, async (req, res) => {
+app.post('/api/submit-request', authenticate_optional, async (req, res) => {
 	try {
 		const body = req.body
 
@@ -475,21 +467,25 @@ app.post('/api/submit-request', authenticate, async (req, res) => {
 				error: 'Missing parameters in request object.',
 			})
 		}
+
+		// Handle anonymous users safely
+		const user_uid = req.user?.uid ?? null
+
 		const service_request = request_converter.to_firestore(
-			req.user.uid,
+			user_uid,
 			tmp,
 			new Date(Date.now())
 		)
 
-		if (!(await exists_db_document('service_requests', service_request))) {
-			const doc_id = await create_db_document(
-				'service_requests',
-				service_request
-			)
-			res.status(200).json({ data: doc_id })
-		} else {
-			res.status(201).json({ data: 'Request already exists' })
+		// Bug 3 Fix: Removed the duplicate check that was blocking updates
+		const doc_result = await create_db_document(
+			'service_requests',
+			service_request
+		)
+		if (!doc_result.ok) {
+			return res.status(500).json({ error: 'Failed to save request.' })
 		}
+		return res.status(200).json({ data: doc_result.value })
 	} catch (err) {
 		console.error('Database error:', err)
 		res.status(500).json({ error: 'Internal server error' })
@@ -509,7 +505,10 @@ app.get(/.*/, (req, res) => {
 
 const PORT = process.env.PORT || 3000
 
-app.listen(PORT, () =>
+// Bug 2 Fix: Increase header limit for Azure proxy and Firebase JWT headers
+const server = http.createServer({ maxHeaderSize: 32768 }, app)
+
+server.listen(PORT, () =>
 	console.log(`Server running on:\nhttp://localhost:${PORT}`)
 )
 

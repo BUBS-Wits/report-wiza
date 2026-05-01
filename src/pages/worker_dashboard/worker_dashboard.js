@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
 import { fetch_worker_dashboard_data } from '../../backend/worker_dashboard_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
+import MessageThread from '../../components/message_thread/message_thread.js'
 import './worker_dashboard.css'
 
 /* ── Constants ───────────────────────────────────────────────────────────── */
@@ -25,6 +26,8 @@ export default function WorkerDashboard() {
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [active_filter, set_filter] = useState('All')
+	const [selected_req, set_selected_req] = useState(null) // drives the panel
+	const [panel_visible, set_panel_visible] = useState(false) // drives CSS transition
 
 	/* ── Load dashboard data ──────────────────────────────────────────── */
 
@@ -44,7 +47,7 @@ export default function WorkerDashboard() {
 		}
 	}, [])
 
-	/* ── Wait for Firebase Auth, then load ────────────────────────────── */
+	/* ── Auth ─────────────────────────────────────────────────────────── */
 
 	useEffect(() => {
 		const unsub = onAuthStateChanged(auth, (user) => {
@@ -58,7 +61,54 @@ export default function WorkerDashboard() {
 		return unsub
 	}, [load_dashboard])
 
-	/* ── Loading / error guards ───────────────────────────────────────── */
+	/* ── Close panel on Escape ────────────────────────────────────────── */
+
+	useEffect(() => {
+		const on_key = (e) => {
+			if (e.key === 'Escape') {
+				close_panel()
+			}
+		}
+		window.addEventListener('keydown', on_key)
+		return () => window.removeEventListener('keydown', on_key)
+	}, [])
+
+	/* ── Panel helpers ────────────────────────────────────────────────── */
+
+	const open_panel = useCallback((req) => {
+		set_selected_req(req)
+		requestAnimationFrame(() => set_panel_visible(true))
+	}, [])
+
+	const close_panel = useCallback(() => {
+		set_panel_visible(false)
+		setTimeout(() => set_selected_req(null), 280)
+	}, [])
+
+	const toggle_panel = useCallback(
+		(req) => {
+			if (selected_req?.id === req.id) {
+				close_panel()
+			} else {
+				open_panel(req)
+			}
+		},
+		[selected_req, close_panel, open_panel]
+	)
+
+	/* ── Close panel on Escape ────────────────────────────────────────── */
+
+	useEffect(() => {
+		const on_key = (e) => {
+			if (e.key === 'Escape') {
+				close_panel()
+			}
+		}
+		window.addEventListener('keydown', on_key)
+		return () => window.removeEventListener('keydown', on_key)
+	}, [close_panel])
+
+	/* ── Guards ───────────────────────────────────────────────────────── */
 
 	if (loading) {
 		return <LoadingScreen />
@@ -77,7 +127,7 @@ export default function WorkerDashboard() {
 		return null
 	}
 
-	/* ── Derived display values ───────────────────────────────────────── */
+	/* ── Derived values ───────────────────────────────────────────────── */
 
 	const filtered_requests =
 		active_filter === 'All'
@@ -111,85 +161,223 @@ export default function WorkerDashboard() {
 				}}
 			/>
 
-			<main className="wd-main">
-				{/* ── Performance summary — US-049 ─────────────────────────── */}
-				<section className="wd-section">
-					<h2 className="wd-section-title">Performance summary</h2>
-					<div className="wd-stats-grid">
-						<StatCard
-							label="Total assigned"
-							value={stats.total}
-							sub="All time"
-						/>
-						<StatCard
-							label="Resolved"
-							value={stats.resolved}
-							sub={resolved_pct}
-							value_modifier="success"
-						/>
-						<StatCard
-							label="Avg. resolution time"
-							value={
-								avg_display !== '—' ? (
-									<>
-										{avg_display}
-										<span className="wd-stat-unit"> d</span>
-									</>
-								) : (
-									'—'
-								)
-							}
-							sub="Across resolved requests"
-						/>
-						<StatCard
-							label="Awaiting action"
-							value={awaiting_action}
-							sub="Pending + acknowledged"
-							value_modifier={
-								awaiting_action > 0 ? 'warning' : null
-							}
-						/>
-					</div>
-				</section>
-
-				{/* ── Assigned request queue — US-022 ──────────────────────── */}
-				<section className="wd-section">
-					<div className="wd-queue-top-row">
-						<h2
-							className="wd-section-title"
-							style={{ marginBottom: 0 }}
-						>
-							Assigned request queue
+			{/*
+			  wd-layout shifts the main content left when the panel is open,
+			  making room for the slide-in panel alongside it on desktop.
+			  On mobile the panel overlays on top of the backdrop.
+			*/}
+			<div
+				className={`wd-layout${selected_req ? ' wd-layout--panel-open' : ''}`}
+			>
+				<main className="wd-main">
+					{/* ── Performance summary ─────────────────────────────── */}
+					<section className="wd-section">
+						<h2 className="wd-section-title">
+							Performance summary
 						</h2>
-						<div className="wd-filter-row">
-							{STATUSES.map((s) => (
-								<button
-									key={s}
-									onClick={() => set_filter(s)}
-									className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
-								>
-									{s}
-									{s !== 'All' && (
-										<span className="wd-filter-count">
-											{count_by_status(s)}
-										</span>
-									)}
-								</button>
-							))}
+						<div className="wd-stats-grid">
+							<StatCard
+								label="Total assigned"
+								value={stats.total}
+								sub="All time"
+							/>
+							<StatCard
+								label="Resolved"
+								value={stats.resolved}
+								sub={resolved_pct}
+								value_modifier="success"
+							/>
+							<StatCard
+								label="Avg. resolution time"
+								value={
+									avg_display !== '—' ? (
+										<>
+											{avg_display}
+											<span className="wd-stat-unit">
+												{' '}
+												d
+											</span>
+										</>
+									) : (
+										'—'
+									)
+								}
+								sub="Across resolved requests"
+							/>
+							<StatCard
+								label="Awaiting action"
+								value={awaiting_action}
+								sub="Pending + acknowledged"
+								value_modifier={
+									awaiting_action > 0 ? 'warning' : null
+								}
+							/>
 						</div>
-					</div>
+					</section>
 
-					<div className="wd-queue-card">
-						{filtered_requests.length === 0 ? (
-							<EmptyQueue filter={active_filter} />
-						) : (
-							filtered_requests.map((req) => (
-								<RequestRow key={req.id} req={req} />
-							))
-						)}
-					</div>
-				</section>
-			</main>
+					{/* ── Request queue ───────────────────────────────────── */}
+					<section className="wd-section">
+						<div className="wd-queue-top-row">
+							<h2
+								className="wd-section-title"
+								style={{ marginBottom: 0 }}
+							>
+								Assigned request queue
+							</h2>
+							<div className="wd-filter-row">
+								{STATUSES.map((s) => (
+									<button
+										key={s}
+										onClick={() => set_filter(s)}
+										className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
+									>
+										{s}
+										{s !== 'All' && (
+											<span className="wd-filter-count">
+												{count_by_status(s)}
+											</span>
+										)}
+									</button>
+								))}
+							</div>
+						</div>
+
+						<div className="wd-queue-card">
+							{filtered_requests.length === 0 ? (
+								<EmptyQueue filter={active_filter} />
+							) : (
+								filtered_requests.map((req) => (
+									<RequestRow
+										key={req.id}
+										req={req}
+										is_selected={
+											selected_req?.id === req.id
+										}
+										on_click={() => toggle_panel(req)}
+									/>
+								))
+							)}
+						</div>
+					</section>
+				</main>
+
+				{/* ── Slide-in detail + message panel ─────────────────────── */}
+				{selected_req && (
+					<aside
+						className={`wd-detail-panel${panel_visible ? ' wd-detail-panel--visible' : ''}`}
+						aria-label="Request detail and messaging"
+					>
+						<RequestDetailPanel
+							req={selected_req}
+							worker={worker}
+							on_close={close_panel}
+						/>
+					</aside>
+				)}
+			</div>
+
+			{/* ── Mobile backdrop ─────────────────────────────────────────── */}
+			{selected_req && (
+				<div
+					className={`wd-backdrop${panel_visible ? ' wd-backdrop--visible' : ''}`}
+					onClick={close_panel}
+					aria-hidden="true"
+				/>
+			)}
+		</div>
+	)
+}
+
+/* ── RequestDetailPanel ──────────────────────────────────────────────────── */
+
+/**
+ * Rendered inside the slide-in panel when a row is clicked.
+ * Shows request metadata then embeds MessageThread.
+ *
+ * Expects these extra fields on req (beyond what RequestRow uses):
+ *   req.user_uid       {string}  Firebase UID of the resident — required for messaging
+ *   req.resident_name  {string}  Display name of the resident — optional
+ */
+function RequestDetailPanel({ req, worker, on_close }) {
+	const display_date = req.updatedAt?.toMillis
+		? new Date(req.updatedAt.toMillis()).toISOString().split('T')[0]
+		: (req.updatedAt ?? '—')
+
+	const resident_name = req.resident_name || 'Resident'
+
+	return (
+		<div className="wd-panel-inner">
+			{/* Header */}
+			<div className="wd-panel-header">
+				<div className="wd-panel-header-left">
+					<span className="wd-panel-req-id">{req.id}</span>
+					<span
+						className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
+					>
+						{req.status}
+					</span>
+				</div>
+				<button
+					className="wd-panel-close"
+					onClick={on_close}
+					aria-label="Close panel"
+				>
+					<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+						<path
+							d="M3 3l10 10M13 3L3 13"
+							stroke="currentColor"
+							strokeWidth="1.75"
+							strokeLinecap="round"
+						/>
+					</svg>
+				</button>
+			</div>
+
+			{/* Metadata */}
+			<dl className="wd-panel-meta">
+				<div className="wd-panel-meta-row">
+					<dt className="wd-panel-meta-label">Category</dt>
+					<dd className="wd-panel-meta-value">{req.category}</dd>
+				</div>
+				<div className="wd-panel-meta-row">
+					<dt className="wd-panel-meta-label">Ward</dt>
+					<dd className="wd-panel-meta-value">{req.ward}</dd>
+				</div>
+				<div className="wd-panel-meta-row">
+					<dt className="wd-panel-meta-label">Last updated</dt>
+					<dd className="wd-panel-meta-value">{display_date}</dd>
+				</div>
+				<div className="wd-panel-meta-row wd-panel-meta-row--full">
+					<dt className="wd-panel-meta-label">Description</dt>
+					<dd className="wd-panel-meta-value wd-panel-meta-desc">
+						{req.description}
+					</dd>
+				</div>
+			</dl>
+
+			{/* Section label */}
+			<div className="wd-panel-divider">
+				<span>Conversation with resident</span>
+			</div>
+
+			{/* MessageThread */}
+			<div className="wd-panel-thread">
+				{req.user_uid ? (
+					<MessageThread
+						request_id={req.id}
+						current_uid={worker.uid}
+						current_name={worker.name}
+						current_role="worker"
+						other_uid={req.user_uid}
+						other_name={resident_name}
+					/>
+				) : (
+					<p className="wd-panel-no-resident">
+						Resident information unavailable — messaging is disabled
+						for this request.
+					</p>
+				)}
+			</div>
 		</div>
 	)
 }
@@ -224,13 +412,24 @@ function StatCard({ label, value, sub, value_modifier }) {
 	)
 }
 
-function RequestRow({ req }) {
+/**
+ * RequestRow — now a <button> so it's keyboard-accessible.
+ * New props vs the original:
+ *   is_selected  {boolean}   highlights the row while its panel is open
+ *   on_click     {function}  toggles the detail panel
+ */
+function RequestRow({ req, is_selected, on_click }) {
 	const display_date = req.updatedAt?.toMillis
 		? new Date(req.updatedAt.toMillis()).toISOString().split('T')[0]
 		: (req.updatedAt ?? '—')
 
 	return (
-		<div className="wd-req-row">
+		<button
+			className={`wd-req-row${is_selected ? ' wd-req-row--selected' : ''}`}
+			onClick={on_click}
+			aria-pressed={is_selected}
+			aria-label={`Open request ${req.id} — ${req.category}, ${req.status}`}
+		>
 			<span className="wd-req-id">{req.id}</span>
 			<span className="wd-req-cat">{req.category}</span>
 			<span className="wd-req-desc">{req.description}</span>
@@ -242,7 +441,10 @@ function RequestRow({ req }) {
 			<span className="wd-req-meta">
 				{req.ward} · {display_date}
 			</span>
-		</div>
+			<span className="wd-req-chevron" aria-hidden="true">
+				›
+			</span>
+		</button>
 	)
 }
 

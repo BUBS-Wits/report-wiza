@@ -274,3 +274,305 @@
 .wd-retry-btn:hover {
 	background: rgba(245, 158, 11, 0.16);
 }
+
+.wd-layout {
+	display: flex;
+	align-items: flex-start;
+	position: relative;
+	min-height: calc(100vh - 60px); /* adjust 60px to your navbar height */
+}
+
+.wd-layout .wd-main {
+	flex: 1;
+	min-width: 0;
+	transition: flex 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* When panel is open, shrink main so panel fits beside it */
+@media (min-width: 900px) {
+	.wd-layout--panel-open .wd-main {
+		flex: 1 1 0;
+	}
+}
+
+/* ── Slide-in detail panel ───────────────────────────────────
+   Enters from the right. On desktop it sits alongside the
+   main content. On mobile it overlays full-width.
+   ─────────────────────────────────────────────────────────── */
+.wd-detail-panel {
+	width: 420px;
+	flex-shrink: 0;
+	height: calc(100vh - 60px); /* match navbar height */
+	position: sticky;
+	top: 60px; /* match navbar height */
+	overflow-y: auto;
+	background: #ffffff;
+	border-left: 1.5px solid #e8e4de;
+	box-shadow: -4px 0 24px rgba(0, 0, 0, 0.07);
+
+	/* Enter from right */
+	transform: translateX(100%);
+	opacity: 0;
+	transition:
+		transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+		opacity 0.22s ease;
+	will-change: transform;
+}
+
+.wd-detail-panel--visible {
+	transform: translateX(0);
+	opacity: 1;
+}
+
+/* Scrollbar inside panel */
+.wd-detail-panel::-webkit-scrollbar {
+	width: 5px;
+}
+.wd-detail-panel::-webkit-scrollbar-track {
+	background: transparent;
+}
+.wd-detail-panel::-webkit-scrollbar-thumb {
+	background: #e0dbd4;
+	border-radius: 10px;
+}
+
+/* Mobile: overlay over the full page */
+@media (max-width: 899px) {
+	.wd-detail-panel {
+		position: fixed;
+		top: 0;
+		right: 0;
+		width: 100%;
+		max-width: 480px;
+		height: 100dvh;
+		z-index: 200;
+		border-left: 1.5px solid #e8e4de;
+	}
+}
+
+/* ── Mobile backdrop ─────────────────────────────────────────
+   Only visible below the breakpoint where panel overlays.
+   ─────────────────────────────────────────────────────────── */
+.wd-backdrop {
+	display: none;
+}
+
+@media (max-width: 899px) {
+	.wd-backdrop {
+		display: block;
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.35);
+		z-index: 199;
+		opacity: 0;
+		transition: opacity 0.25s ease;
+	}
+	.wd-backdrop--visible {
+		opacity: 1;
+	}
+}
+
+.wd-panel-inner {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0;
+}
+
+/* ── Panel header ────────────────────────────────────────────*/
+.wd-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 16px 18px 14px;
+	border-bottom: 1.5px solid #ede9e3;
+	flex-shrink: 0;
+	background: #faf8f5;
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+
+.wd-panel-header-left {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.wd-panel-req-id {
+	font-family: 'DM Mono', monospace;
+	font-size: 12px;
+	font-weight: 500;
+	color: #6b6459;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 210px;
+}
+
+.wd-panel-close {
+	width: 32px;
+	height: 32px;
+	border: none;
+	background: transparent;
+	border-radius: 8px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #9e9589;
+	flex-shrink: 0;
+	transition:
+		background 0.15s,
+		color 0.15s;
+}
+
+.wd-panel-close svg {
+	width: 15px;
+	height: 15px;
+}
+
+.wd-panel-close:hover {
+	background: #f0ece6;
+	color: #1c1c1c;
+}
+
+/* ── Panel metadata ──────────────────────────────────────────*/
+.wd-panel-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding: 14px 18px 10px;
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.wd-panel-meta-row {
+	display: grid;
+	grid-template-columns: 110px 1fr;
+	align-items: baseline;
+	gap: 8px;
+	padding: 7px 0;
+	border-bottom: 1px solid #f0ece6;
+}
+
+.wd-panel-meta-row:last-child {
+	border-bottom: none;
+}
+
+.wd-panel-meta-row--full {
+	grid-template-columns: 110px 1fr;
+	align-items: flex-start;
+}
+
+.wd-panel-meta-label {
+	font-size: 11px;
+	font-weight: 600;
+	color: #9e9589;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.wd-panel-meta-value {
+	font-size: 13.5px;
+	color: #1c1c1c;
+	line-height: 1.45;
+	margin: 0;
+}
+
+.wd-panel-meta-desc {
+	line-height: 1.55;
+	color: #3d3730;
+}
+
+/* ── Panel section divider ───────────────────────────────────*/
+.wd-panel-divider {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 0 18px;
+	margin: 4px 0 0;
+	color: #9e9589;
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	flex-shrink: 0;
+}
+
+.wd-panel-divider::before,
+.wd-panel-divider::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	background: #ede9e3;
+}
+
+.wd-panel-thread {
+	flex: 1;
+	padding: 12px 14px 14px;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Override mt_root inside the panel: fill available height */
+.wd-panel-thread .mt_root {
+	flex: 1;
+	height: 100%;
+	max-height: none;
+	border-radius: 12px;
+}
+
+.wd-panel-no-resident {
+	font-size: 13px;
+	color: #9e9589;
+	padding: 20px;
+	text-align: center;
+	background: #faf8f5;
+	border: 1.5px dashed #e0dbd4;
+	border-radius: 10px;
+}
+
+/* Reset button defaults and re-apply row layout */
+button.wd-req-row {
+	width: 100%;
+	text-align: left;
+	background: none;
+	border: none;
+	font: inherit;
+	cursor: pointer;
+	padding: 0;
+}
+
+.wd-req-row {
+	transition: background 0.14s;
+}
+
+.wd-req-row:hover {
+	background: #faf8f5;
+}
+
+.wd-req-row--selected {
+	background: #f3f0ea !important;
+	border-left: 3px solid #2d6a4f;
+}
+
+/* Chevron — hidden until hover or selected */
+.wd-req-chevron {
+	font-size: 18px;
+	color: #c8c2bb;
+	line-height: 1;
+	margin-left: auto;
+	transition:
+		color 0.14s,
+		transform 0.14s;
+	flex-shrink: 0;
+}
+
+.wd-req-row:hover .wd-req-chevron,
+.wd-req-row--selected .wd-req-chevron {
+	color: #2d6a4f;
+	transform: translateX(2px);
+}
