@@ -532,23 +532,6 @@ describe('Detail panel open/close', () => {
 		)
 	})
 
-	/*
-	test('mobile backdrop click closes panel', async () => {
-		const rendered = await mount_and_wait()
-		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-		await waitFor(() =>
-			expect(
-				screen.getByText('Conversation with resident')
-			).toBeInTheDocument()
-		)
-		fireEvent.click(rendered.container.querySelector('.wd-backdrop'))
-		await waitFor(() =>
-			expect(
-				screen.queryByText('Conversation with resident')
-			).not.toBeInTheDocument()
-		)
-	})
-*/
 })
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -825,64 +808,6 @@ describe('Error state', () => {
 			).toBeGreaterThanOrEqual(2)
 		)
 	})
-})
-
-/* ══════════════════════════════════════════════════════════════════════════
-   BusyToolTip auto-dismiss
-   ══════════════════════════════════════════════════════════════════════════ */
-
-describe('BusyToolTip', () => {
-	/*
-	beforeEach(() => {
-		jest.useFakeTimers()
-		mock_on_auth_state_changed.mockImplementation((_, cb) => {
-			setTimeout(() => act(() => cb(mock_current_user)), 0)
-			return mock_unsubscribe
-		})
-		setup_mocks()
-		update_request_status.mockResolvedValue({ success: true })
-	})
-
-	test('unsubscribes from auth on unmount', () => {})
-
-	afterEach(() => jest.useRealTimers())
-
-	test('busy tip disappears after 2 seconds', async () => {
-		render_dashboard()
-		await waitFor(() =>
-			expect(screen.getByTestId('nav-bar')).toBeInTheDocument()
-		)
-		const loading = screen.queryByText('Loading dashboard…')
-		if (loading) {
-			await waitFor(() =>
-				expect(screen.queryByText('Loading dashboard…')).not.toBeInTheDocument()
-			)
-		}
-		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-		await waitFor(() =>
-			expect(
-				screen.getByText('Conversation with resident')
-			).toBeInTheDocument()
-		)
-		await waitFor(() =>
-			expect(
-				screen.getByRole('button', { name: 'In Progress' })
-			).toBeInTheDocument()
-		)
-		fireEvent.click(screen.getByRole('button', { name: 'In Progress' }))
-		await waitFor(() =>
-			expect(
-				screen.getByText('Successfully updated request status.')
-			).toBeInTheDocument()
-		)
-		act(() => jest.advanceTimersByTime(2100))
-		await waitFor(() =>
-			expect(
-				screen.queryByText('Successfully updated request status.')
-			).not.toBeInTheDocument()
-		)
-	})
-	*/
 })
 
 /* ══════════════════════════════════════════════════════════════════════════
