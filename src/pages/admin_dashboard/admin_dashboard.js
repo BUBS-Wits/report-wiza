@@ -11,7 +11,6 @@ import WorkersList from '../../components/workers_list/workers_list.js'
 import './admin_dashboard.css'
 import AdminRequests from '../../components/admin_requests/admin_requests.js'
 
-
 function AdminDashboard({ section = 'workers' }) {
 	const [active_section, set_active_section] = useState(section)
 	const [workers, set_workers] = useState([])
@@ -81,7 +80,7 @@ function AdminDashboard({ section = 'workers' }) {
 					</>
 				)
 			case 'requests':
-	return <AdminRequests />
+				return <AdminRequests />
 			case 'messaging':
 				return (
 					<div className="admin_placeholder">

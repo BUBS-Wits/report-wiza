@@ -16,10 +16,14 @@ jest.mock('firebase/firestore', () => ({
 	addDoc: jest.fn(),
 }))
 
-jest.mock('react-router-dom', () => ({
-	useNavigate: () => jest.fn(),
-	BrowserRouter: ({ children }) => <div>{children}</div>,
-}), { virtual: true })
+jest.mock(
+	'react-router-dom',
+	() => ({
+		useNavigate: () => jest.fn(),
+		BrowserRouter: ({ children }) => <div>{children}</div>,
+	}),
+	{ virtual: true }
+)
 
 import {
 	set_request_priority,
@@ -57,7 +61,9 @@ describe('US027 — set_request_priority', () => {
 	describe('Given updateDoc fails', () => {
 		it('Then it should throw an error', async () => {
 			updateDoc.mockRejectedValueOnce(new Error('Firebase error'))
-			await expect(set_request_priority('req-001', 'High')).rejects.toThrow()
+			await expect(
+				set_request_priority('req-001', 'High')
+			).rejects.toThrow()
 		})
 	})
 })
@@ -85,16 +91,20 @@ describe('US028 — close_request', () => {
 		it('Then it should return success', async () => {
 			updateDoc.mockResolvedValueOnce()
 			addDoc.mockResolvedValueOnce()
-			const result = await close_request('req-001', 'admin-uid', 'Duplicate request')
+			const result = await close_request(
+				'req-001',
+				'admin-uid',
+				'Duplicate request'
+			)
 			expect(result.success).toBe(true)
 		})
 	})
 
 	describe('Given no comment is provided', () => {
 		it('Then it should throw a validation error', async () => {
-			await expect(close_request('req-001', 'admin-uid', '')).rejects.toThrow(
-				'A comment is required to close a request.'
-			)
+			await expect(
+				close_request('req-001', 'admin-uid', '')
+			).rejects.toThrow('A comment is required to close a request.')
 		})
 	})
 })
@@ -108,9 +118,15 @@ describe('US029 — manage categories', () => {
 		it('Then it should return a list of categories', async () => {
 			getDocs.mockResolvedValueOnce({
 				docs: [
-					{ id: 'cat-1', data: () => ({ name: 'Water', active: true }) },
-					{ id: 'cat-2', data: () => ({ name: 'Electricity', active: true }) },
-				]
+					{
+						id: 'cat-1',
+						data: () => ({ name: 'Water', active: true }),
+					},
+					{
+						id: 'cat-2',
+						data: () => ({ name: 'Electricity', active: true }),
+					},
+				],
 			})
 			const result = await fetch_categories()
 			expect(result).toHaveLength(2)
@@ -193,14 +209,36 @@ describe('US046 — fetch_worker_performance', () => {
 			getDocs
 				.mockResolvedValueOnce({
 					docs: [
-						{ id: 'w1', data: () => ({ display_name: 'Thabo', role: 'worker' }) },
-					]
+						{
+							id: 'w1',
+							data: () => ({
+								display_name: 'Thabo',
+								role: 'worker',
+							}),
+						},
+					],
 				})
 				.mockResolvedValueOnce({
 					docs: [
-						{ id: 'r1', data: () => ({ worker_uid: 'w1', status: 'resolved', created_at: { toMillis: () => 0 }, updated_at: { toMillis: () => 86400000 } }) },
-						{ id: 'r2', data: () => ({ worker_uid: 'w1', status: 'pending', created_at: { toMillis: () => 0 }, updated_at: { toMillis: () => 0 } }) },
-					]
+						{
+							id: 'r1',
+							data: () => ({
+								worker_uid: 'w1',
+								status: 'resolved',
+								created_at: { toMillis: () => 0 },
+								updated_at: { toMillis: () => 86400000 },
+							}),
+						},
+						{
+							id: 'r2',
+							data: () => ({
+								worker_uid: 'w1',
+								status: 'pending',
+								created_at: { toMillis: () => 0 },
+								updated_at: { toMillis: () => 0 },
+							}),
+						},
+					],
 				})
 			const result = await fetch_worker_performance()
 			expect(result).toHaveLength(1)

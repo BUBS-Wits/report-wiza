@@ -45,7 +45,9 @@
 	border: none;
 	border-radius: 6px;
 	cursor: pointer;
-	transition: background 0.15s, opacity 0.15s;
+	transition:
+		background 0.15s,
+		opacity 0.15s;
 	white-space: nowrap;
 }
 
@@ -160,7 +162,10 @@
 	font-weight: 600;
 	cursor: pointer;
 	border: 1.5px solid;
-	transition: background 0.12s, color 0.12s, opacity 0.12s;
+	transition:
+		background 0.12s,
+		color 0.12s,
+		opacity 0.12s;
 }
 
 .admin_categories__toggle_btn--deactivate {

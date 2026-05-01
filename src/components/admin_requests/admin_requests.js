@@ -34,29 +34,32 @@ function AdminRequests() {
 	const [active_tab, set_active_tab] = useState('all')
 
 	const load = async () => {
-    set_loading(true)
-    set_error(null)
-    try {
-        const [reqs, wrks] = await Promise.all([
-            fetch_admin_requests(),
-            fetch_workers_for_assign(),
-        ])
-        set_requests(reqs)
-        set_workers(wrks)
-    } catch (err) {
-        set_error(err.message)
-    } finally {
-        set_loading(false)
-    }
+		set_loading(true)
+		set_error(null)
+		try {
+			const [reqs, wrks] = await Promise.all([
+				fetch_admin_requests(),
+				fetch_workers_for_assign(),
+			])
+			set_requests(reqs)
+			set_workers(wrks)
+		} catch (err) {
+			set_error(err.message)
+		} finally {
+			set_loading(false)
+		}
 
-    // Load stale requests separately so index error doesn't break the page
-    try {
-        const stale = await fetch_stale_requests()
-        set_stale_requests(stale)
-    } catch (err) {
-        console.warn('Stale requests unavailable — index may still be building:', err.message)
-    }
-}
+		// Load stale requests separately so index error doesn't break the page
+		try {
+			const stale = await fetch_stale_requests()
+			set_stale_requests(stale)
+		} catch (err) {
+			console.warn(
+				'Stale requests unavailable — index may still be building:',
+				err.message
+			)
+		}
+	}
 
 	useEffect(() => {
 		load()
@@ -68,9 +71,7 @@ function AdminRequests() {
 		try {
 			await set_request_priority(request_id, priority)
 			set_requests((prev) =>
-				prev.map((r) =>
-					r.id === request_id ? { ...r, priority } : r
-				)
+				prev.map((r) => (r.id === request_id ? { ...r, priority } : r))
 			)
 			show_message('Priority updated successfully.')
 		} catch (err) {
@@ -159,14 +160,16 @@ function AdminRequests() {
 					onClick={() => set_active_tab('stale')}
 				>
 					Stale requests
-					<span className="ar_tab_count">{stale_requests.length}</span>
+					<span className="ar_tab_count">
+						{stale_requests.length}
+					</span>
 				</button>
-                <button
-	className={`ar_tab ${active_tab === 'categories' ? 'ar_tab_active' : ''}`}
-	onClick={() => set_active_tab('categories')}
->
-	Categories
-</button>
+				<button
+					className={`ar_tab ${active_tab === 'categories' ? 'ar_tab_active' : ''}`}
+					onClick={() => set_active_tab('categories')}
+				>
+					Categories
+				</button>
 			</div>
 
 			{/* ── All requests table — US027 + US028 ── */}
@@ -299,7 +302,7 @@ function AdminRequests() {
 					)}
 				</div>
 			)}
-            {active_tab === 'categories' && <AdminCategories />}
+			{active_tab === 'categories' && <AdminCategories />}
 			{/* ── Close modal — US028 ── */}
 			{close_modal && (
 				<div className="ar_modal_overlay">

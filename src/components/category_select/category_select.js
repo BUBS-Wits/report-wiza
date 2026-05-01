@@ -13,9 +13,7 @@ function CategorySelect({ value, onChange }) {
 			try {
 				const all = await fetch_categories()
 				// Only show active categories to residents
-				const active = all
-    .filter((c) => c.active)
-    .map((c) => c.name)
+				const active = all.filter((c) => c.active).map((c) => c.name)
 				set_categories(active)
 			} catch (err) {
 				console.error('Failed to load categories:', err)
@@ -37,10 +35,11 @@ function CategorySelect({ value, onChange }) {
 				{loading
 					? 'Loading categories...'
 					: value
-					? value.replaceAll(/((^[a-z])|( [a-z]|_[a-z]))/g, (match) =>
-							match.replace('_', ' ').toUpperCase()
-					  )
-					: '--Please choose a category--'}
+						? value.replaceAll(
+								/((^[a-z])|( [a-z]|_[a-z]))/g,
+								(match) => match.replace('_', ' ').toUpperCase()
+							)
+						: '--Please choose a category--'}
 			</button>
 			<ul className={`category_dropdown_list ${expand ? 'open' : ''}`}>
 				{categories.map((opt) => (

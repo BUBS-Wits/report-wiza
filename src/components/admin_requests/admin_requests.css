@@ -166,10 +166,23 @@
 	font-weight: 600;
 }
 
-.priority_low { color: #15803d; border-color: rgba(21,128,61,0.3); }
-.priority_medium { color: #b45309; border-color: rgba(245,158,11,0.3); }
-.priority_high { color: #c2410c; border-color: rgba(194,65,12,0.3); }
-.priority_critical { color: #b91c1c; border-color: rgba(185,28,28,0.4); background: rgba(220,38,38,0.05); }
+.priority_low {
+	color: #15803d;
+	border-color: rgba(21, 128, 61, 0.3);
+}
+.priority_medium {
+	color: #b45309;
+	border-color: rgba(245, 158, 11, 0.3);
+}
+.priority_high {
+	color: #c2410c;
+	border-color: rgba(194, 65, 12, 0.3);
+}
+.priority_critical {
+	color: #b91c1c;
+	border-color: rgba(185, 28, 28, 0.4);
+	background: rgba(220, 38, 38, 0.05);
+}
 
 .ar_close_btn {
 	font-size: 11px;

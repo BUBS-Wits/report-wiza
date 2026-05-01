@@ -52,7 +52,9 @@ describe('CategorySelect', () => {
 	describe('Given the CategorySelect component is mounted', () => {
 		describe('When no value is provided', () => {
 			it('Then it should display the default placeholder text', async () => {
-				render(<CategorySelect value={null} onChange={mock_on_change} />)
+				render(
+					<CategorySelect value={null} onChange={mock_on_change} />
+				)
 				const trigger_btn = await screen.findByRole('button', {
 					name: '--Please choose a category--',
 				})
@@ -64,7 +66,10 @@ describe('CategorySelect', () => {
 		describe('When a snake_case value is provided', () => {
 			it('Then it should render the formatted title-case text on the trigger button', async () => {
 				render(
-					<CategorySelect value="water_outage" onChange={mock_on_change} />
+					<CategorySelect
+						value="water_outage"
+						onChange={mock_on_change}
+					/>
 				)
 				const trigger_btn = await screen.findByRole('button', {
 					name: 'Water Outage',
@@ -76,7 +81,10 @@ describe('CategorySelect', () => {
 		describe('When a standard single-word value is provided', () => {
 			it('Then it should render the formatted capitalized text on the trigger button', async () => {
 				render(
-					<CategorySelect value="potholes" onChange={mock_on_change} />
+					<CategorySelect
+						value="potholes"
+						onChange={mock_on_change}
+					/>
 				)
 				const trigger_btn = await screen.findByRole('button', {
 					name: 'Potholes',
@@ -92,7 +100,9 @@ describe('CategorySelect', () => {
 				const { container } = render(
 					<CategorySelect value={null} onChange={mock_on_change} />
 				)
-				const dropdown_list = container.querySelector('.category_dropdown_list')
+				const dropdown_list = container.querySelector(
+					'.category_dropdown_list'
+				)
 				expect(dropdown_list).not.toHaveClass('open')
 
 				const trigger_btn = await screen.findByRole('button', {
@@ -105,7 +115,9 @@ describe('CategorySelect', () => {
 
 		describe('When the options are mapped', () => {
 			it('Then it should render a CategoryOption for each category in the constants', async () => {
-				render(<CategorySelect value={null} onChange={mock_on_change} />)
+				render(
+					<CategorySelect value={null} onChange={mock_on_change} />
+				)
 				const trigger_btn = await screen.findByRole('button', {
 					name: '--Please choose a category--',
 				})
@@ -125,7 +137,9 @@ describe('CategorySelect', () => {
 				})
 				fireEvent.click(trigger_btn)
 
-				const dropdown_list = container.querySelector('.category_dropdown_list')
+				const dropdown_list = container.querySelector(
+					'.category_dropdown_list'
+				)
 				expect(dropdown_list).toHaveClass('open')
 
 				const option_btn = screen.getByTestId('select-street_light')

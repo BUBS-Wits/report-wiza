@@ -40,12 +40,15 @@ export const close_request = async (request_id, admin_uid, comment) => {
 			closed_at: serverTimestamp(),
 			updated_at: serverTimestamp(),
 		})
-		await addDoc(collection(db, 'service_requests', request_id, 'comments'), {
-			text: comment.trim(),
-			author_uid: admin_uid,
-			type: 'close_reason',
-			created_at: serverTimestamp(),
-		})
+		await addDoc(
+			collection(db, 'service_requests', request_id, 'comments'),
+			{
+				text: comment.trim(),
+				author_uid: admin_uid,
+				type: 'close_reason',
+				created_at: serverTimestamp(),
+			}
+		)
 		return { success: true }
 	} catch (error) {
 		console.error('Error closing request:', error)
@@ -59,7 +62,9 @@ export const seed_categories = async () => {
 	const defaults = ['water', 'sewage', 'electricity', 'road']
 	try {
 		const existing = await getDocs(collection(db, 'categories'))
-		if (existing.docs.length > 0){ return }// already seeded
+		if (existing.docs.length > 0) {
+			return
+		} // already seeded
 		for (const name of defaults) {
 			await addDoc(collection(db, 'categories'), {
 				name,
@@ -163,7 +168,10 @@ export const block_resident = async (resident_uid, is_blocked) => {
 
 export const fetch_residents = async () => {
 	try {
-		const q = query(collection(db, 'users'), where('role', '==', 'resident'))
+		const q = query(
+			collection(db, 'users'),
+			where('role', '==', 'resident')
+		)
 		const snapshot = await getDocs(q)
 		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
 	} catch (error) {
@@ -179,9 +187,7 @@ export const fetch_worker_performance = async () => {
 		const workers_snap = await getDocs(
 			query(collection(db, 'users'), where('role', '==', 'worker'))
 		)
-		const requests_snap = await getDocs(
-			collection(db, 'service_requests')
-		)
+		const requests_snap = await getDocs(collection(db, 'service_requests'))
 
 		const all_requests = requests_snap.docs.map((d) => ({
 			id: d.id,
@@ -192,21 +198,25 @@ export const fetch_worker_performance = async () => {
 			const worker_requests = all_requests.filter(
 				(r) => r.worker_uid === w.id
 			)
-			const resolved = worker_requests.filter((r) => r.status === 'resolved')
+			const resolved = worker_requests.filter(
+				(r) => r.status === 'resolved'
+			)
 
 			const avg_days =
 				resolved.length > 0
 					? parseFloat(
-						(
-							resolved.reduce((sum, r) => {
-								const created = r.created_at?.toMillis?.() ?? 0
-								const updated = r.updated_at?.toMillis?.() ?? 0
-								return sum + Math.max(0, updated - created)
-							}, 0) /
-							resolved.length /
-							(1000 * 60 * 60 * 24)
-						).toFixed(1)
-					)
+							(
+								resolved.reduce((sum, r) => {
+									const created =
+										r.created_at?.toMillis?.() ?? 0
+									const updated =
+										r.updated_at?.toMillis?.() ?? 0
+									return sum + Math.max(0, updated - created)
+								}, 0) /
+								resolved.length /
+								(1000 * 60 * 60 * 24)
+							).toFixed(1)
+						)
 					: null
 
 			return {

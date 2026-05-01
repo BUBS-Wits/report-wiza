@@ -310,8 +310,8 @@ function AdminCategories() {
 											{updating_id === cat.id
 												? '...'
 												: cat.active
-												? 'Deactivate'
-												: 'Activate'}
+													? 'Deactivate'
+													: 'Activate'}
 										</button>
 									</td>
 								</tr>
