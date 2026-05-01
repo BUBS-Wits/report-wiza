@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
@@ -80,12 +79,16 @@ jest.mock('../components/sidebar/sidebar.js', () => {
 		)
 	}
 })
-jest.mock('../components/admin_requests/admin_requests.js', () => {
-	function MockAdminRequests() {
-		return <div>Requests section — coming soon</div>
-	}
-	return MockAdminRequests
-}, { virtual: true })
+jest.mock(
+	'../components/admin_requests/admin_requests.js',
+	() => {
+		function MockAdminRequests() {
+			return <div>Requests section — coming soon</div>
+		}
+		return MockAdminRequests
+	},
+	{ virtual: true }
+)
 
 // ---------------------------------------------------------------------------
 // Test Suite

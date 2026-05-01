@@ -78,7 +78,10 @@ describe('WorkerVerify page', () => {
 					}
 				)
 				await waitFor(
-					() => expect(mock_navigate).toHaveBeenCalledWith('/worker-dashboard'),
+					() =>
+						expect(mock_navigate).toHaveBeenCalledWith(
+							'/worker-dashboard'
+						),
 					{
 						timeout: 3000,
 					}
