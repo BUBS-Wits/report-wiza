@@ -119,7 +119,6 @@ export const compute_worker_stats = (requests) => {
 			const end = new Date(r.updated_at).getTime()
 
 			const duration = end > start ? end - start : 0
-			console.info(duration)
 
 			return sum + duration
 		}, 0)
@@ -127,9 +126,7 @@ export const compute_worker_stats = (requests) => {
 		avg_resolution_days = parseFloat(
 			(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
 		)
-		console.info(total_ms)
-		console.info(total_ms / resolved.length)
-		console.info(avg_resolution_days)
+		console.info('Avg. Resolution Days: ' + avg_resolution_days)
 	}
 
 	return {
