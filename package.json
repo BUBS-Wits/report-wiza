@@ -50,15 +50,15 @@
 	"scripts": {
 		"sync": "node scripts/sync_shared.js",
 		"build": "npm run sync && react-scripts build",
-		"dev": "react-scripts start",
-		"eject": "react-scripts eject",
+		"dev": "npm run sync && react-scripts start",
+		"eject": "npm run sync && react-scripts eject",
 		"format": "prettier --write \"**/*.js\" \"**/*.html\" \"**/*.css\" \"*.js\"",
 		"format:check": "prettier --check \"**/*.js\" \"**/*.html\" \"**/*.css\" \"*.js\"",
 		"lint": "eslint .",
 		"start": "node server.js",
-		"test": "react-scripts test --passWithNoTests",
-		"test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests",
-		"test:coverage:watch": "react-scripts test --coverage --passWithNoTests"
+		"test": "npm run sync && react-scripts test --passWithNoTests",
+		"test:coverage": "npm run sync && react-scripts test --coverage --watchAll=false --passWithNoTests",
+		"test:coverage:watch": "npm run sync && react-scripts test --coverage --passWithNoTests"
 	},
 	"type": "module",
 	"version": "0.1.0"

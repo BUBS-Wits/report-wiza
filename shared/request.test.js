@@ -1,7 +1,7 @@
 import { Request, request_converter } from './request.js'
-import { image_validate } from '../../utility.js'
+import { image_validate } from './utility.js'
 
-jest.mock('../../utility.js', () => ({
+jest.mock('./utility.js', () => ({
 	image_validate: jest.fn(),
 }))
 

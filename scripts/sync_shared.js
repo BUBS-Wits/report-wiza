@@ -7,7 +7,10 @@ const pairs = [
 	['shared/utility.js', 'src/utility.js'],
 	['shared/utility.js', 'backend/utility.js'],
 	['shared/request.js', 'src/pages/request/request.js'],
+	['shared/utility.js', 'backend/utility.js'],
 	['shared/request.js', 'backend/request.js'],
+	['shared/utility.js', 'src/pages/request/utility.js'],
+	['shared/constants.js', 'src/pages/request/constants.js'],
 ]
 
 console.log(`=== SYNCING ===`)
