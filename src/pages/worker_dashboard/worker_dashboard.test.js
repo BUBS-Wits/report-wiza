@@ -10,8 +10,6 @@ import {
 import '@testing-library/jest-dom'
 import { MemoryRouter } from 'react-router-dom'
 
-/* ── Module mocks ────────────────────────────────────────────────────────── */
-
 jest.mock('../../firebase_config.js', () => ({
 	auth: {
 		currentUser: {
@@ -96,13 +94,9 @@ jest.mock(
 
 jest.mock('./worker_dashboard.css', () => ({}), { virtual: true })
 
-/* ── Import after mocks ──────────────────────────────────────────────────── */
-
 import WorkerDashboard from './worker_dashboard.js'
 import { fetch_worker_dashboard_data } from '../../backend/worker_analytics_service.js'
 import { update_request_status } from '../../backend/worker_firebase.js'
-
-/* ── Fixtures ────────────────────────────────────────────────────────────── */
 
 const MOCK_WORKER = {
 	uid: 'worker-uid-1',
@@ -163,8 +157,6 @@ const MOCK_UNCLAIMED = [
 	},
 ]
 
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
-
 function setup_mocks({
 	claimed = MOCK_CLAIMED,
 	unclaimed = MOCK_UNCLAIMED,
@@ -198,10 +190,6 @@ function render_dashboard() {
 	return render(<WorkerDashboard />)
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   Loading state
-   ══════════════════════════════════════════════════════════════════════════ */
-
 describe('Loading state', () => {
 	beforeEach(() => {
 		mock_on_auth_state_changed.mockImplementation(() => mock_unsubscribe)
@@ -213,10 +201,6 @@ describe('Loading state', () => {
 		expect(screen.getByText(/loading dashboard/i)).toBeInTheDocument()
 	})
 })
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Auth
-   ══════════════════════════════════════════════════════════════════════════ */
 
 describe('Auth', () => {
 	test('shows error when user is not logged in', async () => {
@@ -251,10 +235,6 @@ describe('Auth', () => {
 		expect(mock_unsubscribe).toHaveBeenCalled()
 	})
 })
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Dashboard render after load
-   ══════════════════════════════════════════════════════════════════════════ */
 
 describe('Dashboard render', () => {
 	beforeEach(() => {
@@ -306,10 +286,6 @@ describe('Dashboard render', () => {
 	})
 })
 
-/* ══════════════════════════════════════════════════════════════════════════
-   Section switching
-   ══════════════════════════════════════════════════════════════════════════ */
-
 describe('Section switching', () => {
 	beforeEach(() => {
 		setup_mocks()
@@ -359,10 +335,6 @@ describe('Section switching', () => {
 		expect(screen.queryByText('All')).not.toBeInTheDocument()
 	})
 })
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Filter row
-   ══════════════════════════════════════════════════════════════════════════ */
 
 describe('Filter row', () => {
 	beforeEach(() => {
@@ -427,10 +399,6 @@ describe('Filter row', () => {
 		expect(screen.getByText(/no resolved requests/i)).toBeInTheDocument()
 	})
 })
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Detail panel — open / close
-   ══════════════════════════════════════════════════════════════════════════ */
 
 describe('Detail panel open/close', () => {
 	beforeEach(() => {
@@ -531,12 +499,7 @@ describe('Detail panel open/close', () => {
 			expect(screen.getAllByText('req-002')[0]).toBeInTheDocument()
 		)
 	})
-
 })
-
-/* ══════════════════════════════════════════════════════════════════════════
-   Detail panel — content
-   ══════════════════════════════════════════════════════════════════════════ */
 
 describe('Detail panel content', () => {
 	beforeEach(() => {
@@ -665,10 +628,6 @@ describe('Detail panel content', () => {
 	})
 })
 
-/* ══════════════════════════════════════════════════════════════════════════
-   Status update
-   ══════════════════════════════════════════════════════════════════════════ */
-
 describe('Status update', () => {
 	beforeEach(() => {
 		setup_mocks()
@@ -746,10 +705,6 @@ describe('Status update', () => {
 	})
 })
 
-/* ══════════════════════════════════════════════════════════════════════════
-   Error state
-   ══════════════════════════════════════════════════════════════════════════ */
-
 describe('Error state', () => {
 	beforeEach(() => {
 		mock_on_auth_state_changed.mockImplementation((_, cb) => {
@@ -809,10 +764,6 @@ describe('Error state', () => {
 		)
 	})
 })
-
-/* ══════════════════════════════════════════════════════════════════════════
-   EmptyQueue
-   ══════════════════════════════════════════════════════════════════════════ */
 
 describe('EmptyQueue', () => {
 	beforeEach(() => {

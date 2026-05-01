@@ -10,8 +10,6 @@ import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './worker_dashboard.css'
 
-/* ── Constants ───────────────────────────────────────────────────────────── */
-
 const AVAILABLE_STATUSES = [
 	STATUS.ASSIGNED,
 	STATUS.IN_PROGRESS,
@@ -32,8 +30,6 @@ const STATUS_BADGE_CLASS = {
 	Resolved: 'wd-badge--resolved',
 	Closed: 'wd-badge--closed',
 }
-
-/* ── Main component ──────────────────────────────────────────────────────── */
 
 export default function WorkerDashboard() {
 	const [worker, set_worker] = useState(null)
