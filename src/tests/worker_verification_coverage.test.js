@@ -176,9 +176,7 @@ describe('RequestCard', () => {
 	})
 
 	it('Then it should hide LikeButton for Closed requests', () => {
-		render(
-			<RequestCard request={{ ...base_request, status: 'Closed' }} />
-		)
+		render(<RequestCard request={{ ...base_request, status: 'Closed' }} />)
 		expect(screen.queryByTestId('like-button')).not.toBeInTheDocument()
 	})
 })
@@ -200,9 +198,7 @@ describe('ResidentRequests', () => {
 	it('Then it should show loading state', () => {
 		fetchResidentRequests.mockReturnValue(new Promise(() => {}))
 		render(<ResidentRequests />)
-		expect(
-			screen.getByText(/loading your requests/i)
-		).toBeInTheDocument()
+		expect(screen.getByText(/loading your requests/i)).toBeInTheDocument()
 	})
 
 	it('Then it should show empty state when no requests', async () => {
