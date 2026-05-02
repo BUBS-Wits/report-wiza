@@ -17,7 +17,9 @@ jest.mock('../components/nav_bar/nav_bar.js', () => {
 })
 
 jest.mock('firebase/auth', () => ({
-	GoogleAuthProvider: jest.fn().mockImplementation(() => ({})),
+	GoogleAuthProvider: jest.fn(() => ({
+		setCustomParameters: jest.fn(),
+	})),
 	signInWithPopup: jest.fn(),
 }))
 

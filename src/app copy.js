@@ -8,10 +8,7 @@ import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/submit/request_page.js'
 import AdminDashboard from './pages/admin_dashboard/admin_dashboard.js'
 import WorkerVerify from './pages/worker_verify/worker_verify.js'
-import WorkerDashboard from './pages/worker_dashboard/worker_dashboard.js'
 import CategoryReport from './pages/category_report/category_report.js'
-import WorkerMessages from './pages/worker_messages/worker_messages.js'
-import ResidentDashboard from './pages/resident_dashboard/resident_dashboard.js'
 import './app.css'
 
 function App() {
@@ -24,41 +21,8 @@ function App() {
 				<Route path="/dashboard" element={<PublicDashboard />} />
 				<Route path="/request" element={<RequestPage />} />
 				<Route path="/login" element={<Login />} />
+				<Route path="/admin" element={<AdminDashboard />} />
 				<Route path="/worker-verify" element={<WorkerVerify />} />
-				<Route path="/worker-dashboard" element={<WorkerDashboard />} />
-				<Route
-					path="/worker-dashboard/messages"
-					element={<WorkerMessages />}
-				/>
-				<Route path="/worker-dashboard" element={<WorkerDashboard />} />
-				<Route
-					path="/resident-dashboard"
-					element={<ResidentDashboard />}
-				/>
-				<Route
-					path="/admin"
-					element={<AdminDashboard section="workers" />}
-				/>
-				<Route
-					path="/admin/workers"
-					element={<AdminDashboard section="workers" />}
-				/>
-				<Route
-					path="/admin/requests"
-					element={<AdminDashboard section="requests" />}
-				/>
-				<Route
-					path="/admin/residents"
-					element={<AdminDashboard section="residents" />}
-				/>
-				<Route
-					path="/admin/messaging"
-					element={<AdminDashboard section="messaging" />}
-				/>
-				<Route
-					path="/admin/settings"
-					element={<AdminDashboard section="settings" />}
-				/>
 				<Route
 					path="/admin/analytics/category-report"
 					element={<CategoryReport />}
