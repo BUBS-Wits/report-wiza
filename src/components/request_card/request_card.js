@@ -1,10 +1,10 @@
 import React from 'react'
 import LikeButton from './like_button/like_button.js'
-import { STATUS_DISPLAY } from '../../constants.js'
+import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 
 function RequestCard({ request }) {
 	const showLikeButton =
-		request.status !== 'Resolved' && request.status !== 'Closed'
+		request.status !== STATUS.RESOLVED && request.status !== STATUS.CLOSED
 
 	return (
 		<div className="request_card">
@@ -18,7 +18,7 @@ function RequestCard({ request }) {
 			</div>
 			<p className="request_location">
 				{request.sa_ward ? `Ward ${request.sa_ward}` : '—'} ·{' '}
-				{request.sa_m_name || '—'}
+				{' ' + request.sa_m_name || ' —'}
 			</p>
 			<p className="request_description">{request.description}</p>
 

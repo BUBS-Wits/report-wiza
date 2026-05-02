@@ -36,15 +36,16 @@ jest.mock('../pages/resident/resident_requests.css', () => ({}))
 import RequestCard from '../components/request_card/request_card.js'
 import ResidentRequests from '../pages/resident/resident_requests.js'
 import { fetchResidentRequests } from '../backend/resident_firebase.js'
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
 // ── Test data ──────────────────────────────────────────────────────────────
 
 const base_request = {
 	id: 'req-001',
 	category: 'water',
-	status: 'Open',
-	ward: 'Ward 5',
-	municipality: 'Cape Town',
+	status: STATUS.SUBMITTED,
+	sa_ward: 'Ward 5',
+	sa_m_name: 'Cape Town',
 	description: 'Burst pipe on main road',
 	like_count: 3,
 }
@@ -53,7 +54,7 @@ const mock_resident_requests = [
 	{
 		id: 'r-001',
 		category: 'electricity',
-		status: 'open',
+		status: STATUS.SUBMITTED,
 		description: 'Power outage',
 		like_count: 0,
 		created_at: { toDate: () => new Date('2024-03-01') },
@@ -79,12 +80,14 @@ describe('RequestCard', () => {
 
 		it('Then it should render the status badge', () => {
 			render(<RequestCard request={base_request} />)
-			expect(screen.getByText('Open')).toBeInTheDocument()
+			expect(
+				screen.getByText(STATUS_DISPLAY[STATUS.SUBMITTED])
+			).toBeInTheDocument()
 		})
 
 		it('Then it should render the location', () => {
 			render(<RequestCard request={base_request} />)
-			expect(screen.getByText('Ward 5 - Cape Town')).toBeInTheDocument()
+			expect(screen.getByText(/ward 5.*cape town/i)).toBeInTheDocument()
 		})
 
 		it('Then it should render the description', () => {
@@ -104,7 +107,7 @@ describe('RequestCard', () => {
 		it('Then it should NOT show the LikeButton', () => {
 			render(
 				<RequestCard
-					request={{ ...base_request, status: 'Resolved' }}
+					request={{ ...base_request, status: STATUS.RESOLVED }}
 				/>
 			)
 			expect(screen.queryByTestId('like-button')).not.toBeInTheDocument()
@@ -114,7 +117,9 @@ describe('RequestCard', () => {
 	describe('Given a request with status Closed', () => {
 		it('Then it should NOT show the LikeButton', () => {
 			render(
-				<RequestCard request={{ ...base_request, status: 'Closed' }} />
+				<RequestCard
+					request={{ ...base_request, status: STATUS.CLOSED }}
+				/>
 			)
 			expect(screen.queryByTestId('like-button')).not.toBeInTheDocument()
 		})
