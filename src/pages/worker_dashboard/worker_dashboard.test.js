@@ -625,10 +625,14 @@ describe('Detail panel content', () => {
 	test('non-active status buttons are enabled', async () => {
 		await open_panel()
 		expect(
-			screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.IN_PROGRESS] })
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
 		).not.toBeDisabled()
 		expect(
-			screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.RESOLVED] })
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.RESOLVED],
+			})
 		).not.toBeDisabled()
 	})
 
@@ -681,7 +685,11 @@ describe('Status update', () => {
 
 	test('calls update_request_status with correct id and new status', async () => {
 		await open_panel_for_update()
-		fireEvent.click(screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.IN_PROGRESS] }))
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
 		await waitFor(() =>
 			expect(mock_update_request_status).toHaveBeenCalledWith(
 				'req-001',
@@ -692,7 +700,11 @@ describe('Status update', () => {
 
 	test('closes the panel after a successful status update', async () => {
 		await open_panel_for_update()
-		fireEvent.click(screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.IN_PROGRESS] }))
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
 		await waitFor(() =>
 			expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
 		)
@@ -700,7 +712,11 @@ describe('Status update', () => {
 
 	test('shows success tooltip after update', async () => {
 		await open_panel_for_update()
-		fireEvent.click(screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.IN_PROGRESS] }))
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
 		await waitFor(() =>
 			expect(
 				screen.getByText('Successfully updated request status.')
@@ -711,7 +727,11 @@ describe('Status update', () => {
 	test('shows error tooltip when update_request_status rejects with a message', async () => {
 		mock_update_request_status.mockRejectedValue(new Error('Network error'))
 		await open_panel_for_update()
-		fireEvent.click(screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.IN_PROGRESS] }))
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
 		await waitFor(() =>
 			expect(screen.getByText('Network error')).toBeInTheDocument()
 		)
@@ -720,7 +740,11 @@ describe('Status update', () => {
 	test('shows fallback error when rejected error has no message', async () => {
 		mock_update_request_status.mockRejectedValue({})
 		await open_panel_for_update()
-		fireEvent.click(screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.IN_PROGRESS] }))
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
 		await waitFor(() =>
 			expect(
 				screen.getByText('Failed to update request status.')
@@ -736,8 +760,16 @@ describe('Status update', () => {
 			})
 		)
 		await open_panel_for_update()
-		fireEvent.click(screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.IN_PROGRESS] }))
-		fireEvent.click(screen.getByRole('button', { name: STATUS_DISPLAY[STATUS.RESOLVED] }))
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.RESOLVED],
+			})
+		)
 		expect(mock_update_request_status).toHaveBeenCalledTimes(1)
 		await act(async () => resolve_first({ success: true }))
 	})
