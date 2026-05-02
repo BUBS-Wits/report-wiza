@@ -1,6 +1,29 @@
-import { WARD_API } from './constants.js'
+export async function get_data_uri(file) {
+	if (typeof file !== 'object') {
+		return null
+	}
+	if (typeof window !== 'undefined') {
+		// native browser
+		return new Promise((resolve) => {
+			const reader = new FileReader()
+			reader.onload = (e) => {
+				const data_uri = e.target.result
+				resolve(data_uri)
+			}
+			reader.readAsDataURL(file)
+		})
+	} else {
+		// nodejs
+		const buffer = Buffer.from(await file.arrayBuffer())
+		const data_uri = `data:${file.type};base64,${buffer.toString('base64')}`
+		return data_uri
+	}
+}
 
 export async function image_validate(image) {
+	if (typeof image === 'string' && image === '') {
+		return true
+	}
 	if (!image) {
 		return false
 	}
@@ -67,28 +90,6 @@ export function get_uint8array(base64) {
 		bytes[n++] = get_int(bits.splice(0, 8))
 	}
 	return bytes
-}
-
-export async function get_data_uri(file) {
-	if (typeof file !== 'object') {
-		return null
-	}
-	if (typeof window !== 'undefined') {
-		// native browser
-		return new Promise((resolve) => {
-			const reader = new FileReader()
-			reader.onload = (e) => {
-				const data_uri = e.target.result
-				resolve(data_uri)
-			}
-			reader.readAsDataURL(file)
-		})
-	} else {
-		// nodejs
-		const buffer = Buffer.from(await file.arrayBuffer())
-		const data_uri = `data:${file.type};base64,${buffer.toString('base64')}`
-		return data_uri
-	}
 }
 
 export function get_date(now) {

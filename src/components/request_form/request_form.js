@@ -60,7 +60,7 @@ function RequestForm({ onSubmit }) {
 		const f = e.target.files[0]
 		if (f && (await image_validate(f))) {
 			set_preview(await get_data_uri(f))
-			set_file(f)
+			set_file(await get_data_uri(f))
 		} else {
 			console.error('Please provide a valid image.')
 			set_preview(null)

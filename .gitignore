@@ -28,5 +28,15 @@ yarn-error.log*
 report-wiza*.json
 serviceAccountKey.json
 
+#sync
+src/constants.js
+backend/constants.js
+src/utility.js
+backend/utility.js
+src/pages/request/request.js
+backend/request.js
+src/pages/request/constants.js
+src/pages/request/utility.js
+
 *.zip
 src/app copy.js

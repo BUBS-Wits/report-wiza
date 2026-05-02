@@ -12,6 +12,8 @@
 		]
 	},
 	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1040.0",
+		"@aws-sdk/s3-request-presigner": "^3.1040.0",
 		"@testing-library/dom": "^10.4.1",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
@@ -38,24 +40,25 @@
 		"web-vitals": "^2.1.4"
 	},
 	"jest": {
-    "moduleNameMapper": {
-        "^react-router-dom$": "<rootDir>/src/__mocks__/react-router-dom.js"
-    	}
+		"moduleNameMapper": {
+			"^react-router-dom$": "<rootDir>/src/__mocks__/react-router-dom.js"
+		}
 	},
 	"name": "report-wiza",
 	"private": true,
 	"proxy": "http://localhost:3000",
 	"scripts": {
-		"build": "react-scripts build",
-		"dev": "react-scripts start",
-		"eject": "react-scripts eject",
+		"sync": "node scripts/sync_shared.js",
+		"build": "npm run sync && react-scripts build",
+		"dev": "npm run sync && react-scripts start",
+		"eject": "npm run sync && react-scripts eject",
 		"format": "prettier --write \"**/*.js\" \"**/*.html\" \"**/*.css\" \"*.js\"",
 		"format:check": "prettier --check \"**/*.js\" \"**/*.html\" \"**/*.css\" \"*.js\"",
 		"lint": "eslint .",
 		"start": "node server.js",
-		"test": "react-scripts test --passWithNoTests",
-		"test:coverage": "react-scripts test --coverage --watchAll=false --passWithNoTests",
-		"test:coverage:watch": "react-scripts test --coverage --passWithNoTests"
+		"test": "npm run sync && react-scripts test --passWithNoTests",
+		"test:coverage": "npm run sync && react-scripts test --coverage --watchAll=false --passWithNoTests",
+		"test:coverage:watch": "npm run sync && react-scripts test --coverage --passWithNoTests"
 	},
 	"type": "module",
 	"version": "0.1.0"
