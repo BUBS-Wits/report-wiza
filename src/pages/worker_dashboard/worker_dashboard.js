@@ -8,6 +8,7 @@ import { update_request_status } from '../../backend/worker_firebase.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
+import WorkerMessages from '../worker_messages/worker_messages.js'
 import './worker_dashboard.css'
 
 const AVAILABLE_STATUSES = [
@@ -41,8 +42,8 @@ export default function WorkerDashboard() {
 	const [error, set_error] = useState(null)
 	const [active_filter, set_filter] = useState('All')
 	const [active_section, set_active_section] = useState(null)
-	const [selected_req, set_selected_req] = useState(null) // drives the panel
-	const [panel_visible, set_panel_visible] = useState(false) // drives CSS transition
+	const [selected_req, set_selected_req] = useState(null)
+	const [panel_visible, set_panel_visible] = useState(false)
 	const [show_busy_tip, set_show_busy_tip] = useState(false)
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
@@ -56,7 +57,7 @@ export default function WorkerDashboard() {
 
 	/* ── Load dashboard data ──────────────────────────────────────────── */
 
-	const get_claimed_requests = async () => {
+	const get_claimed_requests = async (uid) => {
 		const token = await auth.currentUser.getIdToken()
 		const ret = await fetch('/api/get-claimed-requests', {
 			method: 'GET',
@@ -113,7 +114,7 @@ export default function WorkerDashboard() {
 			])
 			set_claimed_requests(claimed)
 			set_unclaimed_requests(unclaimed)
-			return { claimed, unclaimed } // ← return the fresh data
+			return { claimed, unclaimed }
 		} catch (err) {
 			set_error(err.message || 'Failed to load dashboard.')
 		} finally {
@@ -180,6 +181,15 @@ export default function WorkerDashboard() {
 		close_panel()
 	}
 
+	const set_messages_section = () => {
+		if (busy_ref.current) {
+			popup_busy('Already Loading Dashboard Info...')
+			return
+		}
+		set_active_section('messages')
+		close_panel()
+	}
+
 	/* ── Auth ─────────────────────────────────────────────────────────── */
 
 	useEffect(() => {
@@ -191,7 +201,7 @@ export default function WorkerDashboard() {
 			}
 			load_dashboard(user.uid, true).then((data) => {
 				if (data) {
-					set_requests(data.claimed) // ← use fresh data, not stale state
+					set_requests(data.claimed)
 					set_active_section('queue')
 				}
 			})
@@ -270,116 +280,121 @@ export default function WorkerDashboard() {
 				sections={{
 					queue_onclick: set_queue_requests,
 					available_onclick: set_available_requests,
+					messages_onclick: set_messages_section,
 				}}
 				active_section={active_section}
 			/>
 
 			<BusyToolTip show_busy_tip={show_busy_tip} busy_tip={busy_tip} />
 
-			{/*
-			  wd-layout shifts the main content left when the panel is open,
-			  making room for the slide-in panel alongside it on desktop.
-			  On mobile the panel overlays on top of the backdrop.
-			*/}
 			<div
 				className={`wd-layout${selected_req ? ' wd-layout--panel-open' : ''}`}
 			>
 				<main className="wd-main">
-					{/* ── Performance summary ─────────────────────────────── */}
-					<section className="wd-section">
-						<h2 className="wd-section-title">
-							Performance summary
-						</h2>
-						<div className="wd-stats-grid">
-							<StatCard
-								label={
-									'Total ' + STATUS_DISPLAY[STATUS.ASSIGNED]
-								}
-								value={stats.total}
-								sub="All time"
-							/>
-							<StatCard
-								label={STATUS_DISPLAY[STATUS.RESOLVED]}
-								value={stats.resolved}
-								sub={resolved_pct}
-								value_modifier="success"
-							/>
-							<StatCard
-								label="Avg. resolution time"
-								value={
-									avg_display !== '—' ? (
-										<>
-											{avg_display}
-											<span className="wd-stat-unit">
-												{' '}
-												d
-											</span>
-										</>
-									) : (
-										'—'
-									)
-								}
-								sub="Across resolved requests"
-							/>
-							<StatCard
-								label="Awaiting action"
-								value={awaiting_action}
-								sub={`${STATUS_DISPLAY[STATUS.ASSIGNED]} + ${STATUS_DISPLAY[STATUS.IN_PROGRESS]}`}
-								value_modifier={
-									awaiting_action > 0 ? 'warning' : null
-								}
-							/>
-						</div>
-					</section>
-
-					{/* ── Request queue ───────────────────────────────────── */}
-					<section className="wd-section">
-						<div className="wd-queue-top-row">
-							<h2
-								className="wd-section-title"
-								style={{ marginBottom: 0 }}
-							>
-								{active_section === 'queue'
-									? 'Assigned request queue'
-									: 'Available requests'}
-							</h2>
-							{active_section === 'queue' && (
-								<div className="wd-filter-row">
-									{STATUSES.map((s) => (
-										<button
-											key={s}
-											onClick={() => set_filter(s)}
-											className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
-										>
-											{s}
-											{s !== 'All' && (
-												<span className="wd-filter-count">
-													{count_by_status(s)}
-												</span>
-											)}
-										</button>
-									))}
-								</div>
-							)}
-						</div>
-
-						<div className="wd-queue-card">
-							{filtered_requests.length === 0 ? (
-								<EmptyQueue filter={active_filter} />
-							) : (
-								filtered_requests.map((req) => (
-									<RequestRow
-										key={req.id}
-										req={req}
-										is_selected={
-											selected_req?.id === req.id
+					{active_section === 'messages' ? (
+						<WorkerMessages
+							worker={worker}
+							requests={[...claimed_requests, ...unclaimed_requests]}
+						/>
+					) : (
+						<>
+							{/* ── Performance summary ─────────────────────────────── */}
+							<section className="wd-section">
+								<h2 className="wd-section-title">
+									Performance summary
+								</h2>
+								<div className="wd-stats-grid">
+									<StatCard
+										label={
+											'Total ' + STATUS_DISPLAY[STATUS.ASSIGNED]
 										}
-										on_click={() => toggle_panel(req)}
+										value={stats.total}
+										sub="All time"
 									/>
-								))
-							)}
-						</div>
-					</section>
+									<StatCard
+										label={STATUS_DISPLAY[STATUS.RESOLVED]}
+										value={stats.resolved}
+										sub={resolved_pct}
+										value_modifier="success"
+									/>
+									<StatCard
+										label="Avg. resolution time"
+										value={
+											avg_display !== '—' ? (
+												<>
+													{avg_display}
+													<span className="wd-stat-unit">
+														{' '}
+														d
+													</span>
+												</>
+											) : (
+												'—'
+											)
+										}
+										sub="Across resolved requests"
+									/>
+									<StatCard
+										label="Awaiting action"
+										value={awaiting_action}
+										sub={`${STATUS_DISPLAY[STATUS.ASSIGNED]} + ${STATUS_DISPLAY[STATUS.IN_PROGRESS]}`}
+										value_modifier={
+											awaiting_action > 0 ? 'warning' : null
+										}
+									/>
+								</div>
+							</section>
+
+							{/* ── Request queue ───────────────────────────────────── */}
+							<section className="wd-section">
+								<div className="wd-queue-top-row">
+									<h2
+										className="wd-section-title"
+										style={{ marginBottom: 0 }}
+									>
+										{active_section === 'queue'
+											? 'Assigned request queue'
+											: 'Available requests'}
+									</h2>
+									{active_section === 'queue' && (
+										<div className="wd-filter-row">
+											{STATUSES.map((s) => (
+												<button
+													key={s}
+													onClick={() => set_filter(s)}
+													className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
+												>
+													{s}
+													{s !== 'All' && (
+														<span className="wd-filter-count">
+															{count_by_status(s)}
+														</span>
+													)}
+												</button>
+											))}
+										</div>
+									)}
+								</div>
+
+								<div className="wd-queue-card">
+									{filtered_requests.length === 0 ? (
+										<EmptyQueue filter={active_filter} />
+									) : (
+										filtered_requests.map((req) => (
+											<RequestRow
+												key={req.id}
+												req={req}
+												is_selected={
+													selected_req?.id === req.id
+												}
+												on_click={() => toggle_panel(req)}
+											/>
+										))
+									)}
+								</div>
+							</section>
+						</>
+					)}
 				</main>
 
 				{/* ── Slide-in detail + message panel ─────────────────────── */}
@@ -413,14 +428,6 @@ export default function WorkerDashboard() {
 
 /* ── RequestDetailPanel ──────────────────────────────────────────────────── */
 
-/**
- * Rendered inside the slide-in panel when a row is clicked.
- * Shows request metadata then embeds MessageThread.
- *
- * Expects these extra fields on req (beyond what RequestRow uses):
- *   req.user_uid       {string}  Firebase UID of the resident — required for messaging
- *   req.resident_name  {string}  Display name of the resident — optional
- */
 function RequestDetailPanel({
 	req,
 	worker,
@@ -614,12 +621,6 @@ function StatCard({ label, value, sub, value_modifier }) {
 	)
 }
 
-/**
- * RequestRow — now a <button> so it's keyboard-accessible.
- * New props vs the original:
- *   is_selected  {boolean}   highlights the row while its panel is open
- *   on_click     {function}  toggles the detail panel
- */
 function RequestRow({ req, is_selected, on_click }) {
 	const display_date = req.updated_at
 		? new Date(req.updated_at).toISOString().split('T')[0]

@@ -44,7 +44,7 @@ const NAV_ITEMS = [
 	{
 		key: 'messages',
 		label: 'Messages',
-		to: '/worker-dashboard/messages',
+		to: '#', // Changed from hard path to '#' for state-based nav
 		badge: 3,
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -57,7 +57,7 @@ const NAV_ITEMS = [
 function Worker_nav_bar({
 	user = { initials: 'JD', name: 'Jane Doe', role: 'Field Worker' },
 	requests = { claimed: 0, unclaimed: 0 },
-	sections = { queue_onclick: null, available_onclick: null },
+	sections = { queue_onclick: null, available_onclick: null, messages_onclick: null }, // Added messages handler
 	active_section = 'queue',
 }) {
 	const [scrolled, set_scrolled] = useState(false)
@@ -96,7 +96,9 @@ function Worker_nav_bar({
 			return sections.available_onclick
 		} else if (item.key === 'queue') {
 			return sections.queue_onclick
-		} else {
+		} else if (item.key === 'messages') {
+			return sections.messages_onclick // Map to messages handler
+        } else {
 			return null
 		}
 	}
