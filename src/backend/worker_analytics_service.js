@@ -15,7 +15,7 @@ import { STATUS, STATUS_DISPLAY } from '../constants.js'
  * Verifies if the provided UID belongs to a user with the 'worker' role.
  * Returns the user document snapshot if valid, throws otherwise.
  */
-const verify_worker_and_get_profile = async (uid) => {
+export const verify_worker_and_get_profile = async (uid) => {
 	const snap = await getDoc(doc(db, 'users', uid))
 	if (!snap.exists()) {
 		throw new Error('Not authenticated.')
@@ -110,7 +110,6 @@ export const compute_worker_stats = (requests) => {
 	let avg_resolution_days = 0
 	if (resolved.length > 0) {
 		const total_ms = resolved.reduce((sum, r) => {
-			console.info(r)
 			if (!r.assigned_at || !r.updated_at) {
 				return sum
 			}
