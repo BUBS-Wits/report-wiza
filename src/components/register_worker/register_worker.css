@@ -1,86 +1,119 @@
 /* src/pages/admin/components/register_worker.css */
 
 .register_worker_card {
-	background: #ffffff;
-	border: 1px solid #e2e8f0;
-	border-radius: 16px;
-	padding: 20px 24px;
-	margin-bottom: 16px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    /* Swapped fixed padding for fluid clamp */
+    padding: clamp(16px, 4vw, 24px);
+    margin-bottom: 16px;
 }
 
 .register_worker_title {
-	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 18px;
-	font-weight: 700;
-	color: #0f1f3d;
-	margin: 0 0 4px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f1f3d;
+    margin: 0 0 4px;
 }
 
 .register_worker_desc {
-	font-size: 12px;
-	color: #64748b;
-	margin: 0 0 16px;
+    font-size: 12px;
+    color: #64748b;
+    margin: 0 0 16px;
 }
 
 .register_worker_form {
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .register_worker_row {
-	display: flex;
-	gap: 10px;
+    display: flex;
+    gap: 10px;
 }
 
 .register_worker_input {
-	flex: 1;
-	padding: 9px 12px;
-	border: 1px solid #e2e8f0;
-	border-radius: 10px;
-	font-size: 13px;
-	font-family: 'DM Sans', sans-serif;
-	color: #0f172a;
-	background: #f8fafc;
-	outline: none;
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: #0f172a;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .register_worker_input:focus {
-	border-color: #0f1f3d;
+    border-color: #0f1f3d;
+    box-shadow: 0 0 0 3px rgba(15, 31, 61, 0.1); /* Added a subtle focus ring for accessibility */
 }
 
 .register_worker_btn {
-	padding: 9px 18px;
-	background: #0f1f3d;
-	color: #ffffff;
-	border: none;
-	border-radius: 10px;
-	font-family: 'DM Sans', sans-serif;
-	font-size: 13px;
-	font-weight: 500;
-	cursor: pointer;
-	white-space: nowrap;
+    padding: 9px 18px;
+    background: #0f1f3d;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s, transform 0.1s; /* Added transitions for a premium feel */
+}
+
+.register_worker_btn:hover:not(:disabled) {
+    background: #1a3260; /* Slightly lighter navy on hover */
+    transform: translateY(-1px);
+}
+
+.register_worker_btn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .register_worker_btn:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .register_worker_msg {
-	padding: 8px 12px;
-	border-radius: 8px;
-	font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-top: 4px;
 }
 
 .register_worker_msg.success {
-	background: #f0fdf4;
-	border: 1px solid #bbf7d0;
-	color: #16a34a;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #16a34a;
 }
 
 .register_worker_msg.error {
-	background: #fef2f2;
-	border: 1px solid #fecaca;
-	color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 480px) {
+    .register_worker_row {
+        /* Stacks the input and button vertically on small phones */
+        flex-direction: column;
+    }
+
+    .register_worker_input,
+    .register_worker_btn {
+        width: 100%; /* Ensures both take up the full available width */
+    }
+
+    .register_worker_btn {
+        padding: 12px 18px; /* Slightly taller touch target on mobile */
+    }
 }

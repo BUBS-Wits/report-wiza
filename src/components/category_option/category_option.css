@@ -1,29 +1,32 @@
-section.category_select ul.category_dropdown_list li {
-	color: rgb(148, 163, 184);
-	background: transparent;
-	min-width: 248px;
-	padding: 0;
+/* src/components/category_option/category_option.css */
+
+.category_option_item {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    /* Allows the item to fill its parent dropdown natively */
+    width: 100%;
 }
 
-section.category_select ul.category_dropdown_list li:checked {
-	background: transparent;
-	color: rgb(148, 163, 184);
-	font-weight: bold;
+.category_option_btn {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    /* 12px vertical padding creates a generous touch-target for mobile screens */
+    padding: 12px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #94a3b8; /* Slate muted color */
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
-section.category_select ul.category_dropdown_list li:hover {
-	color: rgb(200, 210, 220) !important;
-	background: rgb(200, 100, 11);
-}
-
-section.category_select ul.category_dropdown_list li button {
-	color: rgb(148, 163, 184);
-	background: transparent;
-	min-width: 248px;
-	border: 0;
-	padding: 0;
-}
-
-section.category_select ul.category_dropdown_list li button:hover {
-	color: rgb(200, 210, 220) !important;
+/* Replaces the old :checked and :hover rules with a clean Amber highlight */
+.category_option_btn:hover,
+.category_option_btn:focus {
+    background: rgba(245, 158, 11, 0.1); /* Subtle amber glow */
+    color: #f59e0b; /* Amber text */
+    outline: none;
 }

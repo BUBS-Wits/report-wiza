@@ -1,60 +1,73 @@
 /* src/pages/admin/admin_dashboard.css */
 
 .admin_page {
-	display: flex;
-	min-height: 100vh;
-	font-family: 'DM Sans', sans-serif;
+    display: flex;
+    min-height: 100vh;
+    font-family: 'DM Sans', sans-serif;
+    /* Added top padding to clear the global fixed Navbar */
+    padding-top: 80px; 
 }
 
 .admin_main {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	background: #f8fafc;
-	min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+    min-width: 0;
 }
 
 .admin_content {
-	padding: 24px 28px;
-	flex: 1;
+    /* Changed fixed padding to clamp for fluid spacing on smaller screens */
+    padding: clamp(16px, 3vw, 28px);
+    flex: 1;
 }
 
 .admin_placeholder {
-	background: #ffffff;
-	border: 1px solid #e2e8f0;
-	border-radius: 16px;
-	padding: 48px;
-	text-align: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 48px;
+    text-align: center;
 }
 
 .admin_placeholder p {
-	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 20px;
-	font-weight: 700;
-	color: #0f1f3d;
-	margin: 0 0 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f1f3d;
+    margin: 0 0 8px;
 }
 
 .admin_placeholder span {
-	font-size: 12px;
-	color: #94a3b8;
+    font-size: 12px;
+    color: #94a3b8;
 }
 
 .admin_message {
-	padding: 10px 14px;
-	border-radius: 8px;
-	font-size: 13px;
-	margin-top: 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 16px;
 }
 
 .admin_message.success {
-	background: #f0fdf4;
-	border: 1px solid #bbf7d0;
-	color: #16a34a;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #16a34a;
 }
 
 .admin_message.error {
-	background: #fef2f2;
-	border: 1px solid #fecaca;
-	color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 768px) {
+    .admin_page {
+        /* Stacks the Sidebar and Admin Main Content vertically on mobile */
+        flex-direction: column;
+    }
 }
