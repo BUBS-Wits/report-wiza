@@ -11,18 +11,7 @@ import {
 	
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
-
-/* ── Constants ───────────────────────────────────────────────────────────── */
-
-// Normalise Firestore status strings to display form
-const NORMALISE_STATUS = {
-	OPEN: 'Pending',
-	PENDING: 'Pending',
-	ACKNOWLEDGED: 'Acknowledged',
-	IN_PROGRESS: 'Acknowledged',
-	RESOLVED: 'Resolved',
-	CLOSED: 'Closed',
-}
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -30,7 +19,7 @@ const NORMALISE_STATUS = {
  * Verifies if the provided UID belongs to a user with the 'worker' role.
  * Returns the user document snapshot if valid, throws otherwise.
  */
-const verify_worker_and_get_profile = async (uid) => {
+export const verify_worker_and_get_profile = async (uid) => {
 	const snap = await getDoc(doc(db, 'users', uid))
 	if (!snap.exists()) {
 		throw new Error('Not authenticated.')
@@ -81,8 +70,7 @@ const fetch_assigned_requests = async (worker_uid) => {
 	chunk_results.forEach((snap) => {
 		snap.docs.forEach((d) => {
 			const data = d.data()
-			const raw_status = (data.status ?? '').toUpperCase()
-
+			const raw_status = data.status ?? 0
 			requests.push({
 				id: d.id,
 				category: data.category ?? 'Uncategorised',
@@ -91,19 +79,21 @@ const fetch_assigned_requests = async (worker_uid) => {
 					data.location?.ward_name ??
 					(data.sa_ward ? `Ward ${data.sa_ward}` : 'Unknown ward'),
 				municipality: data.municipality ?? 'Unknown municipality',
-				status: NORMALISE_STATUS[raw_status] ?? 'Pending',
+				status: data.status ?? 1,
 				priority: data.priority ?? 'Medium',
-				assignedAt: data.assigned_at ?? null,
-				updatedAt: data.updated_at ?? null,
-				...(data.resolved_at ? { resolvedAt: data.resolved_at } : {}),
+				assigned_at: data.assigned_at ?? null,
+				updated_at: data.updated_at ?? null,
+				...(data.resolved_at ? { resolved_at: data.resolved_at } : {}),
 			})
 		})
 	})
 
 	// Sort newest-updated first
 	requests.sort((a, b) => {
-		const ts = (t) => t?.toMillis?.() ?? 0
-		return ts(b.updatedAt) - ts(a.updatedAt)
+		const timeA = a.updated_at ? new Date(a.updated_at).getTime() : 0
+		const timeB = b.updated_at ? new Date(b.updated_at).getTime() : 0
+
+		return timeB - timeA
 	})
 
 	return requests
@@ -118,28 +108,35 @@ const fetch_assigned_requests = async (worker_uid) => {
 export const compute_worker_stats = (requests) => {
 	const by_status = (status) => requests.filter((r) => r.status === status)
 
-	const resolved = by_status('Resolved')
+	const resolved = by_status(STATUS.RESOLVED)
 
 	let avg_resolution_days = 0
 	if (resolved.length > 0) {
 		const total_ms = resolved.reduce((sum, r) => {
-			const assigned = r.assignedAt?.toMillis?.() ?? 0
-			const resolved_at =
-				r.resolvedAt?.toMillis?.() ?? r.updatedAt?.toMillis?.() ?? 0
-			return sum + Math.max(0, resolved_at - assigned)
+			if (!r.assigned_at || !r.updated_at) {
+				return sum
+			}
+
+			const start = new Date(r.assigned_at).getTime()
+			const end = new Date(r.updated_at).getTime()
+
+			const duration = end > start ? end - start : 0
+
+			return sum + duration
 		}, 0)
 
 		avg_resolution_days = parseFloat(
 			(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
 		)
+		console.debug('Avg. Resolution Days: ' + avg_resolution_days)
 	}
 
 	return {
 		total: requests.length,
 		resolved: resolved.length,
-		pending: by_status('Pending').length,
-		acknowledged: by_status('Acknowledged').length,
-		closed: by_status('Closed').length,
+		pending: by_status(STATUS.ASSIGNED).length,
+		acknowledged: by_status(STATUS.IN_PROGRESS).length,
+		closed: by_status(STATUS.CLOSED).length,
 		avg_resolution_days,
 	}
 }

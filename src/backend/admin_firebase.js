@@ -15,8 +15,12 @@ import {
 
 // Email link settings — tells Firebase where to redirect
 // the worker after they click the link
+const is_production = window.location.hostname !== 'localhost'
+
 const action_code_settings = {
-	url: `${window.location.origin}/worker-verify`,
+	url: is_production
+		? 'https://webapp-report-wiza.azurewebsites.net/worker-verify'
+		: 'http://localhost:3000/worker-verify',
 	handleCodeInApp: true,
 }
 
@@ -24,25 +28,48 @@ const action_code_settings = {
 // and stores them in Firestore as a pending worker
 export const register_worker_email = async (email) => {
 	try {
-		// Send the email link via Firebase
+		// Check if the email belongs to an existing user in Firestore
+		const users_ref = collection(db, 'users')
+		const q = query(users_ref, where('email', '==', email))
+		const snapshot = await getDocs(q)
+
+		if (snapshot.empty) {
+			throw new Error(
+				'This email address is not associated with a registered Report-Wiza account.'
+			)
+		}
+
+		const user_data = snapshot.docs[0].data()
+
+		if (user_data.role === 'worker') {
+			throw new Error(
+				'This user has already been assigned the worker role and does not require further registration.'
+			)
+		}
+
+		if (user_data.role === 'admin') {
+			throw new Error(
+				'This account holds administrator privileges and cannot be assigned the worker role.'
+			)
+		}
+
+		// All checks passed — send the email link
 		await sendSignInLinkToEmail(auth, email, action_code_settings)
 
-		// Store the email in Firestore as pending so we know
-		// to give them the worker role when they verify
+		// Store in Firestore as pending
 		await setDoc(doc(db, 'pending_workers', email), {
 			email: email,
 			invited_at: serverTimestamp(),
 			status: 'pending',
 		})
 
-		// Save email in localStorage so we can retrieve it
-		// on the verify page after the link is clicked
+		// Save email in localStorage for the verify page
 		window.localStorage.setItem('worker_email_for_sign_in', email)
 
 		return { success: true }
 	} catch (error) {
 		console.error('Error registering worker:', error)
-		throw new Error('Could not send registration email. Try again.')
+		throw error
 	}
 }
 

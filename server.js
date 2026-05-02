@@ -1,9 +1,23 @@
+import { Readable } from 'node:stream'
 import express from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
-import http from 'http' // Added for Bug 2 fix
+import {
+	S3Client,
+	ListBucketsCommand,
+	PutObjectCommand,
+	GetObjectCommand,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import http from 'http'
+import { Request, request_converter } from './backend/request.js'
+import {
+	ClaimedRequest,
+	claimed_request_converter,
+} from './backend/claimed_request.js'
+import { STATUS } from './backend/constants.js'
 
 /********************* Setup *********************/
 
@@ -21,254 +35,149 @@ const service_account = JSON.parse(
 
 admin.initializeApp({
 	credential: admin.credential.cert(service_account),
-	databaseURL: 'https://report-wiza-default-rtdb.firebaseio.com',
 })
 
+const db_name = process.env.REACT_APP_FIREBASE_DB_NAME || '(default)'
 const db = admin.firestore()
+db.settings({
+	databaseId: db_name,
+})
 db.listCollections()
-	.then(() => console.log('Firebase connected.'))
-	.catch((err) => console.error('Firebase failed:', err))
-
-/********************* Utility *********************/
-
-const PLACEHOLDER_IMAGE = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256' viewBox='0 0 256 256'><rect width='256' height='256' fill='%23e0e0e0'/><rect x='32' y='32' width='192' height='192' fill='none' stroke='%239e9e9e' stroke-width='4'/><line x1='32' y1='32' x2='224' y2='224' stroke='%239e9e9e' stroke-width='4'/><line x1='224' y1='32' x2='32' y2='224' stroke='%239e9e9e' stroke-width='4'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%23757575' font-family='Arial, sans-serif' font-size='20'>No Image</text></svg>`
-
-async function get_data_uri(file) {
-	if (typeof file !== 'object') {
-		return null
-	}
-	if (typeof window !== 'undefined') {
-		// native browser
-		return new Promise((resolve) => {
-			const reader = new FileReader()
-			reader.onload = (e) => {
-				const data_uri = e.target.result
-				resolve(data_uri)
-			}
-			reader.readAsDataURL(file)
-		})
-	} else {
-		// nodejs
-		const buffer = Buffer.from(await file.arrayBuffer())
-		const data_uri = `data:${file.type};base64,${buffer.toString('base64')}`
-		return data_uri
-	}
-}
-
-async function image_validate(image) {
-	if (!image) {
-		return false
-	}
-	let image_uri =
-		typeof image === 'string' ? image : await get_data_uri(image)
-	if (!image_uri) {
-		return false
-	}
-	if (/^(https:\/\/|http:\/\/|ftp:\/\/)/.test(image)) {
-		return true
-	}
-	image_uri = image_uri.trim()
-	const image_media_types_suffix = ['jpeg', 'jpg', 'png']
-	const image_data_uri_regex = new RegExp(
-		`^data:image/(${image_media_types_suffix.join('|')})(;[^,;]+)*,.*$`,
-		'i'
+	.then(() => console.log(`Firebase connected using db '${db_name}'.`))
+	.catch((err) =>
+		console.error(`Firebase failed to connect using db '${db_name}':`, err)
 	)
-	return image_data_uri_regex.test(image_uri)
-}
 
-class Request {
-	constructor(
-		category,
-		description = undefined,
-		image = undefined,
-		longitude = undefined,
-		latitude = undefined,
-		location_info = undefined
-	) {
-		try {
-			if (typeof category === 'string') {
-				this.category = category?.trim()
-				this.description = description?.trim()
-				this.image = image
-				this.longitude = longitude
-				this.latitude = latitude
-				this.loc_info = location_info
-			} else if (typeof category === 'object') {
-				const json = category
-				this.category = json.category?.trim()
-				this.description = json.description?.trim()
-				this.image = json.image
-				this.longitude = Number(json.longitude)
-				this.latitude = Number(json.latitude)
-				this.loc_info = json.loc_info
-				this.loc_info.ward = Number(this.loc_info.ward)
-				this.loc_info.m_id = Number(this.loc_info.m_id)
-			}
-		} catch (err) {}
-	}
+const b2_client = new S3Client({
+	endpoint: process.env.B2_ENDPOINT,
+	region: process.env.B2_REGION,
+	credentials: {
+		accessKeyId: process.env.B2_KEY_ID_RO,
+		secretAccessKey: process.env.B2_APPLICATION_KEY_RO,
+	},
+})
 
-	async image_validate() {
-		if (!this.input_validate()) {
-			return false
-		}
-		return image_validate(this.image)
-	}
-
-	input_validate() {
+b2_client
+	.send(new ListBucketsCommand({}))
+	.then((response) => {
+		console.log('Buckets in BackBlaze account:')
 		if (
-			this.category &&
-			this.description &&
-			this.image &&
-			this.longitude !== undefined &&
-			this.latitude !== undefined &&
-			this.loc_info &&
-			this.loc_validate()
+			response.Buckets.map((e) => e.Name).indexOf(process.env.B2_BUCKET) <
+			0
 		) {
-			return true
+			throw new Error(`"${process.env.B2_BUCKET}" bucket not created`)
 		}
-		return false
-	}
+		response.Buckets.forEach((bucket) => {
+			console.log(`\t${bucket.Name}`)
+		})
+	})
+	.catch((err) => {
+		console.error('Error listing buckets:', err)
+	})
+const B2_SIGNED_URL_EXPIRES_IN = 5 * 24 * 60 * 60 // 5 days in seconds
 
-	to_string() {
-		return JSON.stringify(this.to_json())
-	}
+/********************* B2 Backend *********************/
 
-	to_json() {
-		return {
-			category: this.category,
-			description: this.description,
-			image: this.image,
-			longitude: this.longitude,
-			latitude: this.latitude,
-			loc_info: this.loc_info,
-		}
-	}
-
-	get_municipality() {
-		return {
-			id: this.loc_info?.m_id,
-			code: this.loc_info?.m_code,
-			name: this.loc_info?.m_name,
-		}
-	}
-
-	get_ward() {
-		return this.loc_info?.ward
-	}
-
-	get_province() {
-		return this.loc_info?.province
-	}
-
-	loc_validate() {
-		const municipality = this.get_municipality()
-		if (
-			this.get_ward() === undefined ||
-			!this.get_province() ||
-			!municipality ||
-			municipality.id === undefined || // <--- FIXED TYPO HERE
-			!municipality.code ||
-			!municipality.name
-		) {
-			return false
-		}
-		return true
-	}
-
-	set_placeholder_image() {
-		this.image = PLACEHOLDER_IMAGE
-	}
+const get_content_type = (data_uri) => {
+	return data_uri.split(';')[0].split(':')[1]
 }
 
-const request_converter = {
-	to_firestore: function (user_uid, request, now) {
-		const municipality = request.get_municipality()
-		return {
-			user_uid,
-			created_at: now.toUTCString(),
-			location: `SRID=4326;POINT(${request.longitude} ${request.latitude})`,
-			sa_ward: request.get_ward(),
-			sa_province: request.get_province(),
-			sa_m_id: municipality.id,
-			sa_m_code: municipality.code,
-			sa_m_name: municipality.name,
-			category: request.category,
-			description: request.description,
-			image: request.image,
-		}
-	},
-	from_firestore: function (snapshot, options) {
-		const data = snapshot.data(options)
-		data['longitude'] = data.location.replace(
-			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
-			'$1'
-		)
-		data['latitude'] = data.location.replace(
-			/SRID=4326;POINT\((-?[0-9\.]*) (-?[0-9\.]*)\)/g,
-			'$2'
-		)
-		data['loc_info'] = {
-			ward: data.sa_ward,
-			province: data.sa_province,
-			m_id: data.sa_m_id,
-			m_code: data.sa_m_code,
-			m_name: data.sa_m_name,
-		}
-		return new Request(data)
-	},
+const b2_get_content_command = (key_name) => {
+	return new GetObjectCommand({
+		Bucket: process.env.B2_BUCKET,
+		Key: key_name,
+	})
 }
 
-class ClaimedRequest {
-	constructor(request_uid, worker_uid, tmp_status) {
-		this.request_uid = request_uid
-		this.worker_uid = worker_uid
-		this.status = tmp_status
-	}
-
-	validate() {
-		if (this.request_uid && this.worker_uid && this.status) {
-			return true
-		}
-		return false
-	}
-
-	to_string() {
-		return JSON.stringify(this.to_json())
-	}
-
-	to_json() {
-		return {
-			request_uid: this.request_uid,
-			worker_uid: this.worker_uid,
-			status: this.status,
-		}
-	}
+const b2_get_signed_url = (command) => {
+	return getSignedUrl(b2_client, command, {
+		expiresIn: B2_SIGNED_URL_EXPIRES_IN,
+	})
+		.then((response) => {
+			return { ok: true, value: response }
+		})
+		.catch((err) => {
+			console.error('get_signed_url > error getting signed url:', err)
+			return { ok: false, value: err }
+		})
 }
 
-const claimed_request_converter = {
-	to_firestore: function (claimed_request) {
-		return {
-			request_uid: claimed_request.request_uid,
-			worker_uid: claimed_request.worker_uid,
-			status: claimed_request.status,
-		}
-	},
-	from_firestore: function (snapshot, options) {
-		const data = snapshot.data(options)
-		return new ClaimedRequest(
-			data.request_uid,
-			data.worker_uid,
-			data.status
+const b2_key_to_signed_url = (key_name) => {
+	const command = b2_get_content_command(key_name)
+	return b2_get_signed_url(command)
+}
+
+const b2_upload_data_uri = (data_uri, key_name) => {
+	const base64Content = data_uri.split(',')[1]
+	const buffer = Buffer.from(base64Content, 'base64')
+	const file_stream = Readable.from(buffer)
+
+	const mime_type = get_content_type(data_uri)
+
+	return b2_client
+		.send(
+			new PutObjectCommand({
+				Bucket: process.env.B2_BUCKET,
+				Key: key_name,
+				Body: file_stream,
+				ContentType: mime_type,
+				ContentLength: buffer.length,
+			})
 		)
-	},
+		.then((response) => {
+			console.log(
+				`upload_file > uploaded (${buffer.length} bytes): ${JSON.stringify(response, null, 2)}`
+			)
+			return { ok: true, value: response }
+		})
+		.catch((err) => {
+			console.error('upload_file > error uploading file:', err)
+			return { ok: false, value: err }
+		})
+}
+
+const b2_get_content = (key_name) => {
+	return b2_client
+		.send(b2_get_content_command(key_name))
+		.then((response) => {
+			return { ok: true, value: response }
+		})
+		.catch((err) => {
+			console.error('b2_get_content > error getting file:', err)
+			return { ok: false, value: err }
+		})
+}
+
+const b2_get_expiry_from_signed_url = (signed_url) => {
+	const url = new URL(signed_url)
+	const date = url.searchParams.get('X-Amz-Date')
+	const expires_in = url.searchParams.get('X-Amz-Expires')
+
+	const created = new Date(
+		date.replace(
+			/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/,
+			'$1-$2-$3T$4:$5:$6Z'
+		)
+	)
+	return new Date(created.getTime() + parseInt(expires_in) * 1000)
+}
+
+const b2_is_expired = (signed_url) => {
+	return b2_get_expiry_from_signed_url(signed_url) < new Date()
 }
 
 /********************* Backend *********************/
 
 app.use(express.json({ limit: '10mb' }))
 
-// Bug 1 Fix: Optional Authentication
-const authenticate_optional = async (req, res, next) => {
+const respond = {
+	unauthorized: (res) =>
+		res.status(400).json({ error: 'Unauthorized access to API endpoint.' }),
+	invalid_parameters: (res) =>
+		res.status(400).json({ error: 'Invalid parameters provided.' }),
+}
+
+const authenticate = async (req, res, next) => {
 	try {
 		const header = req.headers.authorization
 
@@ -363,7 +272,7 @@ const get_db_document = (collection, doc_id) => {
 		})
 		.catch((error) => {
 			console.error(
-				'get_db_document > error hile getting document: ',
+				'get_db_document > error while getting document: ',
 				error
 			)
 			return { ok: false, value: error }
@@ -383,8 +292,22 @@ const set_db_document = (collection, doc_id, doc) => {
 		})
 }
 
-const update_db_document = (collection, doc_id, doc) =>
-	set_db_document(collection, doc_id, doc)
+const update_db_document = (collection, doc_id, fields) => {
+	const replacements = {}
+	for (const field of fields) {
+		replacements[field[0]] = field[1]
+	}
+	return db
+		.collection(collection)
+		.doc(doc_id)
+		.update(replacements)
+		.then(() => {
+			return { ok: true, value: doc_id }
+		})
+		.catch((error) => {
+			return { ok: false, value: error }
+		})
+}
 
 const delete_db_document = (collection, doc_id) => {
 	return db
@@ -450,42 +373,232 @@ const role_service = {
 	is_worker: (uid) => has_role(uid, 'worker'),
 }
 
-app.post('/api/submit-request', authenticate_optional, async (req, res) => {
+app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
 		const body = req.body
 
-		// DO YOUR VALIDATION DIRECTLY IN THE BACKEND
-		if (!body) {
-			return res.status(400).json({
-				error: 'Missing parameters in request object.',
-			})
+		if (!body || !body.image || !/^data:/.test(body.image)) {
+			return respond.invalid_parameters(res)
 		}
+
+		let image = body.image
+		body.image = ''
 
 		const tmp = new Request(body)
 		if (!tmp.input_validate()) {
-			return res.status(400).json({
-				error: 'Missing parameters in request object.',
-			})
+			return respond.invalid_parameters(res)
 		}
 
-		// Handle anonymous users safely
 		const user_uid = req.user?.uid ?? null
 
 		const service_request = request_converter.to_firestore(
 			user_uid,
 			tmp,
-			new Date(Date.now())
+			new Date(Date.now()),
+			new Date(Date.now()),
+			STATUS.SUBMITTED
 		)
 
-		// Bug 3 Fix: Removed the duplicate check that was blocking updates
 		const doc_result = await create_db_document(
 			'service_requests',
 			service_request
 		)
 		if (!doc_result.ok) {
+			console.error(doc_result.value)
 			return res.status(500).json({ error: 'Failed to save request.' })
 		}
+		let ret = await b2_upload_data_uri(image, doc_result.value)
+		if (!ret.ok) {
+			console.error(ret.value)
+			await delete_db_document('service_requests', doc_result.value)
+			return res.status(500).json({ error: 'Failed to upload image.' })
+		}
+		const mime_type = get_content_type(image)
+		const key_name = doc_result.value
+		ret = await b2_key_to_signed_url(key_name)
+		if (!ret.ok) {
+			console.error(ret.value)
+			await delete_db_document('service_requests', doc_result.value)
+			return res
+				.status(500)
+				.json({ error: `Failed to get signed url of "${key_name}"` })
+		}
+		ret = await update_db_document('service_requests', doc_result.value, [
+			['image', ret.value],
+		])
+		if (!ret.ok) {
+			console.error(ret.value)
+			await delete_db_document('service_requests', doc_result.value)
+			return res.status(500).json({ error: 'Failed to save signed url.' })
+		}
 		return res.status(200).json({ data: doc_result.value })
+	} catch (err) {
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+app.get('/api/claim-request', authenticate, async (req, res) => {
+	try {
+		const uid = req.user.uid
+		const is_worker = await role_service.is_worker(uid)
+		if (!is_worker.ok) {
+			return res.status(500).json({ error: 'Failed to get role' })
+		}
+		if (!is_worker.value) {
+			return respond.unauthorized(res)
+		}
+		const request_uid = req.query.request_uid
+		if (!request_uid || Object.keys(req.query).length !== 1) {
+			return respond.invalid_parameters(res)
+		}
+
+		if (await exists_db_document('assignments', request_uid)) {
+			return res.status(201).json({
+				data: 'Request already claimed in db.',
+			})
+		}
+		const tmp2 = new ClaimedRequest(request_uid, uid)
+		const claimed_request = claimed_request_converter.to_firestore(tmp2)
+		const ret = await set_db_document(
+			'assignments',
+			request_uid,
+			claimed_request
+		)
+		if (!ret.ok) {
+			return res.status(400).json({ error: ret.value })
+		}
+		const ret2 = await update_db_document('service_requests', request_uid, [
+			['status', STATUS.ASSIGNED],
+			['updated_at', new Date().toUTCString()],
+			['assigned_at', new Date().toUTCString()],
+		])
+		if (!ret2.ok || ret2.value === null) {
+			return res.status(400).json({
+				error: ret2.value,
+				dd: 'Created assignment but failed to change status',
+			})
+		}
+		return res.status(200).json({ data: ret.value })
+	} catch (err) {
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+/* /api/get-requests?all={true|false} */
+app.get('/api/get-requests', async (req, res) => {
+	try {
+		const conditions = []
+		if (req.query.all) {
+			if (req.query.all === 'false') {
+				if (!authenticate(req, res, () => {})) {
+					return respond.unauthorized(res)
+				}
+				conditions.push(['service_requests', '==', req.user.uid])
+			} else if (
+				req.query.all !== 'true' ||
+				Object.keys(req.query).length !== 1
+			) {
+				return respond.invalid_parameters(res)
+			}
+		}
+		const ret = await get_db_documents('service_requests', conditions)
+		if (!ret.ok) {
+			return res.status(400).json({ error: ret.value })
+		}
+		return res.status(200).json({ data: ret.value })
+	} catch (err) {
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
+	try {
+		const uid = req.user.uid
+		const is_worker = await role_service.is_worker(uid)
+		const is_admin = await role_service.is_admin(uid)
+		if (!is_worker.ok || !is_admin.ok) {
+			return res.status(500).json({ error: 'Failed to get role' })
+		}
+		if (!is_worker.value && !is_admin.value) {
+			return respond.unauthorized(res)
+		}
+		let conditions = is_admin.value ? [] : [['worker_uid', '==', uid]]
+		let ret = await get_db_documents('assignments', conditions)
+		if (!ret.ok) {
+			return res.status(400).json({ error: ret.value })
+		}
+		const claimed_requests = []
+		for (const doc of ret.value) {
+			const iret = await get_db_document(
+				'service_requests',
+				doc.request_uid
+			)
+			if (!iret.ok) {
+				return res.status(400).json({ error: iret.value })
+			}
+			const data = iret.value
+			if (data === null) {
+				continue
+			}
+			claimed_requests.push({
+				id: data.id,
+				created_at: data.created_at,
+				updated_at: data.updated_at,
+				status: data.status,
+				category: data.category,
+				description: data.description,
+				image: data.image,
+				location: data.location,
+				sa_ward: data['sa_ward'],
+				sa_m_name: data['sa_m_name'],
+				sa_province: data['sa_province'],
+			})
+		}
+		return res.status(200).json({ data: claimed_requests })
+	} catch (err) {
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
+	try {
+		const uid = req.user.uid
+		const is_worker = await role_service.is_worker(uid)
+		const is_admin = await role_service.is_admin(uid)
+		if (!is_worker.ok || !is_admin.ok) {
+			return res.status(500).json({ error: 'Failed to get role' })
+		}
+		if (!is_worker.value && !is_admin.value) {
+			return respond.unauthorized(res)
+		}
+		const ret = await get_db_documents('service_requests', [])
+		if (!ret.ok) {
+			return res.status(400).json({ error: ret.value })
+		}
+		const requests = []
+		for (const doc of ret.value) {
+			if (await exists_db_document('assignments', doc.id)) {
+				continue
+			}
+			requests.push({
+				id: doc.id,
+				created_at: doc.created_at,
+				updated_at: doc.updated_at,
+				status: doc.status,
+				category: doc.category,
+				description: doc.description,
+				image: doc.image,
+				location: doc.location,
+				sa_ward: doc['sa_ward'],
+				sa_m_name: doc['sa_m_name'],
+				sa_province: doc['sa_province'],
+			})
+		}
+		return res.status(200).json({ data: requests })
 	} catch (err) {
 		console.error('Database error:', err)
 		res.status(500).json({ error: 'Internal server error' })

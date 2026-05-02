@@ -8,6 +8,7 @@ import Navbar from '../../components/nav_bar/nav_bar.js'
 
 // Tells Firebase to use Google as the login provider
 const google_provider = new GoogleAuthProvider()
+google_provider.setCustomParameters({ prompt: 'select_account' })
 
 function Login() {
 	// True while the Google popup/sign-in is in progress

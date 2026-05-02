@@ -1,7 +1,6 @@
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 
 .wd-page {
-	min-height: 100vh;
 	background: #f9f9f8;
 	font-family:
 		'DM Sans',
@@ -575,4 +574,59 @@ button.wd-req-row {
 .wd-req-row--selected .wd-req-chevron {
 	color: #2d6a4f;
 	transform: translateX(2px);
+}
+
+/* ── Panel status selector ───────────────────────────────────*/
+.wd-panel-status-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 10px 18px 14px;
+	flex-shrink: 0;
+}
+
+.wd-status-opt {
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	padding: 5px 12px;
+	border-radius: 4px;
+	border: 1px solid #e8e5e0;
+	background: transparent;
+	color: #94a3b8;
+	cursor: pointer;
+	font-family: 'DM Sans', sans-serif;
+	transition: all 0.15s;
+}
+
+.wd-status-opt:hover:not(:disabled) {
+	background: #fef9ec;
+	border-color: rgba(245, 158, 11, 0.4);
+	color: #b45309;
+}
+
+.wd-status-opt--active,
+.wd-status-opt:disabled {
+	background: #f3f0ea;
+	border-color: #d5cfc7;
+	color: #9e9589;
+	cursor: default;
+	opacity: 0.7;
+}
+
+.wd-tooltip {
+	position: absolute;
+	bottom: calc(100% + 6px);
+	left: 50%;
+	transform: translateX(-50%);
+	background: rgba(0, 0, 0, 0.72);
+	color: #fff;
+	font-size: 12px;
+	padding: 5px 10px;
+	border-radius: 5px;
+	white-space: nowrap;
+	pointer-events: none; /* non-interactive */
+	opacity: 0.9;
+	z-index: 100;
 }

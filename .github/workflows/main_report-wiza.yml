@@ -52,8 +52,10 @@ jobs:
                   path: |
                       build/
                       server.js
+                      backend
                       package.json
                       package-lock.json
+                      shared
 
     deploy:
         runs-on: ubuntu-latest

@@ -7,23 +7,10 @@ import './worker_nav_bar.css'
 
 const NAV_ITEMS = [
 	{
-		key: 'overview',
-		label: 'Overview',
-		to: '/worker-dashboard',
-		icon: (
-			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
-				<rect x="1" y="1" width="6" height="6" rx="1" />
-				<rect x="9" y="1" width="6" height="6" rx="1" />
-				<rect x="1" y="9" width="6" height="6" rx="1" />
-				<rect x="9" y="9" width="6" height="6" rx="1" />
-			</svg>
-		),
-	},
-	{
 		key: 'queue',
 		label: 'My Queue',
-		to: '/worker-dashboard/queue',
-		badge: 14,
+		to: '#',
+		badge: 0,
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
 				<path d="M2 4h12M2 8h12M2 12h8" />
@@ -33,8 +20,8 @@ const NAV_ITEMS = [
 	{
 		key: 'available',
 		label: 'Available',
-		to: '/worker-dashboard/available',
-		badge: 6,
+		to: '#',
+		badge: 0,
 		badgeStyle: 'ghost',
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -57,7 +44,7 @@ const NAV_ITEMS = [
 	{
 		key: 'messages',
 		label: 'Messages',
-		to: '/worker-dashboard/messages',
+		to: '#', // Changed from hard path to '#' for state-based nav
 		badge: 3,
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -69,6 +56,13 @@ const NAV_ITEMS = [
 
 function Worker_nav_bar({
 	user = { initials: 'JD', name: 'Jane Doe', role: 'Field Worker' },
+	requests = { claimed: 0, unclaimed: 0 },
+	sections = {
+		queue_onclick: null,
+		available_onclick: null,
+		messages_onclick: null,
+	}, // Added messages handler
+	active_section = 'queue',
 }) {
 	const [scrolled, set_scrolled] = useState(false)
 	const location = useLocation()
@@ -90,6 +84,28 @@ function Worker_nav_bar({
 			(item.key === 'notifications' || item.key === 'messages') &&
 			item.badge
 	)
+
+	const get_badge = (item) => {
+		if (item.key === 'available') {
+			return requests.unclaimed
+		} else if (item.key === 'queue') {
+			return requests.claimed
+		} else {
+			return item.badge
+		}
+	}
+
+	const get_onclick = (item) => {
+		if (item.key === 'available') {
+			return sections.available_onclick
+		} else if (item.key === 'queue') {
+			return sections.queue_onclick
+		} else if (item.key === 'messages') {
+			return sections.messages_onclick // Map to messages handler
+		} else {
+			return null
+		}
+	}
 
 	return (
 		<nav
@@ -120,21 +136,19 @@ function Worker_nav_bar({
 			{/* Nav links */}
 			<div className="wd_nav_links">
 				{NAV_ITEMS.map((item) => {
-					const is_active =
-						location.pathname === item.to ||
-						(item.to !== '/worker-dashboard' && // <--- FIX: changed from '/dashboard'
-							location.pathname.startsWith(item.to))
+					const is_active = active_section === item.key
 
 					return (
 						<Link
 							key={item.key}
 							to={item.to}
+							onClick={get_onclick(item)}
 							className={`wd_nav_link ${is_active ? 'wd_nav_link_active' : ''}`}
 							aria-current={is_active ? 'page' : undefined}
 						>
 							{item.icon}
 							{item.label}
-							{item.badge ? (
+							{get_badge(item) ? (
 								<span
 									className={`wd_nav_badge ${
 										item.badgeStyle === 'ghost'
@@ -142,7 +156,7 @@ function Worker_nav_bar({
 											: 'wd_nav_badge_amber'
 									}`}
 								>
-									{item.badge}
+									{get_badge(item)}
 								</span>
 							) : null}
 						</Link>
