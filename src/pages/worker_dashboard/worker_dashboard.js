@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../firebase_config.js'
-import { fetch_worker_dashboard_data } from '../../backend/worker_dashboard_service.js'
+import { fetch_worker_dashboard_data ,fetch_comment, add_comment} from '../../backend/worker_dashboard_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './worker_dashboard.css'
@@ -305,6 +305,29 @@ function RequestDetailPanel({ req, worker, on_close }) {
 
 	const resident_name = req.resident_name || 'Resident'
 
+	const [comments, set_comments] = useState([])
+const [comment_text, set_comment_text] = useState('')
+const [is_submitting, set_is_submitting] = useState(false)
+
+useEffect(() => {
+    fetch_comment(req.id).then(set_comments).catch(console.error)
+}, [req.id])
+
+const handle_submit = async () => {
+    if (!comment_text.trim()) return
+    set_is_submitting(true)
+    try {
+        await add_comment(req.id, worker.name, worker.uid, comment_text)
+        set_comment_text('')
+        const updated = await fetch_comment(req.id)
+        set_comments(updated)
+    } catch (err) {
+        console.error('Failed to post comment:', err)
+    } finally {
+        set_is_submitting(false)
+    }
+}
+
 	return (
 		<div className="wd-panel-inner">
 			{/* Header */}
@@ -378,6 +401,48 @@ function RequestDetailPanel({ req, worker, on_close }) {
 					</p>
 				)}
 			</div>
+			{/* Public comments */}
+<div className="wd-panel-divider">
+    <span>Public comments</span>
+</div>
+
+<div className="wd-comments-list">
+    {comments.length === 0 ? (
+        <p className="wd-comments-empty">No comments yet.</p>
+    ) : (
+        comments.map((c) => (
+            <div key={c.id} className="wd-comment">
+                <div className="wd-comment-meta">
+                    <span className="wd-comment-author">{c.worker_name}</span>
+                    <span className="wd-comment-date">
+                        {c.created_at?.toDate
+                            ? c.created_at.toDate().toLocaleDateString()
+                            : '—'}
+                    </span>
+                </div>
+                <p className="wd-comment-text">{c.text}</p>
+            </div>
+        ))
+    )}
+</div>
+
+<div className="wd-comment-form">
+    <textarea
+        className="wd-comment-input"
+        rows={3}
+        placeholder="Leave a public comment about this request..."
+        value={comment_text}
+        onChange={(e) => set_comment_text(e.target.value)}
+        disabled={is_submitting}
+    />
+    <button
+        className="wd-comment-submit"
+        onClick={handle_submit}
+        disabled={is_submitting || !comment_text.trim()}
+    >
+        {is_submitting ? 'Posting…' : 'Post comment'}
+    </button>
+</div>
 		</div>
 	)
 }
