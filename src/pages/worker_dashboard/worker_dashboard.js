@@ -46,7 +46,13 @@ export default function WorkerDashboard() {
 	const [worker, set_worker] = useState(null)
 	const [claimed_requests, set_claimed_requests] = useState([])
 	const [unclaimed_requests, set_unclaimed_requests] = useState([])
-	const [stats, set_stats] = useState(null)
+	const [stats, set_stats] = useState({
+		total: 0,
+		resolved: 0,
+		pending: 0,
+		acknowledged: 0,
+		avg_resolution_days: null,
+	})
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [active_filter, set_filter] = useState('All')
