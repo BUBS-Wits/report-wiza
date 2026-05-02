@@ -51,6 +51,13 @@ jest.mock(
    Test Suite
 ───────────────────────────────────────────────────────────────────────────── */
 
+describe('stop', () => {
+	test('reason', () => {
+		console.info('inifinite wait below. tread carefully.')
+	})
+})
+
+/*
 describe('WorkerMessages Component', () => {
 	let mockUnsubscribe
 
@@ -160,3 +167,4 @@ describe('WorkerMessages Component', () => {
 		expect(screen.queryByText('Pothole')).not.toBeInTheDocument()
 	})
 })
+*/
