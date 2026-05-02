@@ -1,227 +1,227 @@
 /* ── Admin Categories — US029 ──────────────────────────────────────────────── */
 
 .admin_categories {
-    /* Changed fixed padding to fluid clamp */
-    padding: clamp(16px, 4vw, 32px);
-    max-width: 720px;
-    width: 100%;
+	/* Changed fixed padding to fluid clamp */
+	padding: clamp(16px, 4vw, 32px);
+	max-width: 720px;
+	width: 100%;
 }
 
 /* ── Add category form ───────────────────────────────────────────────────── */
 
 .admin_categories__add_row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 28px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 28px;
 }
 
 .admin_categories__input {
-    flex: 1;
-    max-width: 280px;
-    height: 38px;
-    padding: 0 12px;
-    border: 1.5px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 14px;
-    color: #1f2937;
-    outline: none;
-    transition: border-color 0.15s;
+	flex: 1;
+	max-width: 280px;
+	height: 38px;
+	padding: 0 12px;
+	border: 1.5px solid #d1d5db;
+	border-radius: 6px;
+	font-size: 14px;
+	color: #1f2937;
+	outline: none;
+	transition: border-color 0.15s;
 }
 
 .admin_categories__input:focus {
-    border-color: #f59e0b;
+	border-color: #f59e0b;
 }
 
 .admin_categories__input::placeholder {
-    color: #9ca3af;
+	color: #9ca3af;
 }
 
 .admin_categories__add_btn {
-    height: 38px;
-    padding: 0 18px;
-    background: #f59e0b;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition:
-        background 0.15s,
-        opacity 0.15s;
-    white-space: nowrap;
+	height: 38px;
+	padding: 0 18px;
+	background: #f59e0b;
+	color: #fff;
+	font-size: 14px;
+	font-weight: 600;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition:
+		background 0.15s,
+		opacity 0.15s;
+	white-space: nowrap;
 }
 
 .admin_categories__add_btn:hover:not(:disabled) {
-    background: #d97706;
+	background: #d97706;
 }
 
 .admin_categories__add_btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
+	opacity: 0.55;
+	cursor: not-allowed;
 }
 
 /* ── Error / success messages ────────────────────────────────────────────── */
 
 .admin_categories__error {
-    margin-bottom: 14px;
-    padding: 10px 14px;
-    background: #fef2f2;
-    border: 1px solid #fca5a5;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #dc2626;
+	margin-bottom: 14px;
+	padding: 10px 14px;
+	background: #fef2f2;
+	border: 1px solid #fca5a5;
+	border-radius: 6px;
+	font-size: 13px;
+	color: #dc2626;
 }
 
 .admin_categories__message {
-    margin-bottom: 14px;
-    padding: 10px 14px;
-    background: #f0fdf4;
-    border: 1px solid #86efac;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #16a34a;
+	margin-bottom: 14px;
+	padding: 10px 14px;
+	background: #f0fdf4;
+	border: 1px solid #86efac;
+	border-radius: 6px;
+	font-size: 13px;
+	color: #16a34a;
 }
 
 /* ── Table ───────────────────────────────────────────────────────────────── */
 
 /* Wrapper allows table to scroll horizontally on small screens without breaking layout */
 .admin_categories__table_wrapper {
-    width: 100%;
-    overflow-x: auto;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+	width: 100%;
+	overflow-x: auto;
+	border: 1px solid #e5e7eb;
+	border-radius: 10px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .admin_categories__table {
-    width: 100%;
-    min-width: 400px; /* Ensures the table doesn't squish too much before scrolling */
-    border-collapse: collapse;
-    background: #fff;
+	width: 100%;
+	min-width: 400px; /* Ensures the table doesn't squish too much before scrolling */
+	border-collapse: collapse;
+	background: #fff;
 }
 
 .admin_categories__table thead tr {
-    background: #f9fafb;
+	background: #f9fafb;
 }
 
 .admin_categories__table th {
-    padding: 11px 16px;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #6b7280;
-    border-bottom: 1px solid #e5e7eb;
+	padding: 11px 16px;
+	text-align: left;
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #6b7280;
+	border-bottom: 1px solid #e5e7eb;
 }
 
 .admin_categories__table td {
-    padding: 13px 16px;
-    font-size: 14px;
-    color: #1f2937;
-    border-bottom: 1px solid #f3f4f6;
-    vertical-align: middle;
+	padding: 13px 16px;
+	font-size: 14px;
+	color: #1f2937;
+	border-bottom: 1px solid #f3f4f6;
+	vertical-align: middle;
 }
 
 .admin_categories__table tbody tr:last-child td {
-    border-bottom: none;
+	border-bottom: none;
 }
 
 .admin_categories__table tbody tr:hover {
-    background: #fafafa;
+	background: #fafafa;
 }
 
 /* ── Category name cell ──────────────────────────────────────────────────── */
 
 .admin_categories__name {
-    font-weight: 500;
-    text-transform: capitalize;
+	font-weight: 500;
+	text-transform: capitalize;
 }
 
 /* ── Status badge ────────────────────────────────────────────────────────── */
 
 .admin_categories__badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
 }
 
 .admin_categories__badge--active {
-    background: #dcfce7;
-    color: #15803d;
+	background: #dcfce7;
+	color: #15803d;
 }
 
 .admin_categories__badge--inactive {
-    background: #f3f4f6;
-    color: #6b7280;
+	background: #f3f4f6;
+	color: #6b7280;
 }
 
 /* ── Action button ───────────────────────────────────────────────────────── */
 
 .admin_categories__toggle_btn {
-    height: 32px;
-    padding: 0 14px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1.5px solid;
-    transition:
-        background 0.12s,
-        color 0.12s,
-        opacity 0.12s;
+	height: 32px;
+	padding: 0 14px;
+	border-radius: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	border: 1.5px solid;
+	transition:
+		background 0.12s,
+		color 0.12s,
+		opacity 0.12s;
 }
 
 .admin_categories__toggle_btn--deactivate {
-    border-color: #fca5a5;
-    background: #fff;
-    color: #dc2626;
+	border-color: #fca5a5;
+	background: #fff;
+	color: #dc2626;
 }
 
 .admin_categories__toggle_btn--deactivate:hover:not(:disabled) {
-    background: #fef2f2;
+	background: #fef2f2;
 }
 
 .admin_categories__toggle_btn--activate {
-    border-color: #86efac;
-    background: #fff;
-    color: #16a34a;
+	border-color: #86efac;
+	background: #fff;
+	color: #16a34a;
 }
 
 .admin_categories__toggle_btn--activate:hover:not(:disabled) {
-    background: #f0fdf4;
+	background: #f0fdf4;
 }
 
 .admin_categories__toggle_btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+	opacity: 0.45;
+	cursor: not-allowed;
 }
 
 /* ── Loading / empty states ──────────────────────────────────────────────── */
 
 .admin_categories__loading,
 .admin_categories__empty {
-    padding: 40px 0;
-    text-align: center;
-    font-size: 14px;
-    color: #9ca3af;
+	padding: 40px 0;
+	text-align: center;
+	font-size: 14px;
+	color: #9ca3af;
 }
 
 /* =========================================================================
    MOBILE RESPONSIVENESS
    ========================================================================= */
 @media (max-width: 480px) {
-    .admin_categories__add_row {
-        /* Stacks the input and button vertically on small screens */
-        flex-direction: column;
-        align-items: stretch;
-    }
+	.admin_categories__add_row {
+		/* Stacks the input and button vertically on small screens */
+		flex-direction: column;
+		align-items: stretch;
+	}
 
-    .admin_categories__input {
-        max-width: none; /* Let the input take full width */
-    }
+	.admin_categories__input {
+		max-width: none; /* Let the input take full width */
+	}
 }

@@ -294,7 +294,10 @@ export default function WorkerDashboard() {
 					{active_section === 'messages' ? (
 						<WorkerMessages
 							worker={worker}
-							requests={[...claimed_requests, ...unclaimed_requests]}
+							requests={[
+								...claimed_requests,
+								...unclaimed_requests,
+							]}
 						/>
 					) : (
 						<>
@@ -306,7 +309,8 @@ export default function WorkerDashboard() {
 								<div className="wd-stats-grid">
 									<StatCard
 										label={
-											'Total ' + STATUS_DISPLAY[STATUS.ASSIGNED]
+											'Total ' +
+											STATUS_DISPLAY[STATUS.ASSIGNED]
 										}
 										value={stats.total}
 										sub="All time"
@@ -339,7 +343,9 @@ export default function WorkerDashboard() {
 										value={awaiting_action}
 										sub={`${STATUS_DISPLAY[STATUS.ASSIGNED]} + ${STATUS_DISPLAY[STATUS.IN_PROGRESS]}`}
 										value_modifier={
-											awaiting_action > 0 ? 'warning' : null
+											awaiting_action > 0
+												? 'warning'
+												: null
 										}
 									/>
 								</div>
@@ -361,7 +367,9 @@ export default function WorkerDashboard() {
 											{STATUSES.map((s) => (
 												<button
 													key={s}
-													onClick={() => set_filter(s)}
+													onClick={() =>
+														set_filter(s)
+													}
 													className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
 												>
 													{s}
@@ -387,7 +395,9 @@ export default function WorkerDashboard() {
 												is_selected={
 													selected_req?.id === req.id
 												}
-												on_click={() => toggle_panel(req)}
+												on_click={() =>
+													toggle_panel(req)
+												}
 											/>
 										))
 									)}

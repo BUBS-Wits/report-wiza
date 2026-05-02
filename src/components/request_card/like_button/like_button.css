@@ -1,50 +1,50 @@
 /* src/components/request_card/like_button/like_button.css */
 
 .like_button {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0; /* Matches the standard app borders */
-    border-radius: 20px;
-    padding: 6px 14px; /* Generous padding for mobile touch targets */
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    color: #475569; /* Slate grey text */
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	background: #ffffff;
+	border: 1.5px solid #e2e8f0; /* Matches the standard app borders */
+	border-radius: 20px;
+	padding: 6px 14px; /* Generous padding for mobile touch targets */
+	cursor: pointer;
+	font-family: 'DM Sans', sans-serif;
+	font-size: 13px;
+	font-weight: 600;
+	color: #475569; /* Slate grey text */
+	transition: all 0.2s ease;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .like_button:hover:not(:disabled) {
-    /* Gives a subtle, premium red tint when hovered to hint at the "Like" action */
-    background-color: #fef2f2; 
-    border-color: #fecaca;
-    color: #dc2626;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.1);
+	/* Gives a subtle, premium red tint when hovered to hint at the "Like" action */
+	background-color: #fef2f2;
+	border-color: #fecaca;
+	color: #dc2626;
+	transform: translateY(-1px);
+	box-shadow: 0 2px 6px rgba(220, 38, 38, 0.1);
 }
 
 .like_button:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+	transform: translateY(0);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .like_button_disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background: #f8fafc;
-    box-shadow: none;
+	opacity: 0.6;
+	cursor: not-allowed;
+	background: #f8fafc;
+	box-shadow: none;
 }
 
 /* =========================================================================
    MOBILE RESPONSIVENESS
    ========================================================================= */
 @media (max-width: 480px) {
-    .like_button {
-        /* Slightly larger font and padding on very small screens for accessibility */
-        font-size: 14px;
-        padding: 8px 16px;
-    }
+	.like_button {
+		/* Slightly larger font and padding on very small screens for accessibility */
+		font-size: 14px;
+		padding: 8px 16px;
+	}
 }
