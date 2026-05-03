@@ -225,15 +225,6 @@ export default function WorkerDashboard() {
 						where('__name__', 'in', batch)
 					)
 					return onSnapshot(claimed_q, (snapshot) => {
-						/* doesn't consider deletes */
-						/*
-					snapshot.docs.forEach((doc) => {
-						all_claimed_requests.set(doc.id, {
-							id: doc.id,
-							...doc.data(),
-						})
-					})
-					*/
 						snapshot.docChanges().forEach((change) => {
 							const id = change.doc.id
 							const data = change.doc.data()
@@ -249,10 +240,10 @@ export default function WorkerDashboard() {
 								all_claimed_requests.delete(id)
 							}
 						})
-						set_claimed_requests([...all_claimed_requests.values()])
-						console.log('claimed: ', [
-							...all_claimed_requests.values(),
-						])
+						const tmp = [...all_claimed_requests.values()]
+						set_claimed_requests(tmp)
+						set_stats(compute_worker_stats(tmp))
+						console.log('claimed: ', tmp)
 					})
 				})
 			}
@@ -276,8 +267,6 @@ export default function WorkerDashboard() {
 			} else {
 				requests_unsub_list = [unclaimed_unsub]
 			}
-
-			set_stats(compute_worker_stats(claimed_requests))
 
 			console.log('Listeners set...')
 		}
