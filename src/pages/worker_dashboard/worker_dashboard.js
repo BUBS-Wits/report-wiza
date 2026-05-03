@@ -15,7 +15,7 @@ import {
 	compute_worker_stats,
 } from '../../backend/worker_analytics_service.js'
 import { update_request_status } from '../../backend/worker_firebase.js'
-import { fetch_comment, add_comment } from '../../backend/worker_dashboard_service.js'
+import { fetch_comment, add_comment } from '../../backend/worker_analytics_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
