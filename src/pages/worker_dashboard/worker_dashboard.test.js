@@ -431,6 +431,23 @@ describe('Real-time snapshot updates', () => {
 		expect(screen.getByText('Water')).toBeInTheDocument()
 		expect(screen.queryByText('Electricity')).not.toBeInTheDocument()
 	})
+
+	test('no claimed requests but still renders unclaimed requests', async () => {
+		await mount_and_load()
+
+		await act(async () => {
+			const tmp = make_snapshot([])
+			claimed_handler(tmp)
+		})
+
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Available requests')).toBeInTheDocument()
+		)
+
+		expect(screen.getByText('Roads')).toBeInTheDocument()
+		expect(screen.queryByText(/Pothole on main road/i)).toBeInTheDocument()
+	})
 })
 
 describe('Section switching', () => {
