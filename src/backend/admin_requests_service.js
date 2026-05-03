@@ -256,3 +256,40 @@ export const fetch_workers_for_assign = async () => {
 		throw new Error('Could not load workers. Try again.')
 	}
 }
+//US025 worker comment
+export const assign_request = async (request_id, worker_uid) => {
+    try {
+        // Check if assignment already exists for this request
+        const existing = await getDocs(
+            query(
+                collection(db, 'assignments'),
+                where('request_uid', '==', request_id)
+            )
+        )
+
+        if (!existing.empty) {
+            // Update existing assignment
+            await updateDoc(existing.docs[0].ref, {
+                worker_uid,
+                assigned_at: serverTimestamp(),
+            })
+        } else {
+            // Create new assignment
+            await addDoc(collection(db, 'assignments'), {
+                request_uid: request_id,
+                worker_uid,
+                assigned_at: serverTimestamp(),
+            })
+        }
+
+        await updateDoc(doc(db, 'service_requests', request_id), {
+            assigned_worker_uid: worker_uid,
+            updated_at: serverTimestamp(),
+        })
+
+        return { success: true }
+    } catch (error) {
+        console.error('Error assigning request:', error)
+        throw new Error('Could not assign request. Try again.')
+    }
+}

@@ -75,9 +75,10 @@
 	overflow: hidden;
 }
 
+/* 8 columns: ID | Category | Description | Assigned Worker | Status | Priority | Assign | Actions */
 .ar_table_header {
 	display: grid;
-	grid-template-columns: 90px 130px 1fr 110px 120px 100px;
+	grid-template-columns: 75px 100px 1fr 160px 110px 110px 130px 80px;
 	padding: 10px 20px;
 	background: #f9f9f8;
 	border-bottom: 1px solid #e8e5e0;
@@ -91,7 +92,7 @@
 
 .ar_row {
 	display: grid;
-	grid-template-columns: 90px 130px 1fr 110px 120px 100px;
+	grid-template-columns: 75px 100px 1fr 160px 110px 110px 130px 80px;
 	padding: 14px 20px;
 	border-bottom: 1px solid #f4f1ed;
 	align-items: center;
@@ -124,6 +125,32 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* ── Assigned Worker column — name only, centred ─────────────────────────── */
+
+.ar_assigned_worker {
+	font-size: 13px;
+	font-weight: 600;
+	color: #1c1c1c;
+	text-align: center;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	letter-spacing: 0.01em;
+}
+
+.ar_unassigned {
+	font-size: 12px;
+	color: #c8c2bb;
+	font-style: italic;
+	font-weight: 400;
+}
+
+.ar_col_center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .ar_status {
@@ -184,6 +211,34 @@
 	background: rgba(220, 38, 38, 0.05);
 }
 
+/* ── Assign button — US026 ────────────────────────────────────────────────── */
+
+.ar_assign_btn {
+	font-size: 10px;
+	padding: 5px 12px;
+	border-radius: 4px;
+	border: 1px solid #0f1f3d;
+	background: transparent;
+	color: #0f1f3d;
+	cursor: pointer;
+	font-family: inherit;
+	font-weight: 700;
+	transition: all 0.15s;
+	white-space: nowrap;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.ar_assign_btn:hover:not(:disabled) {
+	background: #0f1f3d;
+	color: #fff;
+}
+
+.ar_assign_btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
 .ar_close_btn {
 	font-size: 11px;
 	padding: 5px 12px;
@@ -223,6 +278,144 @@
 	cursor: pointer;
 	font-family: inherit;
 	width: 100%;
+}
+
+/* ── Worker assignment modal — US026 ─────────────────────────────────────── */
+
+.ar_worker_modal {
+	background: #fff;
+	border-radius: 12px;
+	width: 460px;
+	max-width: 92vw;
+	max-height: 80vh;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+.ar_worker_modal_header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20px 24px 16px;
+	border-bottom: 1px solid #ede9e3;
+	flex-shrink: 0;
+}
+
+.ar_worker_modal_title {
+	font-size: 16px;
+	font-weight: 700;
+	margin: 0;
+	color: #0f1f3d;
+	font-family: 'Barlow Condensed', sans-serif;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.ar_worker_modal_close {
+	width: 30px;
+	height: 30px;
+	border: none;
+	background: transparent;
+	border-radius: 6px;
+	cursor: pointer;
+	font-size: 14px;
+	color: #9e9589;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: background 0.15s;
+}
+
+.ar_worker_modal_close:hover {
+	background: #f0ece6;
+	color: #1c1c1c;
+}
+
+.ar_worker_search {
+	margin: 14px 20px;
+	padding: 10px 14px;
+	border: 1.5px solid #e8e5e0;
+	border-radius: 8px;
+	font-size: 13px;
+	font-family: inherit;
+	outline: none;
+	transition: border-color 0.15s;
+	flex-shrink: 0;
+}
+
+.ar_worker_search:focus {
+	border-color: #f59e0b;
+}
+
+.ar_worker_search::placeholder {
+	color: #c8c2bb;
+}
+
+.ar_worker_list {
+	list-style: none;
+	margin: 0;
+	padding: 0 12px 12px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+.ar_worker_list_empty {
+	padding: 24px;
+	text-align: center;
+	font-size: 13px;
+	color: #94a3b8;
+}
+
+.ar_worker_list_item {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: background 0.12s;
+}
+
+.ar_worker_list_item:hover {
+	background: #fef9ec;
+}
+
+.ar_worker_avatar {
+	width: 36px;
+	height: 36px;
+	border-radius: 50%;
+	background: #0f1f3d;
+	color: #f59e0b;
+	font-size: 14px;
+	font-weight: 700;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	font-family: 'Barlow Condensed', sans-serif;
+}
+
+.ar_worker_info {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.ar_worker_name {
+	font-size: 13.5px;
+	font-weight: 600;
+	color: #1c1c1c;
+}
+
+.ar_worker_email {
+	font-size: 11px;
+	color: #94a3b8;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 /* ── Close modal ── */

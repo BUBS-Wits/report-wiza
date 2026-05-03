@@ -630,3 +630,130 @@ button.wd-req-row {
 	opacity: 0.9;
 	z-index: 100;
 }
+
+/* ── Public comments — US-025 ─────────────────────────────────────────────── */
+
+.wd-comments-list {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 18px;
+	flex-shrink: 0;
+}
+
+.wd-comments-empty {
+	font-size: 13px;
+	color: #c8c2bb;
+	text-align: center;
+	padding: 12px 0;
+	margin: 0;
+}
+
+.wd-comment {
+	background: #faf8f5;
+	border: 1px solid #ede9e3;
+	border-radius: 8px;
+	padding: 10px 14px;
+}
+
+.wd-comment-meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 6px;
+}
+
+.wd-comment-author {
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: #6b6459;
+}
+
+.wd-comment-date {
+	font-size: 11px;
+	color: #c8c2bb;
+}
+
+.wd-comment-text {
+	font-size: 13.5px;
+	color: #3d3730;
+	line-height: 1.55;
+	margin: 0;
+}
+
+.wd-comment-form {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 18px 18px;
+	flex-shrink: 0;
+}
+
+.wd-comment-input {
+	width: 100%;
+	resize: vertical;
+	border: 1.5px solid #e8e5e0;
+	border-radius: 8px;
+	padding: 10px 12px;
+	font-size: 13.5px;
+	font-family: 'DM Sans', sans-serif;
+	color: #1c1c1c;
+	background: #fff;
+	outline: none;
+	transition: border-color 0.15s;
+	box-sizing: border-box;
+}
+
+.wd-comment-input:focus {
+	border-color: #f59e0b;
+}
+
+.wd-comment-input::placeholder {
+	color: #c8c2bb;
+}
+
+.wd-comment-input:disabled {
+	background: #faf8f5;
+	color: #9e9589;
+}
+
+.wd-comment-submit {
+	align-self: flex-end;
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	padding: 7px 18px;
+	border-radius: 5px;
+	border: 1px solid #f59e0b;
+	background: rgba(245, 158, 11, 0.08);
+	color: #b45309;
+	cursor: pointer;
+	font-family: 'DM Sans', sans-serif;
+	transition: background 0.15s;
+}
+
+.wd-comment-submit:hover:not(:disabled) {
+	background: rgba(245, 158, 11, 0.18);
+}
+
+.wd-comment-submit:disabled {
+	opacity: 0.45;
+	cursor: default;
+}
+
+/* Badge classes matching new status constants */
+.wd-badge--assigned {
+	background: rgba(245, 158, 11, 0.12);
+	color: #b45309;
+	border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.wd-badge--in-progress {
+	background: rgba(59, 130, 246, 0.08);
+	color: #1d4ed8;
+	border: 1px solid rgba(59, 130, 246, 0.2);
+}
