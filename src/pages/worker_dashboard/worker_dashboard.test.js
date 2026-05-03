@@ -436,9 +436,7 @@ describe('Real-time snapshot updates', () => {
 		await mount_and_load()
 
 		await act(async () => {
-			const tmp = make_snapshot(
-				[]
-			)
+			const tmp = make_snapshot([])
 			claimed_handler(tmp)
 		})
 
