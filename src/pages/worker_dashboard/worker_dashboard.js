@@ -214,39 +214,41 @@ export default function WorkerDashboard() {
 				(doc) => doc.data().request_uid
 			)
 
-			if (claimed_request_uids.length === 0) {
-				set_claimed_requests([])
-				return
-			}
-			const batches = chunk(claimed_request_uids, 30)
 			const all_claimed_requests = new Map()
 			const all_unclaimed_requests = new Map()
+			if (claimed_request_uids.length === 0) {
+				set_claimed_requests([])
+			} else {
+				const batches = chunk(claimed_request_uids, 30)
 
-			requests_unsub_list = batches.map((batch) => {
-				const claimed_q = query(
-					collection(db, 'service_requests'),
-					where('__name__', 'in', batch)
-				)
-				return onSnapshot(claimed_q, (snapshot) => {
-					snapshot.docChanges().forEach((change) => {
-						const id = change.doc.id
-						const data = change.doc.data()
+				requests_unsub_list = batches.map((batch) => {
+					const claimed_q = query(
+						collection(db, 'service_requests'),
+						where('__name__', 'in', batch)
+					)
+					return onSnapshot(claimed_q, (snapshot) => {
+						snapshot.docChanges().forEach((change) => {
+							const id = change.doc.id
+							const data = change.doc.data()
 
-						if (
-							change.type === 'added' ||
-							change.type === 'modified'
-						) {
-							all_claimed_requests.set(id, { id, ...data })
-						}
+							if (
+								change.type === 'added' ||
+								change.type === 'modified'
+							) {
+								all_claimed_requests.set(id, { id, ...data })
+							}
 
-						if (change.type === 'removed') {
-							all_claimed_requests.delete(id)
-						}
+							if (change.type === 'removed') {
+								all_claimed_requests.delete(id)
+							}
+						})
+						const tmp = [...all_claimed_requests.values()]
+						set_claimed_requests(tmp)
+						set_stats(compute_worker_stats(tmp))
+						console.log('claimed: ', tmp)
 					})
-					set_claimed_requests([...all_claimed_requests.values()])
-					console.log('claimed: ', [...all_claimed_requests.values()])
 				})
-			})
+			}
 			const unclaimed_unsub = onSnapshot(
 				query(
 					collection(db, 'service_requests'),
@@ -262,9 +264,11 @@ export default function WorkerDashboard() {
 				}
 			)
 
-			requests_unsub_list.push(unclaimed_unsub)
-
-			set_stats(compute_worker_stats(claimed_requests))
+			if (requests_unsub_list) {
+				requests_unsub_list.push(unclaimed_unsub)
+			} else {
+				requests_unsub_list = [unclaimed_unsub]
+			}
 
 			console.log('Listeners set...')
 		}
