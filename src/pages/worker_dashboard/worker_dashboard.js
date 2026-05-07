@@ -1,9 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../../firebase_config.js'
+import { auth, db } from '../../firebase_config.js'
+import {
+	collection,
+	query,
+	where,
+	orderBy,
+	onSnapshot,
+} from 'firebase/firestore'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
-import { fetch_worker_dashboard_data } from '../../backend/worker_analytics_service.js'
+import {
+	verify_worker_and_get_profile,
+	compute_worker_stats,
+} from '../../backend/worker_analytics_service.js'
 import { update_request_status } from '../../backend/worker_firebase.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import ClaimBtn from '../request/claim/claim_btn.js'
@@ -34,10 +44,15 @@ const STATUS_BADGE_CLASS = {
 
 export default function WorkerDashboard() {
 	const [worker, set_worker] = useState(null)
-	const [requests, set_requests] = useState([])
 	const [claimed_requests, set_claimed_requests] = useState([])
 	const [unclaimed_requests, set_unclaimed_requests] = useState([])
-	const [stats, set_stats] = useState(null)
+	const [stats, set_stats] = useState({
+		total: 0,
+		resolved: 0,
+		pending: 0,
+		acknowledged: 0,
+		avg_resolution_days: null,
+	})
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [active_filter, set_filter] = useState('All')
@@ -138,17 +153,7 @@ export default function WorkerDashboard() {
 	const close_panel = useCallback(() => {
 		set_panel_visible(false)
 		setTimeout(() => set_selected_req(null), 280)
-		load_dashboard(auth.currentUser.uid, false).then((data) => {
-			if (!data) {
-				return
-			}
-			set_requests(
-				active_section_ref.current === 'queue'
-					? data.claimed
-					: data.unclaimed
-			)
-		})
-	}, [load_dashboard])
+	}, [])
 
 	const toggle_panel = useCallback(
 		(req) => {
@@ -166,7 +171,6 @@ export default function WorkerDashboard() {
 			popup_busy('Already Loading Dashboard Info...')
 			return
 		}
-		set_requests(claimed_requests)
 		set_active_section('queue')
 		close_panel()
 	}
@@ -176,8 +180,15 @@ export default function WorkerDashboard() {
 			popup_busy('Already Loading Dashboard Info...')
 			return
 		}
-		set_requests(unclaimed_requests)
 		set_active_section('available')
+		close_panel()
+	}
+	const set_messages_section = () => {
+		if (busy_ref.current) {
+			popup_busy('Already Loading Dashboard Info...')
+			return
+		}
+		set_active_section('messages')
 		close_panel()
 	}
 
@@ -193,7 +204,7 @@ export default function WorkerDashboard() {
 	/* ── Auth ─────────────────────────────────────────────────────────── */
 
 	useEffect(() => {
-		const unsub = onAuthStateChanged(auth, (user) => {
+		const unsub = onAuthStateChanged(auth, async (user) => {
 			if (!user) {
 				set_error('You are not logged in.')
 				set_loading(false)
@@ -205,9 +216,106 @@ export default function WorkerDashboard() {
 					set_active_section('queue')
 				}
 			})
+			set_loading(false)
 		})
-		return unsub
-	}, [navigate])
+		return () => unsub()
+	}, [])
+
+	/* Listen for any new additions to the assignments collection directed */
+	useEffect(() => {
+		if (!worker?.uid) {
+			return
+		}
+		let requests_unsub_list = null
+		const chunk = (arr, size) => {
+			return Array.from(
+				{ length: Math.ceil(arr.length / size) },
+				(_, i) => arr.slice(i * size, i * size + size)
+			)
+		}
+		const assignments_query = query(
+			collection(db, 'assignments'),
+			where('worker_uid', '==', worker.uid)
+		)
+		const assignments_snapshot_handler = async (assignments_snapshot) => {
+			if (requests_unsub_list) {
+				requests_unsub_list.forEach((unsub) => unsub())
+				requests_unsub_list = null
+			}
+
+			const claimed_request_uids = assignments_snapshot.docs.map(
+				(doc) => doc.data().request_uid
+			)
+
+			const all_claimed_requests = new Map()
+			const all_unclaimed_requests = new Map()
+			if (claimed_request_uids.length === 0) {
+				set_claimed_requests([])
+			} else {
+				const batches = chunk(claimed_request_uids, 30)
+
+				requests_unsub_list = batches.map((batch) => {
+					const claimed_q = query(
+						collection(db, 'service_requests'),
+						where('__name__', 'in', batch)
+					)
+					return onSnapshot(claimed_q, (snapshot) => {
+						snapshot.docChanges().forEach((change) => {
+							const id = change.doc.id
+							const data = change.doc.data()
+
+							if (
+								change.type === 'added' ||
+								change.type === 'modified'
+							) {
+								all_claimed_requests.set(id, { id, ...data })
+							}
+
+							if (change.type === 'removed') {
+								all_claimed_requests.delete(id)
+							}
+						})
+						const tmp = [...all_claimed_requests.values()]
+						set_claimed_requests(tmp)
+						set_stats(compute_worker_stats(tmp))
+						console.log('claimed: ', tmp)
+					})
+				})
+			}
+			const unclaimed_unsub = onSnapshot(
+				query(
+					collection(db, 'service_requests'),
+					where('status', '==', STATUS.SUBMITTED)
+				),
+				(snapshot) => {
+					const data = snapshot.docs.map((doc) => ({
+						id: doc.id,
+						...doc.data(),
+					}))
+					set_unclaimed_requests(data)
+					console.log('unclaimed: ', data)
+				}
+			)
+
+			if (requests_unsub_list) {
+				requests_unsub_list.push(unclaimed_unsub)
+			} else {
+				requests_unsub_list = [unclaimed_unsub]
+			}
+
+			console.log('Listeners set...')
+		}
+		const assigment_unsub = onSnapshot(
+			assignments_query,
+			assignments_snapshot_handler
+		)
+		return () => {
+			assigment_unsub()
+			if (requests_unsub_list) {
+				requests_unsub_list.forEach((unsub) => unsub())
+			}
+		}
+	}, [worker?.uid])
 
 	/* ── Close panel on Escape ────────────────────────────────────────── */
 
@@ -228,12 +336,7 @@ export default function WorkerDashboard() {
 	}
 
 	if (error) {
-		return (
-			<ErrorScreen
-				message={error}
-				onRetry={() => load_dashboard(auth.currentUser?.uid, true)}
-			/>
-		)
+		return <ErrorScreen message={error} onRetry={() => null} />
 	}
 
 	if (!worker || !stats) {
@@ -241,6 +344,9 @@ export default function WorkerDashboard() {
 	}
 
 	/* ── Derived values ───────────────────────────────────────────────── */
+
+	const requests =
+		active_section === 'queue' ? claimed_requests : unclaimed_requests
 
 	const filtered_requests =
 		active_filter === 'All'
@@ -262,7 +368,6 @@ export default function WorkerDashboard() {
 		stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
 
 	/* ── Render ───────────────────────────────────────────────────────── */
-
 	return (
 		<div className="wd-page">
 			<Worker_nav_bar
