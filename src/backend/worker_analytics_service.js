@@ -67,10 +67,6 @@ const fetch_assigned_requests = async (worker_uid) => {
 		snap.docs.forEach((d) => {
 			const data = d.data()
 			const raw_status = data.status ?? 0
-<<<<<<< HEAD
-
-=======
->>>>>>> main
 			requests.push({
 				id: d.id,
 				category: data.category ?? 'Uncategorised',

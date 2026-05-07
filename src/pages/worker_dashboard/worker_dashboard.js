@@ -56,15 +56,9 @@ export default function WorkerDashboard() {
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [active_filter, set_filter] = useState('All')
-<<<<<<< HEAD
 	const [active_section, set_active_section] = useState(null)
 	const [selected_req, set_selected_req] = useState(null)
 	const [panel_visible, set_panel_visible] = useState(false)
-=======
-	const [active_section, set_active_section] = useState('queue')
-	const [selected_req, set_selected_req] = useState(null) // drives the panel
-	const [panel_visible, set_panel_visible] = useState(false) // drives CSS transition
->>>>>>> main
 	const [show_busy_tip, set_show_busy_tip] = useState(false)
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
@@ -116,7 +110,6 @@ export default function WorkerDashboard() {
 		return data
 	}
 
-<<<<<<< HEAD
 	const load_dashboard = useCallback(async (uid, load = false) => {
 		if (busy_ref.current) {
 			popup_busy('Already Loading Dashboard Info...')
@@ -145,8 +138,6 @@ export default function WorkerDashboard() {
 		}
 	}, [])
 
-=======
->>>>>>> main
 	/* ── Panel helpers ────────────────────────────────────────────────── */
 
 	const open_panel = useCallback((req) => {
@@ -219,21 +210,11 @@ export default function WorkerDashboard() {
 				set_loading(false)
 				return
 			}
-<<<<<<< HEAD
 			load_dashboard(user.uid, true).then((data) => {
 				if (data) {
 					set_requests(data.claimed)
 					set_active_section('queue')
 				}
-=======
-			const snap = await verify_worker_and_get_profile(user.uid)
-			const data = snap.data()
-			set_worker({
-				uid: user.uid,
-				name: data.name ?? 'Municipal Worker',
-				email: data.email ?? '',
-				role: data.role,
->>>>>>> main
 			})
 			set_loading(false)
 		})
