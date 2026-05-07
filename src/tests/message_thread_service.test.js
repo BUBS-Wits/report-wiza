@@ -100,7 +100,7 @@ describe('Message Thread Service', () => {
 
 	describe('send_message', () => {
 		test('throws an error if message text is empty or just whitespace', async () => {
-			await expect(send_message({ text: '   ' })).rejects.toThrow(
+			await expect(send_message({ text: '   ' })).rejects.toThrow(
 				'Message text cannot be empty.'
 			)
 			expect(addDoc).not.toHaveBeenCalled()
@@ -110,24 +110,23 @@ describe('Message Thread Service', () => {
 			addDoc.mockResolvedValueOnce({ id: 'new_msg_id' })
 
 			const result = await send_message({
-				request_id: 'req_123',
+				request_uid: 'req_123', // Changed to request_uid
 				sender_uid: 'user_1',
 				receiver_uid: 'worker_1',
-				text: '   Fix is done!   ',
+				text: '   Fix is done!   ',
 			})
 
 			expect(result).toBe('new_msg_id')
 			expect(addDoc).toHaveBeenCalledWith(undefined, {
-				request_id: 'req_123',
+				request_uid: 'req_123', // Changed to request_uid
 				sender_uid: 'user_1',
 				receiver_uid: 'worker_1',
 				text: 'Fix is done!',
-				sent_at: 'mock-server-timestamp',
+				sent_at: expect.any(String), // Accepts the generated UTC date string
 				read: false,
 			})
 		})
 	})
-
 	describe('mark_messages_read', () => {
 		test('does nothing if there are no unread messages for the current user', async () => {
 			const messages = [
@@ -168,7 +167,7 @@ describe('Message Thread Service', () => {
 				receiver_role: 'resident',
 				sender_name: 'John Worker',
 				text: 'I am on my way.',
-				request_id: 'req_123',
+				request_uid: 'req_123', // Changed to request_uid
 			})
 
 			expect(addDoc).toHaveBeenCalledWith(
@@ -178,6 +177,7 @@ describe('Message Thread Service', () => {
 					type: 'new_message',
 					body: 'I am on my way.',
 					request_uid: 'req_123',
+					created_at: expect.any(String), // Accepts the generated UTC date string
 				})
 			)
 		})
@@ -190,7 +190,7 @@ describe('Message Thread Service', () => {
 				receiver_role: 'resident',
 				sender_name: 'John Worker',
 				text: longText,
-				request_id: 'req_123',
+				request_uid: 'req_123', // Changed to request_uid
 			})
 
 			const expectedBody = 'A'.repeat(80) + '…'

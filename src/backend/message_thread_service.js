@@ -7,7 +7,6 @@ import {
 	onSnapshot,
 	writeBatch,
 	doc,
-	serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 
@@ -20,15 +19,15 @@ import { db } from '../firebase_config.js'
  * Calls `on_messages` with the current list every time a message
  * is added or updated.
  *
- * @param {string}   request_id   - The service request ID (= thread ID)
+ * @param {string}   request_uid  - The service request ID (= thread ID)
  * @param {function} on_messages  - Callback: (messages[]) => void
  * @param {function} on_error     - Callback: (Error) => void
  * @returns {function}            - Unsubscribe function — call on unmount
  */
-export function subscribe_to_thread(request_id, on_messages, on_error) {
+export function subscribe_to_thread(request_uid, on_messages, on_error) {
 	const q = query(
 		collection(db, 'messages'),
-		where('request_id', '==', request_id),
+		where('request_uid', '==', request_uid),
 		orderBy('sent_at', 'asc')
 	)
 
@@ -53,14 +52,14 @@ export function subscribe_to_thread(request_id, on_messages, on_error) {
  * Send a new message on a request thread.
  *
  * @param {object} params
- * @param {string} params.request_id
+ * @param {string} params.request_uid
  * @param {string} params.sender_uid
  * @param {string} params.receiver_uid
  * @param {string} params.text
  * @returns {Promise<string>} - The new message document ID
  */
 export async function send_message({
-	request_id,
+	request_uid,
 	sender_uid,
 	receiver_uid,
 	text,
@@ -71,11 +70,12 @@ export async function send_message({
 	}
 
 	const ref = await addDoc(collection(db, 'messages'), {
-		request_id,
+		request_uid,
 		sender_uid,
 		receiver_uid,
 		text: trimmed,
-		sent_at: serverTimestamp(),
+		// Rule: All dates/times are stored as UTC strings
+		sent_at: new Date().toUTCString(),
 		read: false,
 	})
 
@@ -109,36 +109,29 @@ export async function mark_messages_read(messages, current_uid) {
 // NOTIFICATIONS
 // ─────────────────────────────────────────────
 
-/**
- * Write a `new_message` notification for the receiver.
- * Should be called immediately after a message is successfully sent.
- *
- * @param {object} params
- * @param {string} params.receiver_uid    - Who receives the notification
- * @param {string} params.receiver_role   - 'resident' | 'worker'
- * @param {string} params.sender_name     - Display name of the sender
- * @param {string} params.text            - Message body (will be truncated)
- * @param {string} params.request_id      - Links notification back to the request
- */
 export async function notify_new_message({
 	receiver_uid,
 	receiver_role,
 	sender_name,
 	text,
-	request_id,
+	request_uid,
 }) {
+	// FIX: Guarantee sender_name is never undefined
+	const safe_sender_name = sender_name || 'Someone'
+
 	const body = text.length > 80 ? text.slice(0, 80) + '…' : text
 
 	await addDoc(collection(db, 'notifications'), {
 		user_uid: receiver_uid,
 		role: receiver_role,
 		type: 'new_message',
-		title: `New message from ${sender_name}`,
+		title: `New message from ${safe_sender_name}`,
 		body,
 		read: false,
-		created_at: serverTimestamp(),
-		request_uid: request_id,
-		metadata: { sender_name },
+		created_at: new Date().toUTCString(),
+		request_uid,
+		// FIX: Use the safe name variable here
+		metadata: { sender_name: safe_sender_name },
 	})
 }
 
@@ -150,7 +143,7 @@ export async function notify_new_message({
  * Format a Firestore Timestamp (or JS Date) into a human-readable time.
  * Returns 'HH:MM' for today's messages, 'Mon DD HH:MM' for older ones.
  *
- * @param {import('firebase/firestore').Timestamp|Date|null} timestamp
+ * @param {import('firebase/firestore').Timestamp|Date|string|null} timestamp
  * @returns {string}
  */
 export function format_message_time(timestamp) {
@@ -158,6 +151,7 @@ export function format_message_time(timestamp) {
 		return ''
 	}
 
+	// Safely handles UTC Strings from the DB or fallback Firestore Timestamps
 	const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
 	const now = new Date()
 	const is_today =
@@ -175,7 +169,6 @@ export function format_message_time(timestamp) {
 		return hhmm
 	}
 
-	// FIX: 'day' is now strictly set to 'numeric'
 	const day_month = date.toLocaleDateString('en-ZA', {
 		day: 'numeric',
 		month: 'short',

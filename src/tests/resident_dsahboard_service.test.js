@@ -16,7 +16,7 @@ import {
 } from 'firebase/firestore'
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Mocks
+   Mocks
 ───────────────────────────────────────────────────────────────────────────── */
 
 jest.mock('firebase/firestore', () => ({
@@ -35,14 +35,13 @@ jest.mock('../firebase_config.js', () => ({
 }))
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Test Suite
+   Test Suite
 ───────────────────────────────────────────────────────────────────────────── */
 
 describe('Resident Dashboard Service', () => {
 	beforeEach(() => {
-		jest.clearAllMocks()
+		jest.clearAllMocks() // Setup basic returns for path-builders to prevent undefined errors
 
-		// Setup basic returns for path-builders to prevent undefined errors
 		collection.mockImplementation((db, coll) => coll)
 		doc.mockImplementation((db, coll, id) => `${coll}/${id}`)
 		query.mockReturnValue('mock-query')
@@ -52,24 +51,25 @@ describe('Resident Dashboard Service', () => {
 
 	describe('fetch_resident_requests', () => {
 		test('fetches requests and resolves worker names successfully', async () => {
-			getDocs.mockResolvedValueOnce({
-				docs: [
-					{
-						id: 'req_1',
-						data: () => ({
-							category: 'Water',
-							assigned_worker_uid: 'worker_123',
-						}),
-					},
-					{
-						id: 'req_2',
-						data: () => ({
-							category: 'Roads',
-							assigned_worker_uid: null,
-						}),
-					},
-				],
-			})
+			getDocs
+				// 1st call: Fetch the list of 2 requests
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [
+						{ id: 'req_1', data: () => ({ status: 'ASSIGNED' }) },
+						{ id: 'req_2', data: () => ({ status: 'SUBMITTED' }) },
+					],
+				})
+				// 2nd call: Fetch assignment for req_1
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ data: () => ({ worker_uid: 'worker_123' }) }],
+				})
+				// 3rd call: Fetch assignment for req_2 (returns empty)
+				.mockResolvedValueOnce({
+					empty: true,
+					docs: [],
+				})
 
 			getDoc.mockResolvedValueOnce({
 				exists: () => true,
@@ -78,7 +78,8 @@ describe('Resident Dashboard Service', () => {
 
 			const requests = await fetch_resident_requests('resident_456')
 
-			expect(getDocs).toHaveBeenCalledTimes(1)
+			// 1 request fetch + 2 assignment loop fetches = 3
+			expect(getDocs).toHaveBeenCalledTimes(3)
 			expect(getDoc).toHaveBeenCalledTimes(1)
 
 			expect(requests).toHaveLength(2)
@@ -91,14 +92,17 @@ describe('Resident Dashboard Service', () => {
 		})
 
 		test('falls back to "Worker" if the worker document does not exist', async () => {
-			getDocs.mockResolvedValueOnce({
-				docs: [
-					{
-						id: 'req_1',
-						data: () => ({ assigned_worker_uid: 'ghost_worker' }),
-					},
-				],
-			})
+			getDocs
+				// 1st call: Fetch requests
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ id: 'req_1', data: () => ({}) }],
+				})
+				// 2nd call: Fetch assignment
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ data: () => ({ worker_uid: 'ghost_worker' }) }],
+				})
 
 			getDoc.mockResolvedValueOnce({
 				exists: () => false,
@@ -107,39 +111,51 @@ describe('Resident Dashboard Service', () => {
 
 			const requests = await fetch_resident_requests('resident_456')
 
+			expect(getDocs).toHaveBeenCalledTimes(2)
 			expect(requests[0].worker_name).toBe('Worker')
 		})
 
 		test('falls back to "Worker" if fetching the worker document throws an error', async () => {
-			getDocs.mockResolvedValueOnce({
-				docs: [
-					{
-						id: 'req_1',
-						data: () => ({ assigned_worker_uid: 'error_worker' }),
-					},
-				],
-			})
+			getDocs
+				// 1st call: Fetch requests
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ id: 'req_1', data: () => ({}) }],
+				})
+				// 2nd call: Fetch assignment
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ data: () => ({ worker_uid: 'error_worker' }) }],
+				})
 
 			getDoc.mockRejectedValueOnce(new Error('Network failure'))
 
 			const requests = await fetch_resident_requests('resident_456')
 
+			expect(getDocs).toHaveBeenCalledTimes(2)
 			expect(requests[0].worker_name).toBe('Worker')
 		})
 
 		test('deduplicates worker fetches (only fetches a worker uid once)', async () => {
-			getDocs.mockResolvedValueOnce({
-				docs: [
-					{
-						id: 'req_1',
-						data: () => ({ assigned_worker_uid: 'worker_1' }),
-					},
-					{
-						id: 'req_2',
-						data: () => ({ assigned_worker_uid: 'worker_1' }),
-					},
-				],
-			})
+			getDocs
+				// 1st call: Fetch 2 requests
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [
+						{ id: 'req_1', data: () => ({}) },
+						{ id: 'req_2', data: () => ({}) },
+					],
+				})
+				// 2nd call: Fetch assignment for req_1 (assigned to worker_1)
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ data: () => ({ worker_uid: 'worker_1' }) }],
+				})
+				// 3rd call: Fetch assignment for req_2 (assigned to SAME worker_1)
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ data: () => ({ worker_uid: 'worker_1' }) }],
+				})
 
 			getDoc.mockResolvedValue({
 				exists: () => true,
@@ -148,6 +164,10 @@ describe('Resident Dashboard Service', () => {
 
 			const requests = await fetch_resident_requests('resident_456')
 
+			// Ensures both requests and both assignments were fetched
+			expect(getDocs).toHaveBeenCalledTimes(3)
+
+			// Ensures getDoc was only called ONCE for 'worker_1'
 			expect(getDoc).toHaveBeenCalledTimes(1)
 			expect(requests[0].worker_name).toBe('Alice')
 			expect(requests[1].worker_name).toBe('Alice')

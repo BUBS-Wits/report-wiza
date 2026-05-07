@@ -375,7 +375,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 
 function RequestDetail({ req, resident }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
-	const has_worker = !!req.assigned_worker_uid
+	const has_worker = !!req.worker_uid // FIXED
 
 	return (
 		<div className="rd-detail">
@@ -427,11 +427,11 @@ function RequestDetail({ req, resident }) {
 			<div className="rd-thread-wrap">
 				{has_worker ? (
 					<MessageThread
-						request_id={req.id}
+						request_uid={req.id} // FIXED
 						current_uid={resident.uid}
 						current_name={resident.name}
 						current_role="resident"
-						other_uid={req.assigned_worker_uid}
+						other_uid={req.worker_uid} // FIXED
 						other_name={req.worker_name ?? 'Worker'}
 					/>
 				) : (

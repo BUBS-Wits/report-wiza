@@ -35,13 +35,21 @@ export class Request {
 				this.longitude = Number(json.longitude)
 				this.latitude = Number(json.latitude)
 				this.loc_info = json.loc_info
-				this.loc_info.ward = Number(this.loc_info.ward)
-				this.loc_info.m_id = Number(this.loc_info.m_id)
+
+				// FIX: Verify loc_info exists before parsing sub-properties
+				if (this.loc_info) {
+					this.loc_info.ward = Number(this.loc_info.ward)
+					this.loc_info.m_id = Number(this.loc_info.m_id)
+				}
+
 				if (typeof json.status === 'number') {
 					this.status = Number(json.status)
 				}
 			}
-		} catch (err) {}
+		} catch (err) {
+			// FIX: Don't swallow the error silently
+			console.error('Failed to construct Request object:', err)
+		}
 	}
 
 	async image_validate() {
