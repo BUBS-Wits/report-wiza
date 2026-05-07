@@ -1,6 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
 // ── Global mocks ───────────────────────────────────────────────────────────
 
@@ -147,9 +148,9 @@ import RequestCard from '../components/request_card/request_card.js'
 const base_request = {
 	id: 'req-001',
 	category: 'water',
-	status: 'Open',
-	ward: 'Ward 5',
-	municipality: 'Cape Town',
+	status: STATUS.SUBMITTED,
+	sa_ward: 'Ward 5',
+	sa_m_name: 'Cape Town',
 	description: 'Burst pipe',
 	like_count: 2,
 }
@@ -158,8 +159,10 @@ describe('RequestCard', () => {
 	it('Then it should render category, status, location and description', () => {
 		render(<RequestCard request={base_request} />)
 		expect(screen.getByText('water')).toBeInTheDocument()
-		expect(screen.getByText('Open')).toBeInTheDocument()
-		expect(screen.getByText('Ward 5 - Cape Town')).toBeInTheDocument()
+		expect(
+			screen.getByText(STATUS_DISPLAY[STATUS.SUBMITTED])
+		).toBeInTheDocument()
+		expect(screen.getByText(/ward 5.*cape town/i)).toBeInTheDocument()
 		expect(screen.getByText('Burst pipe')).toBeInTheDocument()
 	})
 
@@ -170,13 +173,17 @@ describe('RequestCard', () => {
 
 	it('Then it should hide LikeButton for Resolved requests', () => {
 		render(
-			<RequestCard request={{ ...base_request, status: 'Resolved' }} />
+			<RequestCard
+				request={{ ...base_request, status: STATUS.RESOLVED }}
+			/>
 		)
 		expect(screen.queryByTestId('like-button')).not.toBeInTheDocument()
 	})
 
 	it('Then it should hide LikeButton for Closed requests', () => {
-		render(<RequestCard request={{ ...base_request, status: 'Closed' }} />)
+		render(
+			<RequestCard request={{ ...base_request, status: STATUS.CLOSED }} />
+		)
 		expect(screen.queryByTestId('like-button')).not.toBeInTheDocument()
 	})
 })
@@ -218,7 +225,7 @@ describe('ResidentRequests', () => {
 			{
 				id: 'r-1',
 				category: 'electricity',
-				status: 'open',
+				status: STATUS.SUBMITTED,
 				description: 'Power outage',
 				like_count: 0,
 				created_at: { toDate: () => new Date('2024-01-01') },
@@ -284,10 +291,11 @@ describe('category_report_service', () => {
 	describe('build_category_stats', () => {
 		it('Then it should count requests per category', () => {
 			const requests = [
-				{ category: 'water', status: 'pending' },
-				{ category: 'water', status: 'resolved' },
-				{ category: 'road', status: 'in_progress' },
+				{ category: 'water', status: STATUS.ASSIGNED },
+				{ category: 'water', status: STATUS.RESOLVED },
+				{ category: 'road', status: STATUS.IN_PROGRESS },
 			]
+			console.info(requests)
 			const stats = build_category_stats(requests)
 			const water = stats.find((s) => s.category === 'water')
 			expect(water.total).toBe(2)
@@ -365,7 +373,10 @@ describe('category_report_service', () => {
 				docs: [
 					{
 						id: 'r1',
-						data: () => ({ category: 'water', status: 'pending' }),
+						data: () => ({
+							category: 'water',
+							status: STATUS.ASSIGNED,
+						}),
 					},
 				],
 			})

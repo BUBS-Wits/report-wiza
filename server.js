@@ -60,7 +60,7 @@ const b2_client = new S3Client({
 b2_client
 	.send(new ListBucketsCommand({}))
 	.then((response) => {
-		console.log('Buckets in BlackBlaze account:')
+		console.log('Buckets in BackBlaze account:')
 		if (
 			response.Buckets.map((e) => e.Name).indexOf(process.env.B2_BUCKET) <
 			0

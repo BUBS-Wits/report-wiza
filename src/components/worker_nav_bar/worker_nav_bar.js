@@ -44,7 +44,11 @@ const NAV_ITEMS = [
 	{
 		key: 'messages',
 		label: 'Messages',
+<<<<<<< HEAD
 		to: '#',
+=======
+		to: '#', // Changed from hard path to '#' for state-based nav
+>>>>>>> main
 		badge: 3,
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -61,7 +65,11 @@ function Worker_nav_bar({
 		queue_onclick: null,
 		available_onclick: null,
 		messages_onclick: null,
+<<<<<<< HEAD
 	},
+=======
+	}, // Added messages handler
+>>>>>>> main
 	active_section = 'queue',
 }) {
 	const [scrolled, set_scrolled] = useState(false)
@@ -103,7 +111,11 @@ function Worker_nav_bar({
 		} else if (item.key === 'queue') {
 			return sections.queue_onclick
 		} else if (item.key === 'messages') {
+<<<<<<< HEAD
 			return sections.messages_onclick
+=======
+			return sections.messages_onclick // Map to messages handler
+>>>>>>> main
 		} else {
 			return null
 		}

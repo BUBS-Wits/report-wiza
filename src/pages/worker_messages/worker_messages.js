@@ -6,7 +6,11 @@ import './worker_messages.css'
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 /**
+<<<<<<< HEAD
  * Format a Firestore Timestamp into a short label for the conversation list.
+=======
+ * Format a Firestore Timestamp into a short label for the conversation list.[cite: 2]
+>>>>>>> main
  */
 function format_conv_time(ts) {
 	if (!ts) {
@@ -29,6 +33,231 @@ function format_conv_time(ts) {
 	return date.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
 }
 
+<<<<<<< HEAD
+=======
+/* ── Main component ─────────────────────────────────────────────────── */
+
+export default function WorkerMessages({ worker, requests = [] }) {
+	const [requests_map, set_requests_map] = useState({})
+	const [conversations, set_conversations] = useState([])
+	const [selected_id, set_selected_id] = useState(null)
+	const [search, set_search] = useState('')
+	const [conv_loading, set_conv_loading] = useState(true)
+
+	/* ── Build lookup map from passed requests ────────────────────────── */
+	useEffect(() => {
+		const map = {}
+		requests.forEach((r) => {
+			map[r.id] = r
+		})
+		set_requests_map(map)
+	}, [requests])
+
+	/* ── Conversations subscription ───────────────────────────────────── */
+	useEffect(() => {
+		if (!worker?.uid) {
+			return
+		}
+		set_conv_loading(true)
+
+		const unsub = subscribe_to_worker_conversations(
+			worker.uid,
+			(convs) => {
+				set_conversations(convs)
+				set_conv_loading(false)
+			},
+			(err) => {
+				console.error(err)
+				set_conv_loading(false)
+			}
+		)
+		return unsub
+	}, [worker?.uid])
+
+	/* ── Derived values ───────────────────────────────────────────────── */
+
+	const filtered = conversations.filter((c) => {
+		if (!search.trim()) {
+			return true
+		}
+		const req = requests_map[c.request_id]
+		const term = search.toLowerCase()
+		const cat = req?.category?.toLowerCase() ?? ''
+		const id = c.request_id.toLowerCase()
+		const preview = c.last_message?.text?.toLowerCase() ?? ''
+		return cat.includes(term) || id.includes(term) || preview.includes(term)
+	})
+
+	const selected_conv =
+		conversations.find((c) => c.request_id === selected_id) ?? null
+	const selected_req = selected_id ? requests_map[selected_id] : null
+	const total_unread = conversations.reduce((n, c) => n + c.unread_count, 0)
+
+	/* ── Render ───────────────────────────────────────────────────────── */
+
+	return (
+		<div className="wm-layout" style={{ height: '100%' }}>
+			{/* ── LEFT: conversation list ──────────────────────────── */}
+			<aside className="wm-sidebar">
+				<div className="wm-sidebar-header">
+					<div className="wm-sidebar-title-row">
+						<h1 className="wm-sidebar-title">Messages</h1>
+						{total_unread > 0 && (
+							<span className="wm-total-unread">
+								{total_unread}
+							</span>
+						)}
+					</div>
+					<div className="wm-search-wrap">
+						<svg
+							className="wm-search-icon"
+							viewBox="0 0 16 16"
+							fill="none"
+							aria-hidden="true"
+						>
+							<circle
+								cx="6.5"
+								cy="6.5"
+								r="4.5"
+								stroke="currentColor"
+								strokeWidth="1.5"
+							/>
+							<path
+								d="M10.5 10.5L14 14"
+								stroke="currentColor"
+								strokeWidth="1.5"
+								strokeLinecap="round"
+							/>
+						</svg>
+						<input
+							className="wm-search"
+							type="search"
+							placeholder="Search by request or message…"
+							value={search}
+							onChange={(e) => set_search(e.target.value)}
+							aria-label="Search conversations"
+						/>
+					</div>
+				</div>
+
+				<div
+					className="wm-conv-list"
+					role="listbox"
+					aria-label="Conversations"
+				>
+					{conv_loading && (
+						<div className="wm-conv-loading">
+							{[1, 2, 3].map((n) => (
+								<div key={n} className="wm-skeleton-item">
+									<div className="wm-skeleton-avatar" />
+									<div className="wm-skeleton-lines">
+										<div className="wm-skeleton-line wm-skeleton-line--title" />
+										<div className="wm-skeleton-line wm-skeleton-line--sub" />
+									</div>
+								</div>
+							))}
+						</div>
+					)}
+
+					{!conv_loading && filtered.length === 0 && (
+						<div className="wm-conv-empty">
+							{search
+								? `No conversations matching "${search}"`
+								: 'No conversations yet.'}
+						</div>
+					)}
+
+					{!conv_loading &&
+						filtered.map((conv) => {
+							const req = requests_map[conv.request_id]
+							return (
+								<ConversationItem
+									key={conv.request_id}
+									conv={conv}
+									req={req}
+									is_selected={
+										conv.request_id === selected_id
+									}
+									worker_uid={worker?.uid}
+									on_click={() =>
+										set_selected_id(conv.request_id)
+									}
+								/>
+							)
+						})}
+				</div>
+			</aside>
+
+			{/* ── RIGHT: thread view ───────────────────────────────── */}
+			<main className="wm-thread-area">
+				{selected_conv && worker ? (
+					<>
+						<div className="wm-thread-topbar">
+							<button
+								className="wm-back-btn"
+								onClick={() => set_selected_id(null)}
+								aria-label="Back to conversations"
+							>
+								<svg
+									viewBox="0 0 16 16"
+									fill="none"
+									aria-hidden="true"
+								>
+									<path
+										d="M10 3L5 8l5 5"
+										stroke="currentColor"
+										strokeWidth="1.75"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+									/>
+								</svg>
+							</button>
+							<div className="wm-thread-topbar-avatar">
+								{(
+									selected_conv.other_uid?.[0] ?? '?'
+								).toUpperCase()}
+							</div>
+							<div className="wm-thread-topbar-info">
+								<span className="wm-thread-topbar-name">
+									{selected_req?.resident_name ?? 'Resident'}
+								</span>
+								<span className="wm-thread-topbar-meta">
+									{selected_req
+										? `${selected_req.category} · ${selected_req.ward}`
+										: selected_conv.request_id}
+								</span>
+							</div>
+							<span
+								className={`wm-thread-status-badge wm-thread-status-badge--${(selected_req?.status ?? '').toLowerCase()}`}
+							>
+								{selected_req?.status ?? ''}
+							</span>
+						</div>
+
+						<div className="wm-thread-body">
+							<MessageThread
+								request_id={selected_conv.request_id}
+								current_uid={worker.uid}
+								current_name={worker.name}
+								current_role="worker"
+								other_uid={selected_conv.other_uid}
+								other_name={
+									selected_req?.resident_name ?? 'Resident'
+								}
+							/>
+						</div>
+					</>
+				) : (
+					<EmptyThreadState
+						has_conversations={conversations.length > 0}
+					/>
+				)}
+			</main>
+		</div>
+	)
+}
+
+>>>>>>> main
 /* ── Sub-components ────────────────────────────────────────────────────── */
 
 function ConversationItem({ conv, req, is_selected, worker_uid, on_click }) {

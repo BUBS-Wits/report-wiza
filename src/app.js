@@ -30,7 +30,10 @@ function App() {
 					path="/worker-dashboard/messages"
 					element={<WorkerMessages />}
 				/>
+<<<<<<< HEAD
 				<Route path="/worker-dashboard" element={<WorkerDashboard />} />
+=======
+>>>>>>> main
 				<Route
 					path="/resident-dashboard"
 					element={<ResidentDashboard />}

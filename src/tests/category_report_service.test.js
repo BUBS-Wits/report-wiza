@@ -91,23 +91,30 @@ describe('Category Report Service', () => {
 
 	describe('build_category_stats', () => {
 		test('calculates totals, pending, in-progress, resolved, and avg hours correctly', () => {
+			const STATUS = Object.freeze({
+				SUBMITTED: 'open',
+				ASSIGNED: 'acknowledged',
+				IN_PROGRESS: 'in_progress',
+				RESOLVED: 'resolved',
+				CLOSED: 'closed',
+			})
 			const mockRequests = [
-				{ category: 'Water', status: 'pending' },
-				{ category: 'Water', status: 'acknowledged' }, // In progress
-				{ category: 'Water', status: 'in_progress' }, // In progress
+				{ category: 'Water', status: STATUS.ASSIGNED },
+				{ category: 'Water', status: STATUS.IN_PROGRESS }, // In progress
+				{ category: 'Water', status: STATUS.IN_PROGRESS }, // In progress
 				{
 					category: 'Water',
-					status: 'resolved',
+					status: STATUS.RESOLVED,
 					created_at: mockTs(0),
 					updated_at: mockTs(5), // Took 5 hours
 				},
 				{
 					category: 'Water',
-					status: 'resolved',
+					status: STATUS.RESOLVED,
 					created_at: mockTs(0),
 					updated_at: mockTs(15), // Took 15 hours
 				},
-				{ category: 'Roads', status: 'pending' },
+				{ category: 'Roads', status: STATUS.ASSIGNED },
 				// Electricity has 0 requests
 			]
 
@@ -137,11 +144,21 @@ describe('Category Report Service', () => {
 
 	describe('fetch_report_data', () => {
 		test('fetches all requests and returns calculated stats and totals', async () => {
+			const STATUS = Object.freeze({
+				SUBMITTED: 'open',
+				ASSIGNED: 'acknowledged',
+				IN_PROGRESS: 'in_progress',
+				RESOLVED: 'resolved',
+				CLOSED: 'closed',
+			})
 			getDocs.mockResolvedValueOnce({
 				docs: [
 					{
 						id: '1',
-						data: () => ({ category: 'Water', status: 'pending' }),
+						data: () => ({
+							category: 'Water',
+							status: STATUS.ASSIGNED,
+						}),
 					},
 					{
 						id: '2',

@@ -15,7 +15,7 @@ import { STATUS, STATUS_DISPLAY } from '../constants.js'
  * Verifies if the provided UID belongs to a user with the 'worker' role.
  * Returns the user document snapshot if valid, throws otherwise.
  */
-const verify_worker_and_get_profile = async (uid) => {
+export const verify_worker_and_get_profile = async (uid) => {
 	const snap = await getDoc(doc(db, 'users', uid))
 	if (!snap.exists()) {
 		throw new Error('Not authenticated.')
@@ -67,7 +67,10 @@ const fetch_assigned_requests = async (worker_uid) => {
 		snap.docs.forEach((d) => {
 			const data = d.data()
 			const raw_status = data.status ?? 0
+<<<<<<< HEAD
 
+=======
+>>>>>>> main
 			requests.push({
 				id: d.id,
 				category: data.category ?? 'Uncategorised',
@@ -108,9 +111,9 @@ export const compute_worker_stats = (requests) => {
 	const resolved = by_status(STATUS.RESOLVED)
 
 	let avg_resolution_days = 0
+	let count = 0
 	if (resolved.length > 0) {
 		const total_ms = resolved.reduce((sum, r) => {
-			console.info(r)
 			if (!r.assigned_at || !r.updated_at) {
 				return sum
 			}
@@ -118,14 +121,20 @@ export const compute_worker_stats = (requests) => {
 			const start = new Date(r.assigned_at).getTime()
 			const end = new Date(r.updated_at).getTime()
 
-			const duration = end > start ? end - start : 0
+			if (end > start) {
+				count++
+				return sum + (end - start)
+			}
 
-			return sum + duration
+			return sum
 		}, 0)
 
-		avg_resolution_days = parseFloat(
-			(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
-		)
+		avg_resolution_days =
+			count === 0
+				? 0
+				: parseFloat(
+						(total_ms / count / (1000 * 60 * 60 * 24)).toFixed(1)
+					)
 		console.debug('Avg. Resolution Days: ' + avg_resolution_days)
 	}
 
