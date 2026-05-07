@@ -649,7 +649,7 @@ function RequestDetailPanel({
 					<div className="wd-panel-thread">
 						{req.user_uid ? (
 							<MessageThread
-								request_id={req.id}
+								request_uid={req.id} // FIXED
 								current_uid={worker.uid}
 								current_name={worker.name}
 								current_role="worker"

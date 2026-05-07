@@ -13,7 +13,7 @@ console.log = () => {}
 console.debug = () => {}
 console.error = () => {}
 
-jest.mock('../../firebase_config.js', () => ({
+jest.mock('../firebase_config.js', () => ({
 	auth: {
 		currentUser: {
 			uid: 'worker-uid-1',
@@ -23,7 +23,7 @@ jest.mock('../../firebase_config.js', () => ({
 	db: {},
 }))
 
-import { STATUS, STATUS_DISPLAY } from '../../constants.js'
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
 /*
 jest.mock('../../constants.js', () => ({
 	STATUS: Object.freeze({
@@ -67,12 +67,12 @@ const mock_verify_worker = jest.fn()
 const mock_compute_stats = jest.fn()
 const mock_update_request_status = jest.fn()
 
-jest.mock('../../backend/worker_analytics_service.js', () => ({
+jest.mock('../backend/worker_analytics_service.js', () => ({
 	verify_worker_and_get_profile: (...a) => mock_verify_worker(...a),
 	compute_worker_stats: (...a) => mock_compute_stats(...a),
 }))
 
-jest.mock('../../backend/worker_firebase.js', () => ({
+jest.mock('../backend/worker_firebase.js', () => ({
 	update_request_status: (...a) => mock_update_request_status(...a),
 }))
 
@@ -81,7 +81,7 @@ jest.mock('react-router-dom', () => ({
 }))
 
 jest.mock(
-	'../../components/worker_nav_bar/worker_nav_bar.js',
+	'../components/worker_nav_bar/worker_nav_bar.js',
 	() =>
 		function MockNavBar({ sections, active_section }) {
 			return (
@@ -96,7 +96,7 @@ jest.mock(
 )
 
 jest.mock(
-	'../request/claim/claim_btn.js',
+	'../pages/request/claim/claim_btn.js',
 	() =>
 		function MockClaimBtn({ request_uid, post_claim }) {
 			return (
@@ -107,17 +107,19 @@ jest.mock(
 		}
 )
 
-jest.mock(
-	'../../components/message_thread/message_thread.js',
-	() =>
-		function MockMessageThread({ request_id }) {
-			return <div data-testid="message-thread">{request_id}</div>
-		}
-)
+jest.mock('../components/message_thread/message_thread.js', () => {
+	// CHANGE request_id to request_uid here:
+	return function MockMessageThread({ request_uid }) {
+		// AND here:
+		return <div data-testid="message-thread">{request_uid}</div>
+	}
+})
 
-jest.mock('./worker_dashboard.css', () => ({}), { virtual: true })
+jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}), {
+	virtual: true,
+})
 
-import WorkerDashboard from './worker_dashboard.js'
+import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard.js'
 
 const MOCK_WORKER_PROFILE = {
 	name: 'Jane Smith',

@@ -169,6 +169,7 @@ const b2_is_expired = (signed_url) => {
 /********************* Backend *********************/
 
 app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ limit: '10mb', extended: true }))
 
 const respond = {
 	unauthorized: (res) =>
@@ -177,7 +178,29 @@ const respond = {
 		res.status(400).json({ error: 'Invalid parameters provided.' }),
 }
 
+// STRICT AUTH: For Admin and Worker routes (Requires Token)
 const authenticate = async (req, res, next) => {
+	try {
+		const header = req.headers.authorization
+
+		if (!header || !header.startsWith('Bearer ')) {
+			return res
+				.status(401)
+				.json({ error: 'Unauthorized access to API endpoint.' })
+		}
+
+		const token = header.split('Bearer ')[1]
+		const decoded = await admin.auth().verifyIdToken(token)
+
+		req.user = decoded
+		next()
+	} catch (err) {
+		return res.status(401).json({ error: 'Invalid token' })
+	}
+}
+
+// OPTIONAL AUTH: For public submission form (Allows Anonymous)
+const authenticate_optional = async (req, res, next) => {
 	try {
 		const header = req.headers.authorization
 
@@ -373,7 +396,8 @@ const role_service = {
 	is_worker: (uid) => has_role(uid, 'worker'),
 }
 
-app.post('/api/submit-request', authenticate, async (req, res) => {
+// NOTE: Changed to authenticate_optional
+app.post('/api/submit-request', authenticate_optional, async (req, res) => {
 	try {
 		const body = req.body
 
