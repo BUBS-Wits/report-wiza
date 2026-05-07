@@ -363,11 +363,29 @@
 	max-width: 240px;
 }
 
-/* ── Responsive: on very small screens, go full-width ──────────────────── */
+/* ── Responsive: Fixed positioning ensures safety from parent paddings ─── */
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
 	.nb-panel {
-		width: calc(100vw - 24px);
-		right: -12px;
+		/* Change from absolute to fixed to break out of the navbar bounds */
+		position: fixed;
+		top: 70px; /* Safe distance below most mobile navbars */
+		left: 5%;
+		right: 5%;
+		width: auto;
+		max-height: 70vh; /* Prevents it from going off the bottom of the screen */
+		transform-origin: top center;
+	}
+
+	@keyframes nb-slide-in {
+		from {
+			opacity: 0;
+			transform: translateY(-6px) scale(0.98);
+		}
+		to {
+			opacity: 1;
+			/* Because it's fixed, we don't scale from top-right anymore */
+			transform: translateY(0) scale(1);
+		}
 	}
 }

@@ -213,6 +213,7 @@
 	font-size: 0.85rem;
 	font-weight: 500;
 	color: #475569;
+	flex: 1; /* Allows badges to share space evenly on desktop */
 }
 
 /* ── Actions ───────────────────────────────────────────────── */
@@ -323,5 +324,10 @@
 
 	.spm_provider_row {
 		flex-direction: column;
+	}
+
+	/* Centers the SVG and Text when stacked to full-width on mobile */
+	.spm_provider_badge {
+		justify-content: center;
 	}
 }

@@ -1,6 +1,6 @@
 // src/components/sidebar/sidebar.js
-import React, { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import './sidebar.css'
 
 const nav_items = [
@@ -39,7 +39,6 @@ const nav_items = [
 			{
 				id: 'analytics',
 				label: 'Analytics',
-				// Removed 'path', added 'sub_items'
 				sub_items: [
 					{
 						id: 'category_report',
@@ -80,6 +79,14 @@ const nav_items = [
 function Sidebar() {
 	// State to track which dropdowns are open (e.g., { analytics: true })
 	const [expanded_menus, set_expanded_menus] = useState({})
+	// State to track if the sidebar is open on mobile devices
+	const [is_mobile_open, set_is_mobile_open] = useState(false)
+	const location = useLocation()
+
+	// Automatically close the mobile sidebar when the route changes
+	useEffect(() => {
+		set_is_mobile_open(false)
+	}, [location])
 
 	const toggle_menu = (id) => {
 		set_expanded_menus((prev) => ({
@@ -89,105 +96,143 @@ function Sidebar() {
 	}
 
 	return (
-		<aside className="sidebar">
-			<div className="sidebar_logo">
-				<div className="sidebar_logo_text">
-					REPORT-<span>WIZA</span>
-				</div>
-				<div className="sidebar_role">Admin Portal</div>
-			</div>
+		<>
+			{/* Mobile Hamburger Button */}
+			<button
+				className="sidebar_mobile_toggle"
+				onClick={() => set_is_mobile_open(true)}
+				aria-label="Open navigation menu"
+			>
+				☰
+			</button>
 
-			<nav className="sidebar_nav">
-				{nav_items.map((group) => (
-					<div key={group.section}>
-						<div className="sidebar_section">{group.section}</div>
-						{group.items.map((item) => {
-							// 1. Render a Dropdown if the item has sub_items
-							if (item.sub_items) {
-								const is_open = expanded_menus[item.id]
-								return (
-									<div
-										key={item.id}
-										className="sidebar_dropdown_container"
-									>
-										<button
-											className={`sidebar_item ${is_open ? 'expanded' : ''}`}
-											onClick={() => toggle_menu(item.id)}
-										>
-											{item.label}
-											<span className="sidebar_dropdown_arrow">
-												{is_open ? '▼' : '▶'}
-											</span>
-										</button>
+			{/* Mobile Overlay Backdrop */}
+			{is_mobile_open && (
+				<div
+					className="sidebar_overlay"
+					onClick={() => set_is_mobile_open(false)}
+					aria-hidden="true"
+				/>
+			)}
 
-										{is_open && (
-											<div className="sidebar_sub_menu">
-												{item.sub_items.map((sub) =>
-													sub.ready ? (
-														<NavLink
-															key={sub.id}
-															to={sub.path}
-															className={({
-																isActive,
-															}) =>
-																`sidebar_sub_item ${isActive ? 'active' : ''}`
-															}
-														>
-															{sub.label}
-														</NavLink>
-													) : (
-														<button
-															key={sub.id}
-															className="sidebar_sub_item"
-															disabled
-														>
-															{sub.label}
-															<span className="sidebar_soon">
-																soon
-															</span>
-														</button>
-													)
-												)}
-											</div>
-										)}
-									</div>
-								)
-							}
-
-							// 2. Render a standard link/button for flat items
-							return item.ready ? (
-								<NavLink
-									key={item.id}
-									to={item.path}
-									className={({ isActive }) =>
-										`sidebar_item ${isActive ? 'active' : ''}`
-									}
-								>
-									{item.label}
-								</NavLink>
-							) : (
-								<button
-									key={item.id}
-									className="sidebar_item"
-									disabled
-								>
-									{item.label}
-									<span className="sidebar_soon">soon</span>
-								</button>
-							)
-						})}
+			{/* Sidebar */}
+			<aside className={`sidebar ${is_mobile_open ? 'mobile_open' : ''}`}>
+				<div className="sidebar_logo">
+					<div className="sidebar_logo_text">
+						REPORT-<span>WIZA</span>
 					</div>
-				))}
-			</nav>
-
-			<div className="sidebar_bottom">
-				<div className="sidebar_avatar">AD</div>
-				<div className="sidebar_user_info">
-					<div className="sidebar_user_name">Admin</div>
-					<div className="sidebar_user_role">Administrator</div>
+					<div className="sidebar_role">Admin Portal</div>
+					{/* Close button inside sidebar for mobile */}
+					<button
+						className="sidebar_mobile_close"
+						onClick={() => set_is_mobile_open(false)}
+						aria-label="Close navigation menu"
+					>
+						✕
+					</button>
 				</div>
-			</div>
-		</aside>
+
+				<nav className="sidebar_nav">
+					{nav_items.map((group) => (
+						<div key={group.section}>
+							<div className="sidebar_section">
+								{group.section}
+							</div>
+							{group.items.map((item) => {
+								// 1. Render a Dropdown if the item has sub_items
+								if (item.sub_items) {
+									const is_open = expanded_menus[item.id]
+									return (
+										<div
+											key={item.id}
+											className="sidebar_dropdown_container"
+										>
+											<button
+												className={`sidebar_item ${is_open ? 'expanded' : ''}`}
+												onClick={() =>
+													toggle_menu(item.id)
+												}
+											>
+												{item.label}
+												<span className="sidebar_dropdown_arrow">
+													{is_open ? '▼' : '▶'}
+												</span>
+											</button>
+
+											{is_open && (
+												<div className="sidebar_sub_menu">
+													{item.sub_items.map(
+														(sub) =>
+															sub.ready ? (
+																<NavLink
+																	key={sub.id}
+																	to={
+																		sub.path
+																	}
+																	className={({
+																		isActive,
+																	}) =>
+																		`sidebar_sub_item ${isActive ? 'active' : ''}`
+																	}
+																>
+																	{sub.label}
+																</NavLink>
+															) : (
+																<button
+																	key={sub.id}
+																	className="sidebar_sub_item"
+																	disabled
+																>
+																	{sub.label}
+																	<span className="sidebar_soon">
+																		soon
+																	</span>
+																</button>
+															)
+													)}
+												</div>
+											)}
+										</div>
+									)
+								}
+
+								// 2. Render a standard link/button for flat items
+								return item.ready ? (
+									<NavLink
+										key={item.id}
+										to={item.path}
+										className={({ isActive }) =>
+											`sidebar_item ${isActive ? 'active' : ''}`
+										}
+									>
+										{item.label}
+									</NavLink>
+								) : (
+									<button
+										key={item.id}
+										className="sidebar_item"
+										disabled
+									>
+										{item.label}
+										<span className="sidebar_soon">
+											soon
+										</span>
+									</button>
+								)
+							})}
+						</div>
+					))}
+				</nav>
+
+				<div className="sidebar_bottom">
+					<div className="sidebar_avatar">AD</div>
+					<div className="sidebar_user_info">
+						<div className="sidebar_user_name">Admin</div>
+						<div className="sidebar_user_role">Administrator</div>
+					</div>
+				</div>
+			</aside>
+		</>
 	)
 }
 

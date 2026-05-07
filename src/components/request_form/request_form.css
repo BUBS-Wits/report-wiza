@@ -1,11 +1,17 @@
+/* src/components/request_form/request_form.css */
+
 form.request_form {
 	width: 100%;
-	max-width: 500px;
+	/* Let the parent container dictate the max-width, or cap it at 100% */
+	max-width: 100%;
 	display: flex;
 	flex-direction: column;
-	gap: 1.5rem;
-	padding: 2rem;
+	/* Use a slightly tighter gap for better visual grouping */
+	gap: 1.25rem;
+	/* Removed hardcoded 2rem padding since the parent card in request_page.css handles the container padding */
+	padding: 0;
 	border-radius: 12px;
+	font-family: 'DM Sans', sans-serif;
 }
 
 form.request_form textarea,
@@ -18,29 +24,33 @@ form.request_form #file_name {
 	font-size: 0.85rem;
 	color: rgb(100, 116, 139);
 	text-align: center;
+	margin-top: -0.5rem; /* Pulls the file name slightly closer to the upload button */
 }
 
+/* ── Custom File Upload Button ── */
 form.request_form label {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	gap: 0.5rem;
-
 	width: 100%;
-	padding: 0.75rem;
-
-	border: 2px dashed rgba(148, 163, 184, 0.3);
+	/* Fluid padding for the upload button */
+	padding: clamp(0.75rem, 3vw, 1rem);
+	border: 2px dashed rgba(148, 163, 184, 0.4);
 	border-radius: 1rem;
 	cursor: pointer;
-
 	background-color: rgba(30, 41, 59, 0.5);
 	color: rgb(148, 163, 184);
-
+	font-size: 0.9rem;
+	font-weight: 500;
 	transition: all 0.2s ease;
+	text-align: center;
 }
 
 form.request_form label[for='image']:hover {
 	background-color: rgba(51, 65, 85, 0.7);
+	border-color: rgba(245, 158, 11, 0.5); /* Amber tint on hover */
+	color: #cbd5e1;
 	transform: translateY(-1px);
 }
 
@@ -52,24 +62,62 @@ form.request_form input[type='file'] {
 	display: none;
 }
 
+/* ── Textarea ── */
 form.request_form textarea {
-	background-color: transparent;
-	color: rgb(148, 163, 184);
-	min-height: 150px;
+	background-color: rgba(255, 255, 255, 0.04);
+	color: #ffffff;
+	min-height: 120px;
 	resize: vertical;
-	padding: 0.75rem;
-	border-radius: 1rem;
+	padding: 0.85rem;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	font-family: inherit;
+	font-size: 0.95rem;
+	transition:
+		border-color 0.2s,
+		box-shadow 0.2s;
 }
 
+form.request_form textarea:focus {
+	outline: none;
+	border-color: #f59e0b;
+	box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+form.request_form textarea::placeholder {
+	color: #64748b;
+}
+
+/* ── Image Preview ── */
 form.request_form img {
 	display: block;
-	border: 1em ridge rgb(10, 22, 40);
-	max-width: 100%;
+	/* Replaced heavy ridge border with a sleek, modern border and shadow */
+	border: 2px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+	width: 100%; /* Ensures it never overflows on mobile */
+	max-width: 300px;
+	height: auto;
 	align-self: center;
-	border-radius: 1rem;
+	border-radius: 12px;
+	object-fit: cover;
 }
 
-form.request_form button {
-	align-self: flex-start;
+form.request_form button.btn_components {
+	align-self: stretch; /* Makes the submit button full width natively */
 	width: 100%;
+	margin-top: 0.5rem;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 480px) {
+	form.request_form {
+		gap: 1rem; /* Slightly tighter vertical spacing on small phones */
+	}
+
+	form.request_form label {
+		font-size: 0.85rem; /* Prevent text wrapping on very narrow screens */
+		padding: 1rem;
+	}
 }

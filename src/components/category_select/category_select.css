@@ -1,53 +1,118 @@
-section.category_select {
-	background: transparent;
+/* src/components/category_select/category_select.css */
+
+.category_select_wrapper {
+	position: relative; /* Crucial: traps the absolute positioning of the list */
+	width: 100%;
+	font-family: 'DM Sans', sans-serif;
+}
+
+.dropdown_trigger {
 	display: flex;
-	flex-direction: column;
 	align-items: center;
-	justify-content: space-evenly;
-	font-size: 1rem;
-}
-
-section.category_select * {
-	font-size: 1rem;
-}
-
-section.category_select button.dropdown_trigger {
-	border: 1px solid rgb(245, 158, 11);
-	border-radius: 0.5rem;
-	min-width: 250px;
-	padding: 0;
-	color: rgb(148, 163, 184);
-	background: transparent;
+	justify-content: space-between;
+	width: 100%;
+	/* Matches the padding of standard text inputs on the request page */
+	padding: 0.7rem 0.9rem;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	color: #ffffff;
+	font-size: 0.9rem;
+	font-family: inherit;
 	cursor: pointer;
-	text-align: center;
+	transition:
+		border-color 0.2s,
+		background 0.2s,
+		box-shadow 0.2s;
 }
 
-section.category_select ul.category_dropdown_list {
+.dropdown_trigger:hover,
+.dropdown_trigger:focus {
+	border-color: #f59e0b;
+	background: rgba(245, 158, 11, 0.05);
+	outline: none;
+}
+
+.dropdown_trigger.expanded {
+	border-color: #f59e0b;
+	box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+/* Prevents long selected options from breaking the button width */
+.dropdown_trigger_text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.dropdown_chevron {
+	width: 16px;
+	height: 16px;
+	color: #94a3b8;
+	transition: transform 0.2s ease;
+	flex-shrink: 0;
+}
+
+.dropdown_chevron.rotated {
+	transform: rotate(180deg);
+	color: #f59e0b;
+}
+
+.category_dropdown_list {
+	/* Floats the menu above subsequent content instead of pushing it down */
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 0;
+	right: 0;
 	list-style: none;
-	border: 1px solid rgb(245, 158, 11);
-	border-top: none;
-	border-radius: 0.5rem;
-	min-width: 250px;
 	margin: 0;
-	padding: 0;
-	background: transparent;
+	padding: 4px 0;
+	background: #162342; /* Matches the solid navy tones of the dashboard */
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 	max-height: 0;
 	opacity: 0;
-	overflow: hidden;
+	overflow-y: auto;
+	visibility: hidden; /* Ensures it is un-clickable when closed */
 	transform: translateY(-5px);
 	transition:
 		max-height 0.3s ease,
 		opacity 0.2s ease,
-		transform 0.2s ease;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: space-evenly;
-	text-align: center;
+		transform 0.2s ease,
+		visibility 0.3s;
+	z-index: 50; /* Stays above form elements */
 }
 
-section.category_select ul.category_dropdown_list.open {
-	max-height: 300px;
+.category_dropdown_list.open {
+	max-height: 250px;
 	opacity: 1;
+	visibility: visible;
 	transform: translateY(0);
+	transition:
+		max-height 0.3s ease,
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+/* Custom scrollbar so it looks neat when scrolling through many categories */
+.category_dropdown_list::-webkit-scrollbar {
+	width: 6px;
+}
+.category_dropdown_list::-webkit-scrollbar-track {
+	background: transparent;
+}
+.category_dropdown_list::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 10px;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 480px) {
+	.dropdown_trigger {
+		/* Slightly taller touch targets for thumbs */
+		padding: 14px 16px;
+	}
 }

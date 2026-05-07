@@ -2,7 +2,8 @@
 	min-height: 100vh;
 	background: #0f1f3d;
 	color: #ffffff;
-	padding: 48px 24px 64px;
+	/* Updated padding: 100px top (for Navbar), 5% sides (fluid), 64px bottom */
+	padding: 100px 5% 64px;
 	box-sizing: border-box;
 }
 
@@ -38,7 +39,8 @@
 
 .dashboard_header h1 {
 	margin: 0 0 14px;
-	font-size: 3rem;
+	/* Added clamp() so the text scales down cleanly on mobile */
+	font-size: clamp(2rem, 5vw, 3rem);
 	color: #f59e0b;
 	line-height: 1.1;
 }
@@ -55,6 +57,7 @@
 	max-width: 1100px;
 	margin: 0 auto 36px;
 	display: grid;
+	/* Your existing auto-fit grid here is perfect for responsiveness! */
 	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 18px;
 }
@@ -93,12 +96,12 @@
 	align-items: center;
 	gap: 12px;
 	margin-bottom: 18px;
-	flex-wrap: wrap;
+	flex-wrap: wrap; /* Allows wrap if title and tags clash on mobile */
 }
 
 .section_heading_row h2 {
 	margin: 0;
-	font-size: 1.9rem;
+	font-size: clamp(1.5rem, 4vw, 1.9rem);
 	color: #ffffff;
 }
 
@@ -178,6 +181,7 @@
 
 .request_list {
 	display: grid;
+	/* Again, brilliant use of auto-fit grid! */
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: 20px;
 }
@@ -250,7 +254,24 @@
 }
 
 .empty_state {
-	color: var(--color-text-muted);
+	color: #94a3b8;
 	font-size: 0.95rem;
 	padding: 1rem 0;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 768px) {
+	.map_container,
+	.leaflet_map {
+		/* Prevents the map from dominating the entire screen vertically on mobile */
+		height: 300px;
+		min-height: 300px;
+	}
+
+	.map_legend {
+		flex-direction: column;
+		gap: 12px;
+	}
 }

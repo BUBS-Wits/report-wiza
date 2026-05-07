@@ -6,7 +6,7 @@ import './worker_messages.css'
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 /**
- * Format a Firestore Timestamp into a short label for the conversation list.[cite: 2]
+ * Format a Firestore Timestamp into a short label for the conversation list.
  */
 function format_conv_time(ts) {
 	if (!ts) {
@@ -27,6 +27,97 @@ function format_conv_time(ts) {
 		})
 	}
 	return date.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short' })
+}
+
+/* ── Sub-components ────────────────────────────────────────────────────── */
+
+function ConversationItem({ conv, req, is_selected, worker_uid, on_click }) {
+	const { last_message, unread_count } = conv
+	const category = req?.category ?? 'Request'
+	const ward = req?.ward ?? ''
+	const status = req?.status ?? 'Pending' // Provide a default status
+	const time_label = format_conv_time(last_message?.sent_at)
+	const is_mine = last_message?.sender_uid === worker_uid
+	const preview = last_message?.text ?? ''
+	const initials = category.slice(0, 2).toUpperCase()
+
+	return (
+		<button
+			className={`wm-conv-item${is_selected ? ' wm-conv-item--active' : ''}${unread_count > 0 ? ' wm-conv-item--unread' : ''}`}
+			role="option"
+			aria-selected={is_selected}
+			onClick={on_click}
+		>
+			<div
+				className={`wm-conv-avatar wm-conv-avatar--${status.toLowerCase()}`}
+				aria-hidden="true"
+			>
+				{initials}
+			</div>
+
+			<div className="wm-conv-content">
+				<div className="wm-conv-top-row">
+					<span className="wm-conv-name">{category}</span>
+					<span className="wm-conv-time">{time_label}</span>
+				</div>
+				<div className="wm-conv-bottom-row">
+					<span className="wm-conv-preview">
+						{is_mine && (
+							<span className="wm-conv-preview-you">You: </span>
+						)}
+						{preview || <em>No messages yet</em>}
+					</span>
+					{unread_count > 0 && (
+						<span className="wm-unread-badge">{unread_count}</span>
+					)}
+				</div>
+				{ward && <span className="wm-conv-ward">{ward}</span>}
+			</div>
+		</button>
+	)
+}
+
+function EmptyThreadState({ has_conversations }) {
+	return (
+		<div className="wm-empty-thread">
+			<div className="wm-empty-thread-icon" aria-hidden="true">
+				<svg viewBox="0 0 64 64" fill="none">
+					<rect
+						x="8"
+						y="12"
+						width="48"
+						height="36"
+						rx="6"
+						stroke="currentColor"
+						strokeWidth="2.5"
+					/>
+					<path
+						d="M20 32h24M20 24h16"
+						stroke="currentColor"
+						strokeWidth="2.5"
+						strokeLinecap="round"
+					/>
+					<path
+						d="M24 48l-8 8v-8"
+						stroke="currentColor"
+						strokeWidth="2.5"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					/>
+				</svg>
+			</div>
+			<p className="wm-empty-thread-title">
+				{has_conversations
+					? 'Select a conversation'
+					: 'No messages yet'}
+			</p>
+			<p className="wm-empty-thread-sub">
+				{has_conversations
+					? 'Click a conversation on the left to open the thread.'
+					: 'Messages will appear here once a conversation starts.'}
+			</p>
+		</div>
+	)
 }
 
 /* ── Main component ─────────────────────────────────────────────────── */
@@ -50,6 +141,7 @@ export default function WorkerMessages({ worker, requests = [] }) {
 	/* ── Conversations subscription ───────────────────────────────────── */
 	useEffect(() => {
 		if (!worker?.uid) {
+			set_conv_loading(false) // Stop loading if no worker
 			return
 		}
 		set_conv_loading(true)
@@ -90,7 +182,10 @@ export default function WorkerMessages({ worker, requests = [] }) {
 	/* ── Render ───────────────────────────────────────────────────────── */
 
 	return (
-		<div className="wm-layout" style={{ height: '100%' }}>
+		<div
+			className={`wm-layout ${selected_id ? 'wm-layout--thread-open' : ''}`}
+			style={{ height: '100%' }}
+		>
 			{/* ── LEFT: conversation list ──────────────────────────── */}
 			<aside className="wm-sidebar">
 				<div className="wm-sidebar-header">
@@ -222,9 +317,9 @@ export default function WorkerMessages({ worker, requests = [] }) {
 								</span>
 							</div>
 							<span
-								className={`wm-thread-status-badge wm-thread-status-badge--${(selected_req?.status ?? '').toLowerCase()}`}
+								className={`wm-thread-status-badge wm-thread-status-badge--${(selected_req?.status ?? 'pending').toLowerCase()}`}
 							>
-								{selected_req?.status ?? ''}
+								{selected_req?.status ?? 'Pending'}
 							</span>
 						</div>
 
@@ -247,97 +342,6 @@ export default function WorkerMessages({ worker, requests = [] }) {
 					/>
 				)}
 			</main>
-		</div>
-	)
-}
-
-/* ── Sub-components ────────────────────────────────────────────────────── */
-
-function ConversationItem({ conv, req, is_selected, worker_uid, on_click }) {
-	const { last_message, unread_count } = conv
-	const category = req?.category ?? 'Request'
-	const ward = req?.ward ?? ''
-	const status = req?.status ?? ''
-	const time_label = format_conv_time(last_message?.sent_at)
-	const is_mine = last_message?.sender_uid === worker_uid
-	const preview = last_message?.text ?? ''
-	const initials = category.slice(0, 2).toUpperCase()
-
-	return (
-		<button
-			className={`wm-conv-item${is_selected ? ' wm-conv-item--active' : ''}${unread_count > 0 ? ' wm-conv-item--unread' : ''}`}
-			role="option"
-			aria-selected={is_selected}
-			onClick={on_click}
-		>
-			<div
-				className={`wm-conv-avatar wm-conv-avatar--${status.toLowerCase()}`}
-				aria-hidden="true"
-			>
-				{initials}
-			</div>
-
-			<div className="wm-conv-content">
-				<div className="wm-conv-top-row">
-					<span className="wm-conv-name">{category}</span>
-					<span className="wm-conv-time">{time_label}</span>
-				</div>
-				<div className="wm-conv-bottom-row">
-					<span className="wm-conv-preview">
-						{is_mine && (
-							<span className="wm-conv-preview-you">You: </span>
-						)}
-						{preview || <em>No messages yet</em>}
-					</span>
-					{unread_count > 0 && (
-						<span className="wm-unread-badge">{unread_count}</span>
-					)}
-				</div>
-				{ward && <span className="wm-conv-ward">{ward}</span>}
-			</div>
-		</button>
-	)
-}
-
-function EmptyThreadState({ has_conversations }) {
-	return (
-		<div className="wm-empty-thread">
-			<div className="wm-empty-thread-icon" aria-hidden="true">
-				<svg viewBox="0 0 64 64" fill="none">
-					<rect
-						x="8"
-						y="12"
-						width="48"
-						height="36"
-						rx="6"
-						stroke="currentColor"
-						strokeWidth="2.5"
-					/>
-					<path
-						d="M20 32h24M20 24h16"
-						stroke="currentColor"
-						strokeWidth="2.5"
-						strokeLinecap="round"
-					/>
-					<path
-						d="M24 48l-8 8v-8"
-						stroke="currentColor"
-						strokeWidth="2.5"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					/>
-				</svg>
-			</div>
-			<p className="wm-empty-thread-title">
-				{has_conversations
-					? 'Select a conversation'
-					: 'No messages yet'}
-			</p>
-			<p className="wm-empty-thread-sub">
-				{has_conversations
-					? 'Click a conversation on the left to open the thread.'
-					: 'Messages will appear here once a conversation starts.'}
-			</p>
 		</div>
 	)
 }

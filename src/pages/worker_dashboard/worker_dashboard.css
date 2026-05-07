@@ -13,6 +13,8 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	/* Added top padding to clear the fixed global Navbar */
+	padding-top: 80px;
 }
 
 /* ── Main layout ──────────────────────────────────────────────────────────── */
@@ -20,7 +22,8 @@
 .wd-main {
 	max-width: 1100px;
 	width: 100%;
-	padding: 20px 32px 32px;
+	/* Changed horizontal padding to a fluid 5% */
+	padding: 20px 5% 32px;
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
@@ -39,7 +42,8 @@
 
 .wd-stats-grid {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	/* Switched from fixed 4 columns to an auto-fit fluid grid */
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: 14px;
 }
 .wd-stat-card {
@@ -152,7 +156,8 @@
 
 .wd-req-row {
 	display: grid;
-	grid-template-columns: 90px 160px 1fr 140px 140px;
+	/* Switched inner columns to use fr units so they can squish dynamically */
+	grid-template-columns: 80px 1.5fr 2fr auto 100px 30px;
 	align-items: center;
 	padding: 16px 24px;
 	border-bottom: 1px solid #f4f1ed;
@@ -278,7 +283,8 @@
 	display: flex;
 	align-items: flex-start;
 	position: relative;
-	min-height: calc(100vh - 60px); /* adjust 60px to your navbar height */
+	min-height: calc(100vh - 80px); /* adjusted for navbar height */
+	width: 100%; /* Ensures the layout uses full width */
 }
 
 .wd-layout .wd-main {
@@ -294,16 +300,13 @@
 	}
 }
 
-/* ── Slide-in detail panel ───────────────────────────────────
-   Enters from the right. On desktop it sits alongside the
-   main content. On mobile it overlays full-width.
-   ─────────────────────────────────────────────────────────── */
+/* ── Slide-in detail panel ─────────────────────────────────── */
 .wd-detail-panel {
 	width: 420px;
 	flex-shrink: 0;
-	height: calc(100vh - 60px); /* match navbar height */
+	height: calc(100vh - 80px); /* match navbar height */
 	position: sticky;
-	top: 60px; /* match navbar height */
+	top: 80px; /* match navbar height */
 	overflow-y: auto;
 	background: #ffffff;
 	border-left: 1.5px solid #e8e4de;
@@ -349,9 +352,7 @@
 	}
 }
 
-/* ── Mobile backdrop ─────────────────────────────────────────
-   Only visible below the breakpoint where panel overlays.
-   ─────────────────────────────────────────────────────────── */
+/* ── Mobile backdrop ───────────────────────────────────────── */
 .wd-backdrop {
 	display: none;
 }
@@ -516,7 +517,6 @@
 	flex-direction: column;
 }
 
-/* Override mt_root inside the panel: fill available height */
 .wd-panel-thread .mt_root {
 	flex: 1;
 	height: 100%;
@@ -534,7 +534,6 @@
 	border-radius: 10px;
 }
 
-/* Reset button defaults and re-apply row layout */
 button.wd-req-row {
 	width: 100%;
 	text-align: left;
@@ -558,7 +557,6 @@ button.wd-req-row {
 	border-left: 3px solid #2d6a4f;
 }
 
-/* Chevron — hidden until hover or selected */
 .wd-req-chevron {
 	font-size: 18px;
 	color: #c8c2bb;
@@ -576,7 +574,6 @@ button.wd-req-row {
 	transform: translateX(2px);
 }
 
-/* ── Panel status selector ───────────────────────────────────*/
 .wd-panel-status-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -598,6 +595,8 @@ button.wd-req-row {
 	cursor: pointer;
 	font-family: 'DM Sans', sans-serif;
 	transition: all 0.15s;
+	flex: 1; /* Allows buttons to stretch evenly */
+	text-align: center;
 }
 
 .wd-status-opt:hover:not(:disabled) {
@@ -626,7 +625,46 @@ button.wd-req-row {
 	padding: 5px 10px;
 	border-radius: 5px;
 	white-space: nowrap;
-	pointer-events: none; /* non-interactive */
+	pointer-events: none;
 	opacity: 0.9;
 	z-index: 100;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS (Media Query)
+   ========================================================================= */
+@media (max-width: 768px) {
+	.wd-req-row {
+		/* Switch from horizontal grid to a stacked flex layout on mobile */
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+		padding: 16px 5%;
+		position: relative; /* To position the chevron */
+	}
+
+	.wd-req-meta {
+		text-align: left; /* Align to the left when stacked */
+		font-size: 11px;
+	}
+
+	.wd-req-desc {
+		white-space: normal; /* Allows description to wrap instead of cut off */
+		max-width: 90%;
+	}
+
+	.wd-req-chevron {
+		/* Floats the chevron to the middle right so it acts as a clear tap indicator */
+		position: absolute;
+		right: 20px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	.wd-panel-meta-row {
+		/* Stacks label and value inside the details panel to save space */
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
 }

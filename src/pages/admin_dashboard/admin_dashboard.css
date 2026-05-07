@@ -4,6 +4,8 @@
 	display: flex;
 	min-height: 100vh;
 	font-family: 'DM Sans', sans-serif;
+	/* Added top padding to clear the global fixed Navbar */
+	padding-top: 80px;
 }
 
 .admin_main {
@@ -15,7 +17,8 @@
 }
 
 .admin_content {
-	padding: 24px 28px;
+	/* Changed fixed padding to clamp for fluid spacing on smaller screens */
+	padding: clamp(16px, 3vw, 28px);
 	flex: 1;
 }
 
@@ -57,4 +60,14 @@
 	background: #fef2f2;
 	border: 1px solid #fecaca;
 	color: #dc2626;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 768px) {
+	.admin_page {
+		/* Stacks the Sidebar and Admin Main Content vertically on mobile */
+		flex-direction: column;
+	}
 }

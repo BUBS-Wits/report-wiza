@@ -56,9 +56,9 @@ export default function WorkerDashboard() {
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [active_filter, set_filter] = useState('All')
-	const [active_section, set_active_section] = useState('queue')
-	const [selected_req, set_selected_req] = useState(null) // drives the panel
-	const [panel_visible, set_panel_visible] = useState(false) // drives CSS transition
+	const [active_section, set_active_section] = useState(null)
+	const [selected_req, set_selected_req] = useState(null)
+	const [panel_visible, set_panel_visible] = useState(false)
 	const [show_busy_tip, set_show_busy_tip] = useState(false)
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
@@ -72,7 +72,7 @@ export default function WorkerDashboard() {
 
 	/* ── Load dashboard data ──────────────────────────────────────────── */
 
-	const get_claimed_requests = async () => {
+	const get_claimed_requests = async (uid) => {
 		const token = await auth.currentUser.getIdToken()
 		const ret = await fetch('/api/get-claimed-requests', {
 			method: 'GET',
@@ -109,6 +109,34 @@ export default function WorkerDashboard() {
 		console.log('unclaimed: ', data)
 		return data
 	}
+
+	const load_dashboard = useCallback(async (uid, load = false) => {
+		if (busy_ref.current) {
+			popup_busy('Already Loading Dashboard Info...')
+			return
+		}
+		busy_ref.current = true
+		set_error(null)
+		try {
+			load && set_loading(true)
+			const { worker, tmp_requests, stats } =
+				await fetch_worker_dashboard_data(uid)
+			set_worker(worker)
+			set_stats(stats)
+			const [claimed, unclaimed] = await Promise.all([
+				get_claimed_requests(uid),
+				get_unclaimed_requests(),
+			])
+			set_claimed_requests(claimed)
+			set_unclaimed_requests(unclaimed)
+			return { claimed, unclaimed }
+		} catch (err) {
+			set_error(err.message || 'Failed to load dashboard.')
+		} finally {
+			busy_ref.current = false
+			load && set_loading(false)
+		}
+	}, [])
 
 	/* ── Panel helpers ────────────────────────────────────────────────── */
 
@@ -164,6 +192,15 @@ export default function WorkerDashboard() {
 		close_panel()
 	}
 
+	const set_messages_section = () => {
+		if (busy_ref.current) {
+			popup_busy('Already Loading Dashboard Info...')
+			return
+		}
+		set_active_section('messages')
+		close_panel()
+	}
+
 	/* ── Auth ─────────────────────────────────────────────────────────── */
 
 	useEffect(() => {
@@ -173,13 +210,11 @@ export default function WorkerDashboard() {
 				set_loading(false)
 				return
 			}
-			const snap = await verify_worker_and_get_profile(user.uid)
-			const data = snap.data()
-			set_worker({
-				uid: user.uid,
-				name: data.name ?? 'Municipal Worker',
-				email: data.email ?? '',
-				role: data.role,
+			load_dashboard(user.uid, true).then((data) => {
+				if (data) {
+					set_requests(data.claimed)
+					set_active_section('queue')
+				}
 			})
 			set_loading(false)
 		})

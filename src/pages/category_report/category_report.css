@@ -17,7 +17,8 @@
 
 /* ── Page shell ── */
 .report_page {
-	min-height: 100vh;
+	/* Removed min-height: 100vh to prevent double scrollbars inside the Admin layout */
+	height: 100%;
 	background: var(--light-grey);
 	font-family: 'DM Sans', sans-serif;
 	color: #1e293b;
@@ -83,7 +84,9 @@
 .report_main {
 	max-width: 1100px;
 	margin: 0 auto;
-	padding: 2rem;
+	width: 100%;
+	/* Reduced padding since .admin_content already provides outer boundaries */
+	padding: 10px 0 32px;
 	display: flex;
 	flex-direction: column;
 	gap: 2rem;
@@ -145,7 +148,7 @@
 .report_section {
 	background: var(--white);
 	border-radius: 10px;
-	padding: 1.75rem;
+	padding: clamp(1rem, 3vw, 1.75rem); /* Fluid padding inside sections */
 	box-shadow: var(--shadow);
 }
 
@@ -244,12 +247,16 @@
 	overflow-x: auto;
 	border-radius: 6px;
 	border: 1px solid var(--border);
+	/* Subtle hint that the table scrolls on mobile */
+	box-shadow: inset -10px 0 10px -10px rgba(0, 0, 0, 0.05);
 }
 
 .report_table {
 	width: 100%;
 	border-collapse: collapse;
 	font-size: 0.875rem;
+	/* Ensure table doesn't squish too much before scrolling */
+	min-width: 600px;
 }
 
 .report_table thead tr {
@@ -404,7 +411,9 @@
 
 /* ── Loading / error states ── */
 .report_state_wrapper {
-	min-height: 100vh;
+	/* Set height 100% instead of 100vh so it stays within the admin layout */
+	height: 100%;
+	min-height: 400px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -456,24 +465,17 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 700px) {
-	.report_main {
-		padding: 1.25rem;
-	}
-
-	.report_header_inner {
-		padding: 0 1.25rem;
-	}
-
+@media (max-width: 768px) {
 	.report_title {
 		font-size: 1.5rem;
 	}
 
 	.summary_grid {
-		grid-template-columns: 1fr 1fr;
+		grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 	}
 
 	.bar_row {
+		/* Squish the label and total column slightly to give the bars more space */
 		grid-template-columns: 80px 1fr 32px;
 		gap: 0.5rem;
 	}
@@ -481,6 +483,7 @@
 	.bar_legend {
 		padding-left: 0;
 		flex-wrap: wrap;
+		justify-content: center; /* Center legend on mobile */
 	}
 
 	.report_table th,

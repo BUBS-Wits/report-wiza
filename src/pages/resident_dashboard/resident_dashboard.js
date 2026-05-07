@@ -220,7 +220,7 @@ export default function ResidentDashboard() {
 								strokeWidth="1.5"
 							/>
 						</svg>
-						My Requests
+						<span>My Requests</span>
 						{unread_total > 0 && (
 							<span
 								className="rd-nav-badge"
@@ -250,7 +250,7 @@ export default function ResidentDashboard() {
 								strokeLinecap="round"
 							/>
 						</svg>
-						Submit Request
+						<span>Submit Request</span>
 					</Link>
 				</nav>
 
@@ -286,13 +286,16 @@ export default function ResidentDashboard() {
 								strokeLinejoin="round"
 							/>
 						</svg>
-						{logging_out ? 'Logging out…' : 'Logout'}
+						{logging_out ? 'Logging out…' : <span>Logout</span>}
 					</button>
 				</div>
 			</header>
 
 			{/* ── Main layout ──────────────────────────────────────────── */}
-			<div className="rd-layout">
+			{/* Added dynamic class for mobile sliding layout */}
+			<div
+				className={`rd-layout ${selected_id ? 'rd-layout--detail-open' : ''}`}
+			>
 				{/* ── LEFT: request list ───────────────────────────────── */}
 				<aside className="rd-sidebar">
 					<div className="rd-sidebar-heading">
@@ -328,7 +331,11 @@ export default function ResidentDashboard() {
 				{/* ── RIGHT: detail + messaging ────────────────────────── */}
 				<main className="rd-main">
 					{selected_req ? (
-						<RequestDetail req={selected_req} resident={resident} />
+						<RequestDetail
+							req={selected_req}
+							resident={resident}
+							on_back={() => set_selected_id(null)}
+						/>
 					) : (
 						<div className="rd-main-empty">
 							<p>
@@ -373,7 +380,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 
 /* ── RequestDetail ───────────────────────────────────────────────────────── */
 
-function RequestDetail({ req, resident }) {
+function RequestDetail({ req, resident, on_back }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
 	const has_worker = !!req.assigned_worker_uid
 
@@ -381,8 +388,31 @@ function RequestDetail({ req, resident }) {
 		<div className="rd-detail">
 			<div className="rd-detail-header">
 				<div className="rd-detail-header-left">
-					<h2 className="rd-detail-title">{req.category}</h2>
-					<span className="rd-detail-id">{req.id}</span>
+					{/* Added mobile back button */}
+					<button
+						className="rd-back-btn"
+						onClick={on_back}
+						aria-label="Back to requests"
+					>
+						<svg
+							viewBox="0 0 16 16"
+							fill="none"
+							aria-hidden="true"
+							style={{ width: '18px', height: '18px' }}
+						>
+							<path
+								d="M10 3L5 8l5 5"
+								stroke="currentColor"
+								strokeWidth="1.75"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
+						</svg>
+					</button>
+					<div className="rd-detail-title-group">
+						<h2 className="rd-detail-title">{req.category}</h2>
+						<span className="rd-detail-id">{req.id}</span>
+					</div>
 				</div>
 				<span
 					className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}

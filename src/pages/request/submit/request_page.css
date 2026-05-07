@@ -40,7 +40,7 @@
 	min-height: 100vh;
 	background-color: var(--navy-deep);
 	background-image:
-		/* amber radial accent top-right */
+        /* amber radial accent top-right */
 		radial-gradient(
 			ellipse 60% 40% at 80% -5%,
 			rgba(245, 158, 11, 0.12) 0%,
@@ -66,13 +66,16 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	/* ADDED: 100px top padding to clear the global fixed Navbar */
+	padding-top: 100px;
 }
 
 /* ---------- page hero header ---------- */
 .request_page_header {
 	width: 100%;
 	max-width: 860px;
-	padding: 3.5rem 2rem 0;
+	/* Swapped fixed 2rem side padding for fluid 5% */
+	padding: 1.5rem 5% 0;
 	animation: fade_up 0.5s ease both;
 }
 
@@ -100,7 +103,11 @@
 
 .request_page_header h1 {
 	font-family: var(--font-head);
-	font-size: clamp(2rem, 5vw, 3.2rem);
+	font-size: clamp(
+		2.2rem,
+		6vw,
+		3.2rem
+	); /* Enhanced clamp for smoother mobile scaling */
 	font-weight: 700;
 	line-height: 1.05;
 	color: var(--white);
@@ -121,7 +128,7 @@
 
 /* ---------- divider ---------- */
 .request_page_divider {
-	width: 100%;
+	width: 90%; /* Switched to percentage so it matches the 5% padding perfectly */
 	max-width: 860px;
 	height: 1px;
 	background: linear-gradient(
@@ -131,7 +138,7 @@
 		var(--amber-line) 70%,
 		transparent
 	);
-	margin: 2rem 2rem 0;
+	margin: 2rem auto 0; /* Auto centers it */
 	animation: fade_up 0.5s 0.1s ease both;
 }
 
@@ -139,7 +146,8 @@
 .request_page_steps {
 	width: 100%;
 	max-width: 860px;
-	padding: 1.75rem 2rem 0;
+	/* Swapped fixed side padding for fluid 5% */
+	padding: 1.75rem 5% 0;
 	display: flex;
 	align-items: center;
 	gap: 0;
@@ -203,7 +211,8 @@
 .request_page_main {
 	width: 100%;
 	max-width: 860px;
-	padding: 2rem 2rem 5rem;
+	/* Swapped fixed side padding for fluid 5% */
+	padding: 2rem 5% 5rem;
 	animation: fade_up 0.5s 0.2s ease both;
 }
 
@@ -212,7 +221,8 @@
 	background: var(--card-bg);
 	border: 1px solid var(--border);
 	border-radius: 16px;
-	padding: 2.5rem;
+	/* Swapped fixed 2.5rem padding to clamp so it shrinks nicely on mobile */
+	padding: clamp(1.5rem, 5vw, 2.5rem);
 	backdrop-filter: blur(8px);
 	position: relative;
 	overflow: hidden;
@@ -504,24 +514,10 @@
 
 /* ---------- responsive ---------- */
 @media (max-width: 640px) {
-	.request_page_header {
-		padding: 2.5rem 1.25rem 0;
-	}
-
-	.request_page_steps {
-		padding: 1.5rem 1.25rem 0;
-	}
+	/* Removed padding resets here since we used fluid 5% and clamp() above */
 
 	.step_label {
 		display: none;
-	}
-
-	.request_page_main {
-		padding: 1.5rem 1.25rem 4rem;
-	}
-
-	.request_form_card {
-		padding: 1.5rem;
 	}
 
 	.form_field_row {

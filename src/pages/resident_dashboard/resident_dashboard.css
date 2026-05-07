@@ -522,9 +522,16 @@
 
 .rd-detail-header-left {
 	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 12px;
+	min-width: 0;
+}
+
+.rd-detail-title-group {
+	display: flex;
 	flex-direction: column;
 	gap: 4px;
-	min-width: 0;
 }
 
 .rd-detail-title {
@@ -541,6 +548,27 @@
 	font-family: var(--rd-font-mono);
 	font-size: 11px;
 	color: var(--rd-text-muted);
+}
+
+/* Back button for mobile */
+.rd-back-btn {
+	display: none;
+	width: 34px;
+	height: 34px;
+	border: none;
+	background: transparent;
+	border-radius: 8px;
+	cursor: pointer;
+	align-items: center;
+	justify-content: center;
+	color: var(--rd-text-secondary);
+	transition: background 0.14s;
+	flex-shrink: 0;
+}
+
+.rd-back-btn:hover {
+	background: var(--rd-accent-light);
+	color: var(--rd-accent);
 }
 
 .rd-detail-meta {
@@ -725,39 +753,56 @@
 	}
 }
 
-@media (max-width: 700px) {
+/* Combines navigation text hiding and slide-over logic for mobile */
+@media (max-width: 768px) {
 	.rd-topbar-nav .rd-nav-link span:not(.rd-nav-badge) {
 		display: none;
 	}
+
 	.rd-nav-link {
 		padding: 7px 10px;
 	}
-}
 
-@media (max-width: 640px) {
 	.rd-layout {
-		flex-direction: column;
+		position: relative;
+		flex-direction: row;
 	}
 
 	.rd-sidebar {
 		width: 100%;
-		height: auto;
-		max-height: 40dvh;
+		position: absolute;
+		inset: 0;
+		z-index: 10;
+		transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
 		border-right: none;
-		border-bottom: 1.5px solid var(--rd-sidebar-bdr);
+		height: 100%;
+		max-height: none;
+	}
+
+	/* Slides sidebar left off-screen when a request is clicked */
+	.rd-layout--detail-open .rd-sidebar {
+		transform: translateX(-100%);
+		pointer-events: none;
 	}
 
 	.rd-main {
-		flex: 1;
-		overflow: hidden;
+		position: absolute;
+		inset: 0;
+		z-index: 5;
+		width: 100%;
 	}
-	.rd-detail {
-		overflow: auto;
+
+	/* Show back button on mobile */
+	.rd-back-btn {
+		display: flex;
 	}
+
 	.rd-detail-meta {
 		grid-template-columns: 1fr;
 	}
+
 	.rd-detail-meta-item:nth-child(odd) {
 		border-right: none;
+		padding-right: 0;
 	}
 }
