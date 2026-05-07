@@ -8,7 +8,6 @@ import {
 	addDoc,
 	orderBy,
 	serverTimestamp,
-	
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 import { STATUS, STATUS_DISPLAY } from '../constants.js'
@@ -171,29 +170,33 @@ export const fetch_worker_dashboard_data = async (uid) => {
 	}
 }
 
-
-export const add_comment= async(request_id,worker_name,worker_uid,text) => {
+export const add_comment = async (
+	request_id,
+	worker_name,
+	worker_uid,
+	text
+) => {
 	const time = serverTimestamp()
-	await addDoc(collection(db,'service_requests',request_id,'comments'),
-	{"text":text.trim(),
-	 "created_at": time,
-	 "worker_uid":worker_uid,
-	 "worker_name":worker_name
-
+	await addDoc(collection(db, 'service_requests', request_id, 'comments'), {
+		text: text.trim(),
+		created_at: time,
+		worker_uid: worker_uid,
+		worker_name: worker_name,
 	})
 }
 
-
 export const fetch_comment = async (request_id) => {
-	const fetch_snap=await getDocs(query(collection(db,'service_requests',request_id,'comments'),orderBy('created_at','asc')))
+	const fetch_snap = await getDocs(
+		query(
+			collection(db, 'service_requests', request_id, 'comments'),
+			orderBy('created_at', 'asc')
+		)
+	)
 
 	return fetch_snap.docs.map((d) => ({
-    id: d.id,
-    text: d.data().text,
-    worker_name: d.data().worker_name,
-    created_at: d.data().created_at,
-}))
-	
+		id: d.id,
+		text: d.data().text,
+		worker_name: d.data().worker_name,
+		created_at: d.data().created_at,
+	}))
 }
-
-

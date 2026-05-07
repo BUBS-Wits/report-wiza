@@ -27,7 +27,7 @@ function WorkerModal({ workers, on_select, on_close }) {
 	const [search, set_search] = useState('')
 
 	const filtered = workers.filter((w) => {
-	    const name = (w.display_name ?? w.email ?? '').toLowerCase()
+		const name = (w.display_name ?? w.email ?? '').toLowerCase()
 		return name.includes(search.toLowerCase())
 	})
 
@@ -70,7 +70,9 @@ function WorkerModal({ workers, on_select, on_close }) {
 								onClick={() => on_select(w.id)}
 							>
 								<div className="ar_worker_avatar">
-									{(w.display_name ?? w.email ?? '?')[0].toUpperCase()}
+									{(w.display_name ??
+										w.email ??
+										'?')[0].toUpperCase()}
 								</div>
 								<div className="ar_worker_info">
 									<span className="ar_worker_name">
@@ -301,10 +303,13 @@ function AdminRequests() {
 
 								{/* Assigned Worker — name only, centred */}
 								<span className="ar_assigned_worker">
-									{req.assigned_worker_uid
-										? get_worker_name(req.assigned_worker_uid)
-										: <em className="ar_unassigned">Unassigned</em>
-									}
+									{req.assigned_worker_uid ? (
+										get_worker_name(req.assigned_worker_uid)
+									) : (
+										<em className="ar_unassigned">
+											Unassigned
+										</em>
+									)}
 								</span>
 
 								<span
