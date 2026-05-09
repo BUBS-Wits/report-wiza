@@ -23,6 +23,13 @@ jest.mock('../firebase_config.js', () => ({
 	db: {},
 }))
 
+function mock_fetch_ok(response = {}) {
+	global.fetch = jest.fn().mockResolvedValue({
+		ok: true,
+		json: jest.fn().mockResolvedValue(response),
+	})
+}
+
 import { STATUS, STATUS_DISPLAY } from '../constants.js'
 /*
 jest.mock('../../constants.js', () => ({
@@ -298,6 +305,7 @@ beforeEach(() => {
 	mock_on_auth_state_changed.mockImplementation(() => {
 		return mock_unsub
 	})
+	mock_fetch_ok()
 	setup_firestore_mocks()
 	setup_service_mocks()
 })

@@ -203,6 +203,27 @@ export default function WorkerDashboard() {
 		return () => unsub()
 	}, [])
 
+	const is_expired = (expires_at) => {
+		const expiry = expires_at
+		const now = new Date()
+		const buffer_ms = 5 * 60 * 1000
+
+		return expiry.getTime() - now.getTime() < buffer_ms
+	}
+
+	const get_signed_url = async (id, image, expires) => {
+		if (expires !== null && !is_expired(expires)) {
+			return image
+		}
+		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
+		if (!ret.ok) {
+			return image
+		}
+		const data = await ret.json()
+		console.log(data)
+		return data.data
+	}
+
 	/* Listen for any new additions to the assignments collection directed */
 	useEffect(() => {
 		if (!worker?.uid) {
@@ -241,8 +262,9 @@ export default function WorkerDashboard() {
 						collection(db, 'service_requests'),
 						where('__name__', 'in', batch)
 					)
-					return onSnapshot(claimed_q, (snapshot) => {
-						snapshot.docChanges().forEach((change) => {
+					return onSnapshot(claimed_q, async (snapshot) => {
+						const doc_changes = snapshot.docChanges()
+						for (const change of doc_changes) {
 							const id = change.doc.id
 							const data = change.doc.data()
 
@@ -250,13 +272,20 @@ export default function WorkerDashboard() {
 								change.type === 'added' ||
 								change.type === 'modified'
 							) {
+								data.image = await get_signed_url(
+									id,
+									data.image,
+									data.image_expires_at
+										? new Date(data.image_expires_at)
+										: null
+								)
 								all_claimed_requests.set(id, { id, ...data })
 							}
 
 							if (change.type === 'removed') {
 								all_claimed_requests.delete(id)
 							}
-						})
+						}
 						const tmp = [...all_claimed_requests.values()]
 						set_claimed_requests(tmp)
 						set_stats(compute_worker_stats(tmp))
@@ -269,11 +298,20 @@ export default function WorkerDashboard() {
 					collection(db, 'service_requests'),
 					where('status', '==', STATUS.SUBMITTED)
 				),
-				(snapshot) => {
+				async (snapshot) => {
 					const data = snapshot.docs.map((doc) => ({
 						id: doc.id,
 						...doc.data(),
 					}))
+					for (let i = 0; i < data.length; i++) {
+						data[i].image = await get_signed_url(
+							data[i].id,
+							data[i].image,
+							data[i].image_expires_at
+								? new Date(data[i].image_expires_at)
+								: null
+						)
+					}
 					set_unclaimed_requests(data)
 					console.log('unclaimed: ', data)
 				}
@@ -632,6 +670,10 @@ function RequestDetailPanel({
 					</dd>
 				</div>
 			</dl>
+
+			<div className="wd-panel-image">
+				<img src={req.image} alt="Report image" />
+			</div>
 
 			{active_section === 'queue' ? (
 				<>
