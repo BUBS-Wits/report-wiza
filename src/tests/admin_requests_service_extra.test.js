@@ -43,34 +43,10 @@ describe('fetch_stale_requests', () => {
 
 			getDocs.mockResolvedValueOnce({
 				docs: [
-					{
-						id: 'r1',
-						data: () => ({
-							status: 0,
-							created_at: old_date,
-						}),
-					},
-					{
-						id: 'r2',
-						data: () => ({
-							status: 1,
-							created_at: old_date,
-						}),
-					},
-					{
-						id: 'r3',
-						data: () => ({
-							status: 'resolved',
-							created_at: old_date,
-						}),
-					},
-					{
-						id: 'r4',
-						data: () => ({
-							status: 0,
-							created_at: new_date,
-						}),
-					},
+					{ id: 'r1', data: () => ({ status: 'open', created_at: old_date }) },
+{ id: 'r2', data: () => ({ status: 'acknowledged', created_at: old_date }) },
+{ id: 'r3', data: () => ({ status: 'resolved', created_at: old_date }) },
+{ id: 'r4', data: () => ({ status: 'open', created_at: new_date }) },
 				],
 			})
 
