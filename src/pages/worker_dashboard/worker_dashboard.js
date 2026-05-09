@@ -42,6 +42,23 @@ const STATUS_BADGE_CLASS = {
 	Closed: 'wd-badge--closed',
 }
 
+function get_updated_display_date(req) {
+	let updated_tmp = req.updated_at
+	if (req.updated_at && req.updated_at.toDate) {
+		updated_tmp = req.updated_at.toDate()
+	}
+	let created_tmp = req.created_at
+	if (req.created_at && req.created_at.toDate) {
+		created_tmp = req.created_at.toDate()
+	}
+	const display_date = updated_tmp
+		? new Date(updated_tmp).toISOString().split('T')[0]
+		: created_tmp
+			? new Date(created_tmp).toISOString().split('T')[0]
+			: '-'
+	return display_date
+}
+
 export default function WorkerDashboard() {
 	const [worker, set_worker] = useState(null)
 	const [claimed_requests, set_claimed_requests] = useState([])
@@ -517,12 +534,7 @@ function RequestDetailPanel({
 }) {
 	const updating = useRef(false)
 	const navigate = useNavigate()
-
-	const display_date = req.updated_at
-		? new Date(req.updated_at).toISOString().split('T')[0]
-		: req.created_at
-			? new Date(req.created_at).toISOString().split('T')[0]
-			: '-'
+	const display_date = get_updated_display_date(req)
 
 	const resident_name = req.resident_name || 'Resident'
 
@@ -702,11 +714,7 @@ function StatCard({ label, value, sub, value_modifier }) {
 }
 
 function RequestRow({ req, is_selected, on_click }) {
-	const display_date = req.updated_at
-		? new Date(req.updated_at).toISOString().split('T')[0]
-		: req.created_at
-			? new Date(req.created_at).toISOString().split('T')[0]
-			: '-'
+	const display_date = get_updated_display_date(req)
 
 	return (
 		<button
