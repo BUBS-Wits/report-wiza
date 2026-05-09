@@ -761,3 +761,49 @@
 		border-right: none;
 	}
 }
+
+/* ── Priority pill — add to resident_dashboard.css ── */
+
+.rd-priority-pill {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.rd-priority--low {
+	background: #f0fdf4;
+	color: #15803d;
+}
+
+.rd-priority--medium {
+	background: #fefce8;
+	color: #a16207;
+}
+
+.rd-priority--high {
+	background: #fff7ed;
+	color: #c2410c;
+}
+
+.rd-priority--critical {
+	background: #fef2f2;
+	color: #dc2626;
+	font-weight: 700;
+}
+
+.rd-priority-none {
+	color: #9ca3af;
+	font-size: 13px;
+}
+
+.rd-close-reason {
+	font-style: italic;
+	color: #6b7280;
+	background: #f9fafb;
+	border-left: 3px solid #e5e7eb;
+	padding: 6px 10px;
+	border-radius: 4px;
+	margin-top: 4px;
+}
