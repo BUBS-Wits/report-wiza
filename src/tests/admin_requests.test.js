@@ -15,9 +15,8 @@ jest.mock('firebase/firestore', () => ({
 	orderBy: jest.fn(),
 	serverTimestamp: jest.fn(),
 	addDoc: jest.fn(),
-	
-	setDoc: jest.fn(),
 
+	setDoc: jest.fn(),
 }))
 
 jest.mock(
@@ -170,7 +169,7 @@ describe('US030 — assign_stale_request', () => {
 
 		it('Then it should return success', async () => {
 			updateDoc.mockResolvedValueOnce()
-			 setDoc.mockResolvedValueOnce()
+			setDoc.mockResolvedValueOnce()
 			const result = await assign_stale_request('req-001', 'worker-uid')
 			expect(result.success).toBe(true)
 		})

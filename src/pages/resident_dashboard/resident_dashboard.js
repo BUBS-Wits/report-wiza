@@ -480,7 +480,7 @@ function RequestDetail({ req, resident }) {
 						<dd className="rd-close-reason">
 							{close_reason_loading
 								? 'Loading…'
-								: close_reason ?? '—'}
+								: (close_reason ?? '—')}
 						</dd>
 					</div>
 				)}

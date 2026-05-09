@@ -23,7 +23,7 @@ import WorkerMessages from '../worker_messages/worker_messages.js'
 import './worker_dashboard.css'
 
 const parse_date = (val) => {
-	if (!val) return '-'
+	if (!val) {return '-'}
 	try {
 		const d = val.toDate ? val.toDate() : new Date(val)
 		return isNaN(d.getTime()) ? '-' : d.toISOString().split('T')[0]
@@ -675,7 +675,7 @@ function RequestDetailPanel({
 						<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
 							{close_reason_loading
 								? 'Loading...'
-								: close_reason ?? '-'}
+								: (close_reason ?? '-')}
 						</dd>
 					</div>
 				)}

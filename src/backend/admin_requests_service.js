@@ -126,7 +126,10 @@ export const fetch_stale_requests = async () => {
 
 		return all.filter((r) => {
 			// status 0 or 1 means not resolved/closed
-			const is_open = r.status === 'open' || r.status === 'acknowledged' || r.status === 'in_progress'
+			const is_open =
+				r.status === 'open' ||
+				r.status === 'acknowledged' ||
+				r.status === 'in_progress'
 			// created_at is a string so parse it
 			const created = new Date(r.created_at)
 			const is_stale = created < cutoff
@@ -139,25 +142,25 @@ export const fetch_stale_requests = async () => {
 }
 
 export const assign_stale_request = async (request_id, worker_uid) => {
-    try {
-        await updateDoc(doc(db, 'service_requests', request_id), {
-            worker_uid,
-            status: 'acknowledged',
-            assigned_at: serverTimestamp(),
-            updated_at: serverTimestamp(),
-        })
+	try {
+		await updateDoc(doc(db, 'service_requests', request_id), {
+			worker_uid,
+			status: 'acknowledged',
+			assigned_at: serverTimestamp(),
+			updated_at: serverTimestamp(),
+		})
 
-        // Use request_id as document ID — same format as claim-request API
-        await setDoc(doc(db, 'assignments', request_id), {
-            request_uid: request_id,
-            worker_uid,
-        })
+		// Use request_id as document ID — same format as claim-request API
+		await setDoc(doc(db, 'assignments', request_id), {
+			request_uid: request_id,
+			worker_uid,
+		})
 
-        return { success: true }
-    } catch (error) {
-        console.error('Error assigning request:', error)
-        throw new Error('Could not assign request. Try again.')
-    }
+		return { success: true }
+	} catch (error) {
+		console.error('Error assigning request:', error)
+		throw new Error('Could not assign request. Try again.')
+	}
 }
 // ── US039 — Block/unblock resident ────────────────────────────────────────
 
