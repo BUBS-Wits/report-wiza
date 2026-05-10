@@ -138,14 +138,18 @@ export default function WorkerDashboard() {
 				set_loading(false)
 				return
 			}
-			const snap = await verify_worker_and_get_profile(user.uid)
-			const data = snap.data()
-			set_worker({
-				uid: user.uid,
-				name: data.name ?? 'Municipal Worker',
-				email: data.email ?? '',
-				role: data.role,
-			})
+			try {
+				const snap = await verify_worker_and_get_profile(user.uid)
+				const data = snap.data()
+				set_worker({
+					uid: user.uid,
+					name: data.name ?? 'Municipal Worker',
+					email: data.email ?? '',
+					role: data.role,
+				})
+			} catch (err) {
+				set_error(err.message || 'Failed to verify role')
+			}
 			set_loading(false)
 		})
 		return () => unsub()
