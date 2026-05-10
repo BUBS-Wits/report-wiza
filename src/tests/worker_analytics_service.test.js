@@ -296,9 +296,15 @@ describe('Worker Dashboard Service', () => {
 		test('calls addDoc with correct collection path and fields', async () => {
 			mock_add_doc.mockResolvedValueOnce({ id: 'comment-123' })
 
-			const { add_comment } = await import('../backend/worker_analytics_service.js')
+			const { add_comment } =
+				await import('../backend/worker_analytics_service.js')
 
-			await add_comment('req-001', 'Jane Smith', 'worker-uid-1', 'Road is flooded')
+			await add_comment(
+				'req-001',
+				'Jane Smith',
+				'worker-uid-1',
+				'Road is flooded'
+			)
 
 			expect(mock_add_doc).toHaveBeenCalledWith(
 				expect.anything(),
@@ -314,9 +320,15 @@ describe('Worker Dashboard Service', () => {
 		test('trims whitespace from comment text before saving', async () => {
 			mock_add_doc.mockResolvedValueOnce({ id: 'comment-456' })
 
-			const { add_comment } = await import('../backend/worker_analytics_service.js')
+			const { add_comment } =
+				await import('../backend/worker_analytics_service.js')
 
-			await add_comment('req-001', 'Jane Smith', 'worker-uid-1', '  spaces around  ')
+			await add_comment(
+				'req-001',
+				'Jane Smith',
+				'worker-uid-1',
+				'  spaces around  '
+			)
 
 			expect(mock_add_doc).toHaveBeenCalledWith(
 				expect.anything(),
@@ -369,7 +381,8 @@ describe('Worker Dashboard Service', () => {
 				],
 			})
 
-			const { fetch_comment } = await import('../backend/worker_analytics_service.js')
+			const { fetch_comment } =
+				await import('../backend/worker_analytics_service.js')
 
 			const result = await fetch_comment('req-001')
 
@@ -391,7 +404,8 @@ describe('Worker Dashboard Service', () => {
 		test('returns empty array when no comments exist', async () => {
 			mock_get_docs.mockResolvedValueOnce({ docs: [] })
 
-			const { fetch_comment } = await import('../backend/worker_analytics_service.js')
+			const { fetch_comment } =
+				await import('../backend/worker_analytics_service.js')
 
 			const result = await fetch_comment('req-001')
 

@@ -529,7 +529,9 @@ function RequestDetailPanel({
 	}
 
 	const on_status_change = async (req_uid, new_status) => {
-		if (updating.current === true) {return}
+		if (updating.current === true) {
+			return
+		}
 		updating.current = true
 		try {
 			const ret = await update_request_status(req_uid, new_status)
@@ -552,7 +554,9 @@ function RequestDetailPanel({
 	}, [req.id])
 
 	const handle_submit = async () => {
-		if (!comment_text.trim()) {return}
+		if (!comment_text.trim()) {
+			return
+		}
 		set_is_submitting(true)
 		try {
 			await add_comment(req.id, worker.name, worker.uid, comment_text)
