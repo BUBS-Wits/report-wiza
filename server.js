@@ -481,8 +481,8 @@ const role_service = {
 /********************* Backend Spam *********************/
 
 const limiter = rate_limit({
-	windowMs: 2 * 60 * 1000,
-	max: 4,
+	windowMs: 10 * 60 * 1000,
+	max: 20,
 	standardHeaders: true,
 	legacyHeaders: false,
 	message: { error: 'Too many submissions, please try again later.' },
@@ -556,6 +556,7 @@ const spam_middleware = (req, res, next) => {
 
 app.post(
 	'/api/submit-request',
+	limiter,
 	authenticate,
 	spam_middleware,
 	async (req, res) => {
