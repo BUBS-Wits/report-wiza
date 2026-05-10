@@ -431,10 +431,18 @@ const role_service = {
 }
 
 // NOTE: Changed to authenticate_optional
-app.post('/api/submit-request', authenticate_optional, async (req, res) => {
+app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
-		const body = req.body
+		const user_uid = req.user.uid
+		const is_resident = await role_service.is_resident(user_uid)
+		if (!is_resident.ok) {
+			return res.status(500).json({ error: 'Failed to get role' })
+		}
+		if (!is_resident.value) {
+			return respond.unauthorized(res)
+		}
 
+		const body = req.body
 		if (!body || !body.image || !/^data:/.test(body.image)) {
 			return respond.invalid_parameters(res)
 		}
@@ -446,8 +454,6 @@ app.post('/api/submit-request', authenticate_optional, async (req, res) => {
 		if (!tmp.input_validate()) {
 			return respond.invalid_parameters(res)
 		}
-
-		const user_uid = req.user?.uid ?? null
 
 		const service_request = request_converter.to_firestore(
 			user_uid,
