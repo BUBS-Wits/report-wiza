@@ -4,7 +4,8 @@
 	background: #ffffff;
 	border: 1px solid #e2e8f0;
 	border-radius: 16px;
-	padding: 20px 24px;
+	/* Swapped fixed padding for fluid clamp */
+	padding: clamp(16px, 4vw, 24px);
 	margin-bottom: 16px;
 }
 
@@ -43,10 +44,14 @@
 	color: #0f172a;
 	background: #f8fafc;
 	outline: none;
+	transition:
+		border-color 0.2s,
+		box-shadow 0.2s;
 }
 
 .register_worker_input:focus {
 	border-color: #0f1f3d;
+	box-shadow: 0 0 0 3px rgba(15, 31, 61, 0.1); /* Added a subtle focus ring for accessibility */
 }
 
 .register_worker_btn {
@@ -60,6 +65,18 @@
 	font-weight: 500;
 	cursor: pointer;
 	white-space: nowrap;
+	transition:
+		background 0.2s,
+		transform 0.1s; /* Added transitions for a premium feel */
+}
+
+.register_worker_btn:hover:not(:disabled) {
+	background: #1a3260; /* Slightly lighter navy on hover */
+	transform: translateY(-1px);
+}
+
+.register_worker_btn:active:not(:disabled) {
+	transform: translateY(0);
 }
 
 .register_worker_btn:disabled {
@@ -71,6 +88,7 @@
 	padding: 8px 12px;
 	border-radius: 8px;
 	font-size: 12px;
+	margin-top: 4px;
 }
 
 .register_worker_msg.success {
@@ -83,4 +101,23 @@
 	background: #fef2f2;
 	border: 1px solid #fecaca;
 	color: #dc2626;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 480px) {
+	.register_worker_row {
+		/* Stacks the input and button vertically on small phones */
+		flex-direction: column;
+	}
+
+	.register_worker_input,
+	.register_worker_btn {
+		width: 100%; /* Ensures both take up the full available width */
+	}
+
+	.register_worker_btn {
+		padding: 12px 18px; /* Slightly taller touch target on mobile */
+	}
 }

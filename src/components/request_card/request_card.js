@@ -11,7 +11,7 @@ function RequestCard({ request }) {
 			<div className="request_card_top">
 				<h3>{request.category}</h3>
 				<span
-					className={`status_badge ${STATUS_DISPLAY[request.status].toLowerCase().replace(/\s+/g, '_')}`}
+					className={`status_badge ${(STATUS_DISPLAY[request.status] ?? request.status ?? 'unknown').toLowerCase().replace(/\s+/g, '_')}`}
 				>
 					{STATUS_DISPLAY[request.status]}
 				</span>

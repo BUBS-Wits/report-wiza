@@ -3,7 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Barlow+Condensed:wght@700&display=swap');
 
 :root {
-	--nav-height: 56px;
+	--nav-height: 80px; /* Increased slightly for better touch targets */
 	--nav-bg: #ffffff;
 	--nav-border: #e8e5e0;
 	--nav-amber: #f59e0b;
@@ -27,10 +27,16 @@
 	border-bottom: 1px solid var(--nav-border);
 	display: flex;
 	align-items: center;
-	padding: 0 24px;
-	position: sticky;
+	/* Added 5% fluid padding for larger screens */
+	padding: 0 5%;
+
+	/* Changed from sticky to fixed so it anchors to the viewport, ensuring
+       the Worker Dashboard component flows underneath it properly */
+	position: fixed;
 	top: 0;
-	z-index: 100;
+	left: 0;
+	right: 0;
+	z-index: 999;
 	font-family:
 		'DM Sans',
 		-apple-system,
@@ -42,6 +48,18 @@
 	box-shadow: 0 1px 12px rgba(0, 0, 0, 0.06);
 }
 
+/* ── Mobile Hamburger Button ─────────────────────────────────────────────── */
+
+.wd_mobile_menu_btn {
+	display: none; /* Hidden by default on desktop */
+	background: none;
+	border: none;
+	font-size: 24px;
+	color: var(--nav-text-primary);
+	cursor: pointer;
+	margin-right: 16px;
+}
+
 /* ── Logo ────────────────────────────────────────────────────────────────── */
 
 .wd_navbar_logo {
@@ -51,6 +69,7 @@
 	text-decoration: none;
 	flex-shrink: 0;
 	margin-right: 28px;
+	z-index: 1000; /* Keeps logo clickable above mobile menus */
 }
 
 .wd_logo_mark {
@@ -143,8 +162,6 @@
 	color: var(--nav-amber-text);
 }
 
-/* ── Nav icon ────────────────────────────────────────────────────────────── */
-
 .nav_icon {
 	width: 15px;
 	height: 15px;
@@ -185,6 +202,7 @@
 	gap: 8px;
 	margin-left: auto;
 	flex-shrink: 0;
+	z-index: 1000; /* Keeps profile clickable above mobile menus */
 }
 
 /* Notification bell */
@@ -335,18 +353,49 @@
 /* ── Mobile (≤ 768px) ────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-	.wd_navbar {
-		padding: 0 16px;
-	}
-
 	.wd_nav_divider,
-	.wd_nav_links,
 	.wd_logo_role,
-	.wd_user_info {
+	.wd_user_info,
+	.wd_logout_btn span {
+		/* Hides non-essential text on mobile to save space */
 		display: none;
 	}
 
 	.wd_navbar_logo {
-		margin-right: 0;
+		margin-right: auto; /* Pushes the right cluster to the edge */
+	}
+
+	.wd_mobile_menu_btn {
+		display: block; /* Shows the hamburger menu */
+	}
+
+	.wd_nav_links {
+		/* Hides the links normally, overriding the display:flex from desktop */
+		display: none;
+		position: absolute;
+		top: var(--nav-height);
+		left: 0;
+		width: 100%;
+		background: var(--nav-bg);
+		flex-direction: column;
+		align-items: flex-start;
+		padding: 20px 5%;
+		border-bottom: 1px solid var(--nav-border);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.wd_nav_links_mobile_open {
+		display: flex; /* Triggers the dropdown to appear */
+	}
+
+	.wd_nav_link {
+		width: 100%; /* Makes links easy to tap on mobile */
+		padding: 12px;
+		font-size: 16px;
+		border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+	}
+
+	.wd_nav_badge {
+		margin-left: auto; /* Pushes the badge to the right edge of the dropdown */
 	}
 }

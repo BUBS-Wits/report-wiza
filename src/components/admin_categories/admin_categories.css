@@ -1,8 +1,10 @@
 /* ── Admin Categories — US029 ──────────────────────────────────────────────── */
 
 .admin_categories {
-	padding: 32px;
+	/* Changed fixed padding to fluid clamp */
+	padding: clamp(16px, 4vw, 32px);
 	max-width: 720px;
+	width: 100%;
 }
 
 /* ── Add category form ───────────────────────────────────────────────────── */
@@ -84,14 +86,20 @@
 
 /* ── Table ───────────────────────────────────────────────────────────────── */
 
-.admin_categories__table {
+/* Wrapper allows table to scroll horizontally on small screens without breaking layout */
+.admin_categories__table_wrapper {
 	width: 100%;
-	border-collapse: collapse;
-	background: #fff;
+	overflow-x: auto;
 	border: 1px solid #e5e7eb;
 	border-radius: 10px;
-	overflow: hidden;
 	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.admin_categories__table {
+	width: 100%;
+	min-width: 400px; /* Ensures the table doesn't squish too much before scrolling */
+	border-collapse: collapse;
+	background: #fff;
 }
 
 .admin_categories__table thead tr {
@@ -201,4 +209,19 @@
 	text-align: center;
 	font-size: 14px;
 	color: #9ca3af;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+@media (max-width: 480px) {
+	.admin_categories__add_row {
+		/* Stacks the input and button vertically on small screens */
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.admin_categories__input {
+		max-width: none; /* Let the input take full width */
+	}
 }

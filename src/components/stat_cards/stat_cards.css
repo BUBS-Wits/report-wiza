@@ -2,27 +2,59 @@
 
 .stat_cards {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 12px;
+	/* MAGIC RESPONSIVE GRID: 
+       Automatically fits as many 200px columns as possible. 
+       If the screen is smaller than 600px, they stack automatically! */
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
 	margin-bottom: 24px;
 }
 
 .stat_card {
-	background: #f1f5f9;
-	border-radius: 10px;
-	padding: 16px;
+	background: #ffffff;
+	border: 1px solid #e2e8f0; /* Matched to the other admin cards */
+	border-radius: 12px;
+	padding: 20px;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+	transition:
+		transform 0.2s ease,
+		box-shadow 0.2s ease;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+}
+
+.stat_card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .stat_label {
-	font-size: 12px;
+	font-family: 'DM Sans', sans-serif;
+	font-size: 13px;
+	font-weight: 500;
 	color: #64748b;
-	margin: 0 0 6px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin: 0 0 8px;
 }
 
 .stat_val {
 	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 28px;
+	font-size: 32px;
 	font-weight: 700;
-	color: #0f1f3d;
+	color: #0f1f3d; /* Dark navy */
 	margin: 0;
+	line-height: 1;
 }
+
+/* Optional: Add subtle accent colors to the values to make them pop */
+.stat_card:nth-child(1) .stat_val {
+	color: #1d4ed8;
+} /* Blue for Total */
+.stat_card:nth-child(2) .stat_val {
+	color: #d97706;
+} /* Amber for Pending */
+.stat_card:nth-child(3) .stat_val {
+	color: #dc2626;
+} /* Red for Revoked */
