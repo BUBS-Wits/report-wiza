@@ -116,27 +116,15 @@ export default function WorkerDashboard() {
 	)
 
 	const set_queue_requests = () => {
-		if (busy_ref.current) {
-			popup_busy('Already Loading Dashboard Info...')
-			return
-		}
 		set_active_section('queue')
 		close_panel()
 	}
 
 	const set_available_requests = () => {
-		if (busy_ref.current) {
-			popup_busy('Already Loading Dashboard Info...')
-			return
-		}
 		set_active_section('available')
 		close_panel()
 	}
 	const set_messages_section = () => {
-		if (busy_ref.current) {
-			popup_busy('Already Loading Dashboard Info...')
-			return
-		}
 		set_active_section('messages')
 		close_panel()
 	}
@@ -180,7 +168,6 @@ export default function WorkerDashboard() {
 			return image
 		}
 		const data = await ret.json()
-		console.log(data)
 		return data.data
 	}
 
@@ -317,10 +304,6 @@ export default function WorkerDashboard() {
 
 	if (error) {
 		return <ErrorScreen message={error} onRetry={() => null} />
-	}
-
-	if (!worker || !stats) {
-		return null
 	}
 
 	/* ── Derived values ───────────────────────────────────────────────── */

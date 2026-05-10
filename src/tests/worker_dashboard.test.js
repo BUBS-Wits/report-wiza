@@ -23,9 +23,15 @@ jest.mock('../firebase_config.js', () => ({
 	db: {},
 }))
 
-function mock_fetch_ok(response = {}) {
+const mock_fetch_ok = (response = {}) => {
 	global.fetch = jest.fn().mockResolvedValue({
 		ok: true,
+		json: jest.fn().mockResolvedValue(response),
+	})
+}
+const mock_fetch_not_ok = (response = {}) => {
+	global.fetch = jest.fn().mockResolvedValue({
+		ok: false,
 		json: jest.fn().mockResolvedValue(response),
 	})
 }
@@ -97,6 +103,7 @@ jest.mock(
 					<button onClick={sections.available_onclick}>
 						Available
 					</button>
+					<button onClick={sections.messages_onclick}>Messages</button>
 				</nav>
 			)
 		}
@@ -142,11 +149,29 @@ const MOCK_STATS = {
 	avg_resolution_days: 3,
 }
 
+const buffer = 24 * 60 * 60 * 1000
+const MOCK_CLAIMED_EXPIRED = [
+	{
+		id: 'req-001',
+		category: 'Electricity',
+		description: 'Street light is out',
+		image_expires_at: new Date(new Date() - buffer).toUTCString(),
+		status: 1,
+		sa_ward: 5,
+		sa_province: 'Gauteng',
+		sa_m_name: 'Joburg',
+		user_uid: 'user-uid-1',
+		resident_name: 'John Doe',
+		created_at: '2024-01-15T10:00:00Z',
+		updated_at: '2024-01-16T12:00:00Z',
+	},
+]
 const MOCK_CLAIMED = [
 	{
 		id: 'req-001',
 		category: 'Electricity',
 		description: 'Street light is out',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
 		status: 1,
 		sa_ward: 5,
 		sa_province: 'Gauteng',
@@ -160,6 +185,7 @@ const MOCK_CLAIMED = [
 		id: 'req-002',
 		category: 'Water',
 		description: 'Pipe burst',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
 		status: 2,
 		sa_ward: 3,
 		sa_province: 'Gauteng',
@@ -176,6 +202,7 @@ const MOCK_UNCLAIMED = [
 		id: 'req-003',
 		category: 'Roads',
 		description: 'Pothole on main road',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
 		status: 0,
 		sa_ward: 7,
 		sa_province: 'Western Cape',
@@ -461,6 +488,29 @@ describe('Real-time snapshot updates', () => {
 	})
 })
 
+describe('Image expiration', () => {
+	test('expired signed image url', async () => {
+		await mount_and_load()
+
+		await act(async () => {
+			const tmp = make_snapshot(MOCK_CLAIMED_EXPIRED)
+			assignment_handler(tmp)
+			claimed_handler(tmp)
+		})
+	})
+
+	test('signed url refresh failed', async () => {
+		mock_fetch_not_ok()
+		await mount_and_load()
+
+		await act(async () => {
+			const tmp = make_snapshot(MOCK_CLAIMED_EXPIRED)
+			assignment_handler(tmp)
+			claimed_handler(tmp)
+		})
+	})
+})
+
 describe('Section switching', () => {
 	test('switches to available section and shows unclaimed requests', async () => {
 		await mount_and_load()
@@ -474,9 +524,20 @@ describe('Section switching', () => {
 	test('switching back to queue shows claimed requests again', async () => {
 		await mount_and_load()
 		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Available requests')).toBeInTheDocument()
+		)
 		fireEvent.click(screen.getByText('Queue'))
 		await waitFor(() =>
 			expect(screen.getByText('Electricity')).toBeInTheDocument()
+		)
+	})
+
+	test('switching to messages section and shows messages ui', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Messages'))
+		await waitFor(() =>
+			expect(screen.getByLabelText('Conversations')).toBeInTheDocument()
 		)
 	})
 
