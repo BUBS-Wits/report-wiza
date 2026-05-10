@@ -367,7 +367,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 				<span className="rd-req-date">
 					{format_date(req.created_at)}
 				</span>
-				<LikeButton requestId={req.id} initialLikeCount={req.like_count || 0} />
+				{/* LikeButton removed from left column */}
 			</div>
 		</button>
 	)
@@ -377,7 +377,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 
 function RequestDetail({ req, resident }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
-	const has_worker = !!req.worker_uid // FIXED
+	const has_worker = !!req.worker_uid
 
 	return (
 		<div className="rd-detail">
@@ -386,11 +386,12 @@ function RequestDetail({ req, resident }) {
 					<h2 className="rd-detail-title">{req.category}</h2>
 					<span className="rd-detail-id">{req.id}</span>
 				</div>
-				<span
-					className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}
-				>
-					{meta.label}
-				</span>
+				<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+					<span className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}>
+						{meta.label}
+					</span>
+					<LikeButton requestId={req.id} initialLikeCount={req.like_count || 0} />
+				</div>
 			</div>
 
 			<dl className="rd-detail-meta">
@@ -429,11 +430,11 @@ function RequestDetail({ req, resident }) {
 			<div className="rd-thread-wrap">
 				{has_worker ? (
 					<MessageThread
-						request_uid={req.id} // FIXED
+						request_uid={req.id}
 						current_uid={resident.uid}
 						current_name={resident.name}
 						current_role="resident"
-						other_uid={req.worker_uid} // FIXED
+						other_uid={req.worker_uid}
 						other_name={req.worker_name ?? 'Worker'}
 					/>
 				) : (
