@@ -2,6 +2,9 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
+// 🔥 Import the auth function so we can control its mock in beforeEach
+import { onAuthStateChanged } from 'firebase/auth'
+
 // Adjust this path to reach out of 'tests' and into 'components'
 import Navbar from '../components/nav_bar/nav_bar.js'
 
@@ -14,128 +17,163 @@ jest.mock('../components/nav_bar/nav_bar.css', () => ({}))
 
 // 2. Mock react-router-dom to render Link as a standard <a> tag
 jest.mock(
-	'react-router-dom',
-	() => ({
-		Link: ({ to, className, children }) => (
-			<a href={to} className={className}>
-				{children}
-			</a>
-		),
-	}),
-	{ virtual: true }
+    'react-router-dom',
+    () => ({
+        ...jest.requireActual('react-router-dom'),
+        Link: ({ to, className, children }) => (
+            <a href={to} className={className}>
+                {children}
+            </a>
+        ),
+        useNavigate: () => jest.fn()
+    }),
+    { virtual: true }
 )
+
+// Mock Firebase Config
+jest.mock('../firebase_config.js', () => ({
+    auth: {},
+    db: {}
+}));
+
+// Mock Firebase Auth base
+jest.mock('firebase/auth', () => ({
+    getAuth: jest.fn(),
+    onAuthStateChanged: jest.fn(),
+    signOut: jest.fn()
+}));
+
+// Mock Firestore base (in case Navbar listens to notifications)
+jest.mock('firebase/firestore', () => ({
+    getFirestore: jest.fn(),
+    onSnapshot: jest.fn(() => jest.fn()), // Return dummy unsubscribe
+    collection: jest.fn(),
+    query: jest.fn(),
+    where: jest.fn(),
+    orderBy: jest.fn(),
+    limit: jest.fn(),
+    doc: jest.fn()
+}));
 
 // ---------------------------------------------------------------------------
 // Test Suite
 // ---------------------------------------------------------------------------
 describe('Navbar', () => {
-	beforeEach(() => {
-		jest.clearAllMocks()
-		// Reset scroll position before each test
-		window.scrollY = 0
-	})
+    beforeEach(() => {
+        jest.clearAllMocks()
+        // Reset scroll position before each test
+        window.scrollY = 0
 
-	// -----------------------------------------------------------------------
-	// 1. Initial Render
-	// -----------------------------------------------------------------------
-	describe('Given the Navbar component is mounted', () => {
-		describe('When it initially renders', () => {
-			it('Then it should display the logo elements correctly', () => {
-				render(<Navbar />)
+        // 🔥 THE MAGIC FIX: Force the mock to return a dummy unsubscribe function before EVERY test
+        onAuthStateChanged.mockImplementation((auth, callback) => {
+            if (typeof callback === 'function') {
+                callback(null); // Simulate no user logged in
+            }
+            return jest.fn(); // Prevent 'unsub is not a function' on unmount
+        });
+    })
 
-				expect(screen.getByText('W')).toBeInTheDocument()
-				expect(screen.getByText('Report-wiza')).toBeInTheDocument()
-				expect(screen.getByText('W').closest('a')).toHaveAttribute(
-					'href',
-					'/'
-				)
-			})
+    // -----------------------------------------------------------------------
+    // 1. Initial Render
+    // -----------------------------------------------------------------------
+    describe('Given the Navbar component is mounted', () => {
+        describe('When it initially renders', () => {
+            it('Then it should display the logo elements correctly', () => {
+                render(<Navbar />)
 
-			it('Then it should display all navigation links', () => {
-				render(<Navbar />)
+                expect(screen.getByText('W')).toBeInTheDocument()
+                expect(screen.getByText('Report-wiza')).toBeInTheDocument()
+                expect(screen.getByText('W').closest('a')).toHaveAttribute(
+                    'href',
+                    '/'
+                )
+            })
 
-				const home_link = screen.getByRole('link', { name: 'Home' })
-				const about_link = screen.getByRole('link', {
-					name: 'About Us',
-				})
-				const contact_link = screen.getByRole('link', {
-					name: 'Contact Us',
-				})
-				const login_link = screen.getByRole('link', {
-					name: 'Login / Register',
-				})
+            it('Then it should display all navigation links', () => {
+                render(<Navbar />)
 
-				expect(home_link).toHaveAttribute('href', '/')
-				expect(about_link).toHaveAttribute('href', '/about')
-				expect(contact_link).toHaveAttribute('href', '/contact')
-				expect(login_link).toHaveAttribute('href', '/login')
-			})
+                const home_link = screen.getByRole('link', { name: 'Home' })
+                const about_link = screen.getByRole('link', {
+                    name: 'About Us',
+                })
+                const contact_link = screen.getByRole('link', {
+                    name: 'Contact Us',
+                })
+                const login_link = screen.getByRole('link', {
+                    name: 'Login / Register',
+                })
 
-			it('Then it should not have the navbar_scrolled class applied', () => {
-				const { container } = render(<Navbar />)
+                expect(home_link).toHaveAttribute('href', '/')
+                expect(about_link).toHaveAttribute('href', '/about')
+                expect(contact_link).toHaveAttribute('href', '/contact')
+                expect(login_link).toHaveAttribute('href', '/login')
+            })
 
-				const nav_element = container.querySelector('.navbar')
-				expect(nav_element).toBeInTheDocument()
-				expect(nav_element).not.toHaveClass('navbar_scrolled')
-			})
-		})
+            it('Then it should not have the navbar_scrolled class applied', () => {
+                const { container } = render(<Navbar />)
 
-		// -----------------------------------------------------------------------
-		// 2. Scroll Event Listeners & State Toggling
-		// -----------------------------------------------------------------------
-		describe('When the window is scrolled past 20 pixels', () => {
-			it('Then it should add the navbar_scrolled class', () => {
-				const { container } = render(<Navbar />)
-				const nav_element = container.querySelector('.navbar')
+                const nav_element = container.querySelector('.navbar')
+                expect(nav_element).toBeInTheDocument()
+                expect(nav_element).not.toHaveClass('navbar_scrolled')
+            })
+        })
 
-				// Simulate the user scrolling down the page
-				fireEvent.scroll(window, { target: { scrollY: 50 } })
+        // -----------------------------------------------------------------------
+        // 2. Scroll Event Listeners & State Toggling
+        // -----------------------------------------------------------------------
+        describe('When the window is scrolled past 20 pixels', () => {
+            it('Then it should add the navbar_scrolled class', () => {
+                const { container } = render(<Navbar />)
+                const nav_element = container.querySelector('.navbar')
 
-				// The state should update and append the class
-				expect(nav_element).toHaveClass('navbar_scrolled')
-			})
-		})
+                // Simulate the user scrolling down the page
+                fireEvent.scroll(window, { target: { scrollY: 50 } })
 
-		describe('When the window is scrolled back to the top (<= 20 pixels)', () => {
-			it('Then it should remove the navbar_scrolled class', () => {
-				const { container } = render(<Navbar />)
-				const nav_element = container.querySelector('.navbar')
+                // The state should update and append the class
+                expect(nav_element).toHaveClass('navbar_scrolled')
+            })
+        })
 
-				// Scroll down first to trigger the class
-				fireEvent.scroll(window, { target: { scrollY: 100 } })
-				expect(nav_element).toHaveClass('navbar_scrolled')
+        describe('When the window is scrolled back to the top (<= 20 pixels)', () => {
+            it('Then it should remove the navbar_scrolled class', () => {
+                const { container } = render(<Navbar />)
+                const nav_element = container.querySelector('.navbar')
 
-				// Scroll back up to the top
-				fireEvent.scroll(window, { target: { scrollY: 10 } })
+                // Scroll down first to trigger the class
+                fireEvent.scroll(window, { target: { scrollY: 100 } })
+                expect(nav_element).toHaveClass('navbar_scrolled')
 
-				// The class should be removed
-				expect(nav_element).not.toHaveClass('navbar_scrolled')
-			})
-		})
+                // Scroll back up to the top
+                fireEvent.scroll(window, { target: { scrollY: 10 } })
 
-		// -----------------------------------------------------------------------
-		// 3. Component Cleanup
-		// -----------------------------------------------------------------------
-		describe('When the component unmounts', () => {
-			it('Then it should remove the scroll event listener to prevent memory leaks', () => {
-				const remove_listener_spy = jest.spyOn(
-					window,
-					'removeEventListener'
-				)
+                // The class should be removed
+                expect(nav_element).not.toHaveClass('navbar_scrolled')
+            })
+        })
 
-				const { unmount } = render(<Navbar />)
+        // -----------------------------------------------------------------------
+        // 3. Component Cleanup
+        // -----------------------------------------------------------------------
+        describe('When the component unmounts', () => {
+            it('Then it should remove the scroll event listener to prevent memory leaks', () => {
+                const remove_listener_spy = jest.spyOn(
+                    window,
+                    'removeEventListener'
+                )
 
-				// Unmount the component to trigger the useEffect cleanup function
-				unmount()
+                const { unmount } = render(<Navbar />)
 
-				// Assert that window.removeEventListener was called with 'scroll'
-				expect(remove_listener_spy).toHaveBeenCalledWith(
-					'scroll',
-					expect.any(Function)
-				)
+                // Unmount the component to trigger the useEffect cleanup function
+                unmount()
 
-				remove_listener_spy.mockRestore()
-			})
-		})
-	})
+                // Assert that window.removeEventListener was called with 'scroll'
+                expect(remove_listener_spy).toHaveBeenCalledWith(
+                    'scroll',
+                    expect.any(Function)
+                )
+
+                remove_listener_spy.mockRestore()
+            })
+        })
+    })
 })
