@@ -110,31 +110,17 @@ export default function WorkerDashboard() {
 		return data
 	}
 
-	const load_dashboard = useCallback(async (uid, load = false) => {
-		if (busy_ref.current) {
-			popup_busy('Already Loading Dashboard Info...')
-			return
-		}
-		busy_ref.current = true
+	const load_dashboard = useCallback(async (uid) => {
 		set_error(null)
 		try {
-			load && set_loading(true)
-			const { worker, tmp_requests, stats } =
-				await fetch_worker_dashboard_data(uid)
-			set_worker(worker)
-			set_stats(stats)
-			const [claimed, unclaimed] = await Promise.all([
-				get_claimed_requests(uid),
-				get_unclaimed_requests(),
-			])
-			set_claimed_requests(claimed)
-			set_unclaimed_requests(unclaimed)
-			return { claimed, unclaimed }
+			const snap = await verify_worker_and_get_profile(uid)
+			const profile = snap.data()
+			set_worker({ uid, ...profile })
+			set_active_section('queue')
 		} catch (err) {
 			set_error(err.message || 'Failed to load dashboard.')
 		} finally {
-			busy_ref.current = false
-			load && set_loading(false)
+			set_loading(false)
 		}
 	}, [])
 
@@ -202,13 +188,7 @@ export default function WorkerDashboard() {
 				set_loading(false)
 				return
 			}
-			load_dashboard(user.uid, true).then((data) => {
-				if (data) {
-					set_requests(data.claimed)
-					set_active_section('queue')
-				}
-			})
-			set_loading(false)
+			load_dashboard(user.uid)
 		})
 		return () => unsub()
 	}, [])
