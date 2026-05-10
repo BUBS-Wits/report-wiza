@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { auth } from '../../firebase_config.js'
 import {
 	fetch_resident_profile,
@@ -10,6 +10,7 @@ import {
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './resident_dashboard.css'
+import LikeButton from '../../components/request_card/like_button/like_button.js'
 
 /* ── Status config ───────────────────────────────────────────────────────── */
 
@@ -63,6 +64,7 @@ function get_initials(name = '') {
 
 export default function ResidentDashboard() {
 	const location = useLocation()
+	const navigate = useNavigate()
 
 	const [resident, set_resident] = useState(null)
 	const [requests, set_requests] = useState([])
@@ -71,8 +73,6 @@ export default function ResidentDashboard() {
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [logging_out, set_logging_out] = useState(false)
-
-	/* ── Load ─────────────────────────────────────────────────────────── */
 
 	const load = useCallback(async (uid) => {
 		set_loading(true)
@@ -94,8 +94,6 @@ export default function ResidentDashboard() {
 		}
 	}, [])
 
-	/* ── Auth ─────────────────────────────────────────────────────────── */
-
 	useEffect(() => {
 		const unsub = onAuthStateChanged(auth, (user) => {
 			if (!user) {
@@ -108,8 +106,6 @@ export default function ResidentDashboard() {
 		return unsub
 	}, [load])
 
-	/* ── Unread count ─────────────────────────────────────────────────── */
-
 	useEffect(() => {
 		if (!resident) {
 			return
@@ -120,18 +116,13 @@ export default function ResidentDashboard() {
 		)
 	}, [resident])
 
-	/* ── Logout ───────────────────────────────────────────────────────── */
-
 	const handle_logout = async () => {
 		set_logging_out(true)
 		await signOut(auth)
+		navigate('/')
 	}
 
-	/* ── Derived ──────────────────────────────────────────────────────── */
-
 	const selected_req = requests.find((r) => r.id === selected_id) ?? null
-
-	/* ── Guards ───────────────────────────────────────────────────────── */
 
 	if (loading) {
 		return (
@@ -143,16 +134,18 @@ export default function ResidentDashboard() {
 	}
 
 	if (error) {
-		return <ErrorScreen message={error} onRetry={() => null} />
+		return (
+			<ErrorScreen
+				message={error}
+				onRetry={() => navigate('/login')}
+				onGoHome={() => navigate('/')}
+			/>
+		)
 	}
-
-	/* ── Render ───────────────────────────────────────────────────────── */
 
 	return (
 		<div className="rd-page">
-			{/* ── Top bar ──────────────────────────────────────────────── */}
 			<header className="rd-topbar">
-				{/* Brand */}
 				<div className="rd-topbar-brand">
 					<span className="rd-brand-mark" aria-hidden="true">
 						<svg
@@ -172,7 +165,6 @@ export default function ResidentDashboard() {
 					<span className="rd-brand-name">Report-wiza</span>
 				</div>
 
-				{/* Nav links */}
 				<nav className="rd-topbar-nav" aria-label="Resident navigation">
 					<Link
 						to="/resident-dashboard"
@@ -250,7 +242,6 @@ export default function ResidentDashboard() {
 					</Link>
 				</nav>
 
-				{/* Right cluster */}
 				<div className="rd-topbar-right">
 					<div className="rd-user-chip">
 						<span className="rd-avatar">
@@ -287,12 +278,9 @@ export default function ResidentDashboard() {
 				</div>
 			</header>
 
-			{/* ── Main layout ──────────────────────────────────────────── */}
-			{/* Added dynamic class for mobile sliding layout */}
 			<div
 				className={`rd-layout ${selected_id ? 'rd-layout--detail-open' : ''}`}
 			>
-				{/* ── LEFT: request list ───────────────────────────────── */}
 				<aside className="rd-sidebar">
 					<div className="rd-sidebar-heading">
 						<h2 className="rd-sidebar-title">My Requests</h2>
@@ -302,8 +290,7 @@ export default function ResidentDashboard() {
 					{requests.length === 0 ? (
 						<div className="rd-no-requests">
 							<p>
-								You haven&apos;t submitted any service requests
-								yet.
+								You haven&apos;t submitted any service requests yet.
 							</p>
 							<Link to="/request" className="rd-no-requests-cta">
 								Submit your first request →
@@ -324,7 +311,6 @@ export default function ResidentDashboard() {
 					)}
 				</aside>
 
-				{/* ── RIGHT: detail + messaging ────────────────────────── */}
 				<main className="rd-main">
 					{selected_req ? (
 						<RequestDetail
@@ -390,6 +376,35 @@ function RequestDetail({ req, resident, on_back }) {
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
 
+	const parseWktPoint = (locationStr) => {
+		if (!locationStr) {
+			return null
+		}
+		const match = locationStr.match(
+			/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i
+		)
+		if (match) {
+			const lon = parseFloat(match[1])
+			const lat = parseFloat(match[2])
+			if (!isNaN(lat) && !isNaN(lon)) {
+				return { lat, lon }
+			}
+		}
+		return null
+	}
+
+	let lat = null,
+		lng = null
+	if (req.location) {
+		const coords = parseWktPoint(req.location)
+		if (coords) {
+			lat = coords.lat
+			lng = coords.lon
+		}
+	}
+
+	console.log('Worker name from Firestore:', req.worker_name)
+
 	useEffect(() => {
 		if (req.status !== 'closed') {
 			set_close_reason(null)
@@ -426,7 +441,6 @@ function RequestDetail({ req, resident, on_back }) {
 		<div className="rd-detail">
 			<div className="rd-detail-header">
 				<div className="rd-detail-header-left">
-					{/* Added mobile back button */}
 					<button
 						className="rd-back-btn"
 						onClick={on_back}
@@ -435,7 +449,6 @@ function RequestDetail({ req, resident, on_back }) {
 						<svg
 							viewBox="0 0 16 16"
 							fill="none"
-							aria-hidden="true"
 							style={{ width: '18px', height: '18px' }}
 						>
 							<path
@@ -452,11 +465,23 @@ function RequestDetail({ req, resident, on_back }) {
 						<span className="rd-detail-id">{req.id}</span>
 					</div>
 				</div>
-				<span
-					className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}
+				<div
+					style={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: '12px',
+					}}
 				>
-					{meta.label}
-				</span>
+					<span
+						className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}
+					>
+						{meta.label}
+					</span>
+					<LikeButton
+						requestId={req.id}
+						initialLikeCount={req.like_count || 0}
+					/>
+				</div>
 			</div>
 
 			<dl className="rd-detail-meta">
@@ -496,10 +521,51 @@ function RequestDetail({ req, resident, on_back }) {
 						)}
 					</dd>
 				</div>
+
+				<div className="rd-detail-meta-item">
+					<dt>Location</dt>
+					<dd>
+						{lat && lng ? (
+							<a
+								href={`https://www.google.com/maps?q=${lat},${lng}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								style={{
+									display: 'inline-flex',
+									alignItems: 'center',
+									gap: '4px',
+								}}
+							>
+								📍 {lat.toFixed(6)}, {lng.toFixed(6)}
+							</a>
+						) : (
+							'—'
+						)}
+					</dd>
+				</div>
+
 				<div className="rd-detail-meta-item rd-detail-meta-item--full">
 					<dt>Description</dt>
 					<dd>{req.description}</dd>
 				</div>
+
+				{req.image && (
+					<div className="rd-detail-meta-item rd-detail-meta-item--full">
+						<dt>Photo</dt>
+						<dd>
+							<img
+								src={req.image}
+								alt="Request"
+								style={{
+									maxWidth: '100%',
+									maxHeight: '200px',
+									borderRadius: '8px',
+								}}
+							/>
+						</dd>
+					</div>
+				)}
+
 				{req.status === 'closed' && (
 					<div className="rd-detail-meta-item rd-detail-meta-item--full">
 						<dt>Close reason</dt>
@@ -515,15 +581,14 @@ function RequestDetail({ req, resident, on_back }) {
 			<div className="rd-section-divider">
 				<span>Messages</span>
 			</div>
-
 			<div className="rd-thread-wrap">
 				{has_worker ? (
 					<MessageThread
-						request_uid={req.id} // FIXED
+						request_uid={req.id}
 						current_uid={resident.uid}
 						current_name={resident.name}
 						current_role="resident"
-						other_uid={req.worker_uid} // FIXED
+						other_uid={req.worker_uid}
 						other_name={req.worker_name ?? 'Worker'}
 					/>
 				) : (
@@ -552,13 +617,18 @@ function RequestDetail({ req, resident, on_back }) {
 	)
 }
 
-function ErrorScreen({ message, onRetry }) {
+function ErrorScreen({ message, onRetry, onGoHome }) {
 	return (
 		<div className="wd-centered-screen">
 			<div className="wd-error-text">{message}</div>
-			<button className="wd-retry-btn" onClick={onRetry}>
-				Try again
-			</button>
+			<div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+				<button className="wd-retry-btn" onClick={onRetry}>
+					Try again
+				</button>
+				<button className="wd-home-btn" onClick={onGoHome}>
+					Go back Home
+				</button>
+			</div>
 		</div>
 	)
 }
