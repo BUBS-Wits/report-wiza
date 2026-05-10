@@ -80,6 +80,7 @@ const mock_verify_worker = jest.fn()
 const mock_compute_stats = jest.fn()
 const mock_update_request_status = jest.fn()
 
+x=5
 jest.mock('../backend/worker_analytics_service.js', () => ({
 	verify_worker_and_get_profile: (...a) => mock_verify_worker(...a),
 	compute_worker_stats: (...a) => mock_compute_stats(...a),
