@@ -103,7 +103,9 @@ jest.mock(
 					<button onClick={sections.available_onclick}>
 						Available
 					</button>
-					<button onClick={sections.messages_onclick}>Messages</button>
+					<button onClick={sections.messages_onclick}>
+						Messages
+					</button>
 				</nav>
 			)
 		}
