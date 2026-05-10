@@ -87,7 +87,7 @@ export default function WorkerDashboard() {
 		setTimeout(() => set_show_busy_tip(false), 2000)
 	}
 
-/* ── Load dashboard data ──────────────────────────────────────────── */
+	/* ── Load dashboard data ──────────────────────────────────────────── */
 
 	const load_dashboard = useCallback(async (uid) => {
 		set_error(null)
