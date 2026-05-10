@@ -1,4 +1,4 @@
-/* resident_requests.css – aligned with ResidentDashboard */
+/* resident_requests.css */
 
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
@@ -28,6 +28,8 @@
 	--rr-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
+/* ── Page ─────────────────────────────────────────────────────────────────── */
+
 .rr-page {
 	min-height: 100vh;
 	background: var(--rr-bg);
@@ -35,11 +37,16 @@
 	color: var(--rr-text-primary);
 }
 
+/* ── Container ────────────────────────────────────────────────────────────── */
+
 .rr-container {
 	max-width: 1000px;
 	margin: 0 auto;
-	padding: 2rem;
+	/* 100px top clears the fixed global navbar */
+	padding: 100px 2rem 2rem;
 }
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
 
 .rr-header {
 	display: flex;
@@ -52,12 +59,15 @@
 
 .rr-header h1 {
 	font-family: var(--rr-font-display);
-	font-size: 28px;
+	/* Fluid type: scales from 22px → 28px across viewport widths */
+	font-size: clamp(1.375rem, 4vw, 1.75rem);
 	font-weight: 600;
 	color: var(--rr-text-primary);
 	margin: 0;
 	letter-spacing: -0.02em;
 }
+
+/* ── Submit button ────────────────────────────────────────────────────────── */
 
 .rr-submit-btn {
 	background: var(--rr-accent);
@@ -71,13 +81,15 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+	white-space: nowrap;
 }
 
 .rr-submit-btn:hover {
 	background: #a04528;
 }
 
-/* Navigation links (button-like) */
+/* ── Nav links ────────────────────────────────────────────────────────────── */
+
 .rr-nav-links {
 	display: flex;
 	gap: 12px;
@@ -95,6 +107,7 @@
 	font-weight: 500;
 	color: var(--rr-text-secondary);
 	transition: all 0.2s;
+	white-space: nowrap;
 }
 
 .rr-nav-link:hover {
@@ -102,6 +115,8 @@
 	border-color: var(--rr-accent-muted);
 	color: var(--rr-accent);
 }
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
 
 .rr-empty-state {
 	text-align: center;
@@ -118,6 +133,8 @@
 	font-size: 15px;
 }
 
+/* ── Requests list ────────────────────────────────────────────────────────── */
+
 .rr-requests-list {
 	list-style: none;
 	padding: 0;
@@ -127,6 +144,8 @@
 	gap: 12px;
 }
 
+/* ── Request card ─────────────────────────────────────────────────────────── */
+
 .rr-request-card {
 	background: var(--rr-surface);
 	border-radius: var(--rr-radius-card);
@@ -134,14 +153,18 @@
 	border: 1px solid var(--rr-border-light);
 	transition:
 		border-color 0.16s,
-		box-shadow 0.16s;
+		box-shadow 0.16s,
+		transform 0.16s;
 	box-shadow: var(--rr-shadow-card);
 }
 
 .rr-request-card:hover {
 	border-color: var(--rr-accent-muted);
 	box-shadow: 0 4px 20px rgba(192, 90, 58, 0.1);
+	transform: translateY(-2px);
 }
+
+/* ── Card header ──────────────────────────────────────────────────────────── */
 
 .rr-card-header {
 	display: flex;
@@ -158,6 +181,8 @@
 	color: var(--rr-text-primary);
 }
 
+/* ── Status badge ─────────────────────────────────────────────────────────── */
+
 .rr-status-badge {
 	font-family: var(--rr-font-mono);
 	font-size: 11px;
@@ -165,6 +190,8 @@
 	padding: 3px 10px;
 	border-radius: var(--rr-radius-pill);
 	white-space: nowrap;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .rr-status-badge--open,
@@ -175,8 +202,9 @@
 }
 
 .rr-status-badge--in_progress,
-.rr-status-badge--assigned,
-.rr-status-badge--in-progress {
+.rr-status-badge--acknowledged,
+.rr-status-badge--in-progress,
+.rr-status-badge--assigned {
 	background: var(--rr-status-progress-bg);
 	color: var(--rr-status-progress-text);
 }
@@ -187,6 +215,8 @@
 	color: var(--rr-status-resolved-text);
 }
 
+/* ── Description ──────────────────────────────────────────────────────────── */
+
 .rr-description {
 	font-size: 13.5px;
 	color: var(--rr-text-secondary);
@@ -194,24 +224,88 @@
 	margin: 6px 0 12px;
 }
 
+/* ── Card footer ──────────────────────────────────────────────────────────── */
+
 .rr-footer {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	flex-wrap: wrap;
+	gap: 12px;
 	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid var(--rr-border-light);
 	font-family: var(--rr-font-mono);
 	font-size: 11px;
 	color: var(--rr-text-muted);
 }
 
+/* ── Loading / error ──────────────────────────────────────────────────────── */
+
 .rr-loading,
 .rr-error {
 	text-align: center;
-	padding: 3rem;
+	/* 100px top clears fixed navbar; auto centres horizontally */
+	padding: 3rem 5%;
 	font-size: 14px;
 	color: var(--rr-text-secondary);
+	background: var(--rr-surface);
+	border-radius: var(--rr-radius-card);
+	max-width: 600px;
+	margin: 100px auto 2rem;
+	box-shadow: var(--rr-shadow-card);
 }
 
 .rr-error {
 	color: #c0392b;
+	border-left: 4px solid #ef4444;
+	background: #fef2f2;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+/* Tablet: tighten horizontal padding */
+@media (max-width: 768px) {
+	.rr-container {
+		padding: 100px 1.25rem 2rem;
+	}
+
+	.rr-header h1 {
+		font-size: clamp(1.25rem, 5vw, 1.5rem);
+	}
+}
+
+/* Mobile: stack header, tighten card padding */
+@media (max-width: 480px) {
+	.rr-container {
+		padding: 100px 1rem 2rem;
+	}
+
+	.rr-header {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.rr-submit-btn {
+		width: 100%;
+		justify-content: center;
+	}
+
+	.rr-request-card {
+		padding: 1rem;
+	}
+
+	.rr-nav-links {
+		gap: 8px;
+	}
+
+	.rr-nav-link {
+		font-size: 12px;
+		padding: 6px 12px;
+	}
+
+	.rr-footer {
+		flex-direction: column;
+		align-items: flex-start;
+	}
 }

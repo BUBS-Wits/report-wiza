@@ -6,6 +6,7 @@ import L from 'leaflet'
 import RequestCard from '../../components/request_card/request_card.js'
 import { fetchPublicDashboardData } from '../../backend/public_dashboard_service.js'
 import './public_dashboard.css'
+import Navbar from '../../components/nav_bar/nav_bar.js'
 import * as esri from 'esri-leaflet'
 import { db } from '../../firebase_config.js'
 import { collection, getDocs } from 'firebase/firestore'
@@ -221,6 +222,7 @@ function PublicDashboard() {
 
 	return (
 		<div className="public_dashboard">
+			<Navbar />
 			<header className="dashboard_header">
 				<Link to="/" className="home_button">
 					🏠 Home
