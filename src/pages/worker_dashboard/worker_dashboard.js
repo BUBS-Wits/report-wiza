@@ -8,6 +8,7 @@ import {
 	where,
 	orderBy,
 	onSnapshot,
+	getDocs,
 } from 'firebase/firestore'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import {
@@ -20,6 +21,18 @@ import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import WorkerMessages from '../worker_messages/worker_messages.js'
 import './worker_dashboard.css'
+
+const parse_date = (val) => {
+	if (!val) {
+		return '-'
+	}
+	try {
+		const d = val.toDate ? val.toDate() : new Date(val)
+		return isNaN(d.getTime()) ? '-' : d.toISOString().split('T')[0]
+	} catch {
+		return '-'
+	}
+}
 
 const AVAILABLE_STATUSES = [
 	STATUS.ASSIGNED,
@@ -40,6 +53,13 @@ const STATUS_BADGE_CLASS = {
 	Acknowledged: 'wd-badge--in-progress',
 	Resolved: 'wd-badge--resolved',
 	Closed: 'wd-badge--closed',
+}
+
+const PRIORITY_BADGE_CLASS = {
+	Low: 'wd-priority--low',
+	Medium: 'wd-priority--medium',
+	High: 'wd-priority--high',
+	Critical: 'wd-priority--critical',
 }
 
 function get_updated_display_date(req) {
@@ -515,7 +535,30 @@ function RequestDetailPanel({
 }) {
 	const updating = useRef(false)
 	const navigate = useNavigate()
+	const [close_reason, set_close_reason] = useState(null)
+	const [close_reason_loading, set_close_reason_loading] = useState(false)
 	const display_date = get_updated_display_date(req)
+
+	useEffect(() => {
+		if (req.status !== 'closed') {
+			set_close_reason(null)
+			return
+		}
+		set_close_reason_loading(true)
+		getDocs(
+			query(
+				collection(db, 'service_requests', req.id, 'comments'),
+				where('type', '==', 'close_reason')
+			)
+		)
+			.then((snap) => {
+				if (!snap.empty) {
+					set_close_reason(snap.docs[0].data().text)
+				}
+			})
+			.catch(() => set_close_reason(null))
+			.finally(() => set_close_reason_loading(false))
+	}, [req.id, req.status])
 
 	const resident_name = req.resident_name || 'Resident'
 
@@ -575,6 +618,20 @@ function RequestDetailPanel({
 					<dd className="wd-panel-meta-value">{req.category}</dd>
 				</div>
 				<div className="wd-panel-meta-row">
+					<dt className="wd-panel-meta-label">Priority</dt>
+					<dd className="wd-panel-meta-value">
+						{req.priority ? (
+							<span
+								className={`wd-priority-badge ${PRIORITY_BADGE_CLASS[req.priority] ?? ''}`}
+							>
+								{req.priority}
+							</span>
+						) : (
+							<span className="wd-priority-none">Not set</span>
+						)}
+					</dd>
+				</div>
+				<div className="wd-panel-meta-row">
 					<dt className="wd-panel-meta-label">Province</dt>
 					<dd className="wd-panel-meta-value">{req.sa_province}</dd>
 				</div>
@@ -589,11 +646,7 @@ function RequestDetailPanel({
 				<div className="wd-panel-meta-row">
 					<dt className="wd-panel-meta-label">Created At</dt>
 					<dd className="wd-panel-meta-value">
-						{req.created_at
-							? new Date(req.created_at)
-									.toISOString()
-									.split('T')[0]
-							: '-'}
+						{parse_date(req.created_at)}
 					</dd>
 				</div>
 				<div className="wd-panel-meta-row">
@@ -612,6 +665,16 @@ function RequestDetailPanel({
 						{STATUS_DISPLAY[req.status]}
 					</dd>
 				</div>
+				{req.status === 'closed' && (
+					<div className="wd-panel-meta-row wd-panel-meta-row--full">
+						<dt className="wd-panel-meta-label">Close Reason</dt>
+						<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
+							{close_reason_loading
+								? 'Loading...'
+								: (close_reason ?? '-')}
+						</dd>
+					</div>
+				)}
 			</dl>
 
 			<div className="wd-panel-image">
@@ -646,7 +709,7 @@ function RequestDetailPanel({
 					<div className="wd-panel-thread">
 						{req.user_uid ? (
 							<MessageThread
-								request_uid={req.id} // FIXED
+								request_uid={req.id}
 								current_uid={worker.uid}
 								current_name={worker.name}
 								current_role="worker"
