@@ -69,6 +69,10 @@ jest.mock('firebase/firestore', () => ({
 	where: (...a) => mock_where(...a),
 	orderBy: (...a) => mock_order_by(...a),
 	onSnapshot: (...a) => mock_on_snapshot(...a),
+	doc: jest.fn(),
+	getDoc: jest.fn(),
+	addDoc: jest.fn(() => Promise.resolve()),
+	serverTimestamp: jest.fn(() => 'mock-timestamp'),
 }))
 
 const mock_on_auth_state_changed = jest.fn()
@@ -80,14 +84,12 @@ const mock_verify_worker = jest.fn()
 const mock_compute_stats = jest.fn()
 const mock_update_request_status = jest.fn()
 
-
 jest.mock('../backend/worker_analytics_service.js', () => ({
 	verify_worker_and_get_profile: (...a) => mock_verify_worker(...a),
 	compute_worker_stats: (...a) => mock_compute_stats(...a),
-	fetch_comment: jest.fn().mockResolvedValue([]),
-    add_comment: jest.fn().mockResolvedValue(undefined),
+	fetch_comment: () => Promise.resolve([]),
+	add_comment: () => Promise.resolve(),
 }))
-
 jest.mock('../backend/worker_firebase.js', () => ({
 	update_request_status: (...a) => mock_update_request_status(...a),
 }))
