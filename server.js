@@ -1,5 +1,6 @@
 import { Readable } from 'node:stream'
 import express from 'express'
+import rate_limit from 'express-rate-limit'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
@@ -437,89 +438,178 @@ const role_service = {
 	is_worker: (uid) => has_role(uid, 'worker'),
 }
 
-app.post('/api/submit-request', authenticate, async (req, res) => {
-	try {
-		const user_uid = req.user.uid
-		const is_resident = await role_service.is_resident(user_uid)
-		if (!is_resident.ok) {
-			return res.status(500).json({ error: 'Failed to get role' })
-		}
-		if (!is_resident.value) {
-			return respond.unauthorized(res)
-		}
+/********************* Backend Spam *********************/
 
-		const body = req.body
-		if (!body || !body.image || !/^data:/.test(body.image)) {
-			return respond.invalid_parameters(res)
-		}
-
-		let image = body.image
-		body.image = ''
-
-		const tmp = new Request(body)
-		if (!tmp.input_validate()) {
-			return respond.invalid_parameters(res)
-		}
-
-		const service_request = request_converter.to_firestore(
-			user_uid,
-			tmp,
-			new Date(Date.now()),
-			new Date(Date.now()),
-			STATUS.SUBMITTED
-		)
-
-		const doc_result = await create_db_document(
-			'service_requests',
-			service_request
-		)
-		if (!doc_result.ok) {
-			console.error(doc_result.value)
-			return res.status(500).json({ error: 'Failed to save request.' })
-		}
-		let ret = await b2_upload_data_uri(image, doc_result.value)
-		if (!ret.ok) {
-			console.error(ret.value)
-			await delete_db_document('service_requests', doc_result.value)
-			return res.status(500).json({ error: 'Failed to upload image.' })
-		}
-		const mime_type = get_content_type(image)
-		const key_name = doc_result.value
-		ret = await b2_key_to_signed_url(key_name)
-		if (!ret.ok) {
-			console.error(ret.value)
-			await delete_db_document('service_requests', doc_result.value)
-			return res
-				.status(500)
-				.json({ error: `Failed to get signed url of "${key_name}"` })
-		}
-		ret = await update_db_document('service_requests', doc_result.value, [
-			['image', ret.value],
-			[
-				'image_expires_at',
-				new Date(
-					Date.now() + B2_SIGNED_URL_EXPIRES_IN * 1000
-				).toUTCString(),
-			],
-		])
-		if (!ret.ok) {
-			console.error(ret.value)
-			await delete_db_document('service_requests', doc_result.value)
-			return res.status(500).json({ error: 'Failed to save signed url.' })
-		}
-		return res.status(200).json({ data: doc_result.value })
-	} catch (err) {
-		console.error('Database error:', err)
-		res.status(500).json({ error: 'Internal server error' })
-	}
+const limiter = rate_limit({
+	windowMs: 2 * 60 * 1000,
+	max: 4,
+	standardHeaders: true,
+	legacyHeaders: false,
+	message: { error: 'Too many submissions, please try again later.' },
 })
+
+const entropy_check = (string, threshold = 0.9) => {
+	const character_dictionary = {}
+	let space_count = 0
+	const lower = string.toLowerCase()
+
+	for (const chr of lower) {
+		if (chr === ' ') {
+			space_count++
+			continue
+		}
+		character_dictionary[chr] = (character_dictionary[chr] ?? 0) + 1
+	}
+
+	// The more spaces you have, the better in long strings as that makes it more likely to be a coherent sentence
+	// Note, string.length >= space_count in all cases.
+	// The smaller the ratio of string length to spaces, the higher the space_multiplier which benefits the frequency_total
+	let space_multiplier =
+		space_count > 0
+			? 1.0 / (1 + Math.log(1 + string.length / (space_count + 1)))
+			: 1.0 / string.length
+
+	space_multiplier = Math.max(0.3, space_multiplier)
+
+	let frequency_total = 0
+	// Entropy = -1 * Sum(p * log_{2}{p}) = Sum(-1 * p * log_{2}{p})
+	for (const chr in character_dictionary) {
+		let p = character_dictionary[chr] / string.length
+		let frequency = -1 * p * (Math.log(p) / Math.log(2))
+		frequency_total += frequency
+	}
+
+	frequency_total *= space_multiplier
+
+	return frequency_total < threshold ? false : true
+}
+
+function repetition_check(string) {
+	const words = string.toLowerCase().split(/\s+/).filter(Boolean)
+	const unique = new Set(words)
+	const unique_ratio = unique.size / words.length
+
+	return unique_ratio < 0.5 ? false : true
+}
+
+const spam_middleware = (req, res, next) => {
+	const body = req.body
+	if (!body || !body.description) {
+		return respond.invalid_parameters(res)
+	}
+	const description = body.description
+	const is_ham = entropy_check(description, 0.9)
+	const is_unique = repetition_check(description)
+	if (!is_ham || !is_unique) {
+		console.debug(`Possible Spam Rejected: '${description.replace("'", "\\'")}'`)
+		return res.status(400).json({
+			error: 'Invalid description. Rejected due to the possibility of being spam.',
+			cause: !is_ham ? 'entropy' : 'repetition',
+		})
+	}
+	next()
+}
+
+/********************* Backend Routes *********************/
+
+app.post(
+	'/api/submit-request',
+	authenticate,
+	spam_middleware,
+	async (req, res) => {
+		try {
+			const user_uid = req.user.uid
+			const is_resident = await role_service.is_resident(user_uid)
+			if (!is_resident.ok) {
+				return res.status(400).json({ error: 'Failed to get role.' })
+			}
+			if (!is_resident.value) {
+				return respond.unauthorized(res)
+			}
+
+			const body = req.body
+			if (!body || !body.image || !/^data:/.test(body.image)) {
+				return respond.invalid_parameters(res)
+			}
+
+			let image = body.image
+			body.image = ''
+
+			const tmp = new Request(body)
+			if (!tmp.input_validate()) {
+				return respond.invalid_parameters(res)
+			}
+
+			const service_request = request_converter.to_firestore(
+				user_uid,
+				tmp,
+				new Date(Date.now()),
+				new Date(Date.now()),
+				STATUS.SUBMITTED
+			)
+
+			const doc_result = await create_db_document(
+				'service_requests',
+				service_request
+			)
+			if (!doc_result.ok) {
+				console.error(doc_result.value)
+				return res
+					.status(500)
+					.json({ error: 'Failed to save request.' })
+			}
+			let ret = await b2_upload_data_uri(image, doc_result.value)
+			if (!ret.ok) {
+				console.error(ret.value)
+				await delete_db_document('service_requests', doc_result.value)
+				return res
+					.status(500)
+					.json({ error: 'Failed to upload image.' })
+			}
+			const mime_type = get_content_type(image)
+			const key_name = doc_result.value
+			ret = await b2_key_to_signed_url(key_name)
+			if (!ret.ok) {
+				console.error(ret.value)
+				await delete_db_document('service_requests', doc_result.value)
+				return res.status(500).json({
+					error: `Failed to get signed url of "${key_name}".`,
+				})
+			}
+			ret = await update_db_document(
+				'service_requests',
+				doc_result.value,
+				[
+					['image', ret.value],
+					[
+						'image_expires_at',
+						new Date(
+							Date.now() + B2_SIGNED_URL_EXPIRES_IN * 1000
+						).toUTCString(),
+					],
+				]
+			)
+			if (!ret.ok) {
+				console.error(ret.value)
+				await delete_db_document('service_requests', doc_result.value)
+				return res
+					.status(500)
+					.json({ error: 'Failed to save signed url.' })
+			}
+			return res.status(200).json({ data: doc_result.value })
+		} catch (err) {
+			console.error('Database error:', err)
+			res.status(500).json({ error: 'Internal server error' })
+		}
+	}
+)
 
 app.get('/api/claim-request', authenticate, async (req, res) => {
 	try {
 		const uid = req.user.uid
 		const is_worker = await role_service.is_worker(uid)
 		if (!is_worker.ok) {
-			return res.status(500).json({ error: 'Failed to get role' })
+			return res.status(400).json({ error: 'Failed to get role.' })
 		}
 		if (!is_worker.value) {
 			return respond.unauthorized(res)
@@ -530,7 +620,7 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 		}
 
 		if (await exists_db_document('assignments', request_uid)) {
-			return res.status(201).json({
+			return res.status(401).json({
 				data: 'Request already claimed in db.',
 			})
 		}
@@ -542,7 +632,10 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 			claimed_request
 		)
 		if (!ret.ok) {
-			return res.status(400).json({ error: ret.value })
+			return res.status(500).json({
+				error: 'Failed to assign request.',
+				dd: ret.value,
+			})
 		}
 		const ret2 = await update_db_document('service_requests', request_uid, [
 			['status', STATUS.ASSIGNED],
@@ -550,9 +643,9 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 			['assigned_at', new Date().toUTCString()],
 		])
 		if (!ret2.ok || ret2.value === null) {
-			return res.status(400).json({
-				error: ret2.value,
-				dd: 'Created assignment but failed to change status',
+			return res.status(500).json({
+				error: 'Created assignment but failed to change status.',
+				dd: ret2.value,
 			})
 		}
 		return res.status(200).json({ data: ret.value })
@@ -581,7 +674,10 @@ app.get('/api/get-requests', async (req, res) => {
 		}
 		const ret = await get_db_documents('service_requests', conditions)
 		if (!ret.ok) {
-			return res.status(400).json({ error: ret.value })
+			return res.status(400).json({
+				error: 'Failed to get requests.',
+				dd: ret.value,
+			})
 		}
 		for (const tmp of ret.value) {
 			const url = await b2_refresh_signed_url(
@@ -610,7 +706,7 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 		const is_worker = await role_service.is_worker(uid)
 		const is_admin = await role_service.is_admin(uid)
 		if (!is_worker.ok || !is_admin.ok) {
-			return res.status(500).json({ error: 'Failed to get role' })
+			return res.status(500).json({ error: 'Failed to get role.' })
 		}
 		if (!is_worker.value && !is_admin.value) {
 			return respond.unauthorized(res)
@@ -618,7 +714,10 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 		let conditions = is_admin.value ? [] : [['worker_uid', '==', uid]]
 		let ret = await get_db_documents('assignments', conditions)
 		if (!ret.ok) {
-			return res.status(400).json({ error: ret.value })
+			return res.status(400).json({
+				error: 'Failed to get assignments.',
+				dd: ret.value,
+			})
 		}
 		const claimed_requests = []
 		for (const doc of ret.value) {
@@ -627,7 +726,10 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 				doc.request_uid
 			)
 			if (!iret.ok) {
-				return res.status(400).json({ error: iret.value })
+				return res.status(400).json({
+					error: 'Failed to get request.',
+					dd: ret.value,
+				})
 			}
 			const data = iret.value
 			if (data === null) {
@@ -672,7 +774,7 @@ app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 		const is_worker = await role_service.is_worker(uid)
 		const is_admin = await role_service.is_admin(uid)
 		if (!is_worker.ok || !is_admin.ok) {
-			return res.status(500).json({ error: 'Failed to get role' })
+			return res.status(500).json({ error: 'Failed to get role.' })
 		}
 		if (!is_worker.value && !is_admin.value) {
 			return respond.unauthorized(res)
@@ -733,7 +835,7 @@ app.get('/api/get-signed-url', async (req, res) => {
 		if (data === null) {
 			return res
 				.status(400)
-				.json({ error: 'Failed to get requested service request' })
+				.json({ error: 'Failed to get requested service request.' })
 		}
 		const url = await b2_refresh_signed_url(
 			data.id,
@@ -748,7 +850,7 @@ app.get('/api/get-signed-url', async (req, res) => {
 			return res.status(200).json({ data: url.new_signed_url })
 		}
 		return res.status(400).json({
-			error: "Failed to get requested service request's signed url",
+			error: "Failed to get requested service request's signed url.",
 		})
 	} catch (err) {
 		console.error('Database error:', err)

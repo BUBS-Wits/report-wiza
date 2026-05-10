@@ -66,8 +66,6 @@ function RequestPage() {
 			})
 
 			if (!res.ok) {
-				alert('Failed to submit request. Check console for details.')
-
 				// --- NEW SAFE PARSING ---
 				const error_text = await res.text()
 				try {
@@ -76,9 +74,11 @@ function RequestPage() {
 						'Server Error (JSON):',
 						JSON.parse(error_text)
 					)
+					alert(JSON.parse(error_text).error)
 				} catch (parse_error) {
 					// Fallback to logging the raw text/HTML if the server crashed hard
 					console.error('Server Error (HTML/Text):', error_text)
+					alert('Server error. Please check console for details.')
 				}
 			} else {
 				alert('Request successfully submitted.')
