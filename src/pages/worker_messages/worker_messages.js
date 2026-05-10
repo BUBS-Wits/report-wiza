@@ -6,7 +6,7 @@ import './worker_messages.css'
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 /**
- * Format a Firestore Timestamp into a short label for the conversation list.[cite: 2]
+ * Format a Firestore Timestamp into a short label for the conversation list.
  */
 function format_conv_time(ts) {
 	if (!ts) {
@@ -74,16 +74,20 @@ export default function WorkerMessages({ worker, requests = [] }) {
 		if (!search.trim()) {
 			return true
 		}
-		const req = requests_map[c.request_id]
+		// Safely check for either request_uid or request_id
+		const req_uid = c.request_uid || c.request_id
+		const req = requests_map[req_uid]
 		const term = search.toLowerCase()
 		const cat = req?.category?.toLowerCase() ?? ''
-		const id = c.request_id.toLowerCase()
+		const id = req_uid.toLowerCase()
 		const preview = c.last_message?.text?.toLowerCase() ?? ''
 		return cat.includes(term) || id.includes(term) || preview.includes(term)
 	})
 
 	const selected_conv =
-		conversations.find((c) => c.request_id === selected_id) ?? null
+		conversations.find(
+			(c) => (c.request_uid || c.request_id) === selected_id
+		) ?? null
 	const selected_req = selected_id ? requests_map[selected_id] : null
 	const total_unread = conversations.reduce((n, c) => n + c.unread_count, 0)
 
@@ -163,19 +167,16 @@ export default function WorkerMessages({ worker, requests = [] }) {
 
 					{!conv_loading &&
 						filtered.map((conv) => {
-							const req = requests_map[conv.request_id]
+							const req_uid = conv.request_uid || conv.request_id
+							const req = requests_map[req_uid]
 							return (
 								<ConversationItem
-									key={conv.request_id}
+									key={req_uid}
 									conv={conv}
 									req={req}
-									is_selected={
-										conv.request_id === selected_id
-									}
+									is_selected={req_uid === selected_id}
 									worker_uid={worker?.uid}
-									on_click={() =>
-										set_selected_id(conv.request_id)
-									}
+									on_click={() => set_selected_id(req_uid)}
 								/>
 							)
 						})}
@@ -217,8 +218,9 @@ export default function WorkerMessages({ worker, requests = [] }) {
 								</span>
 								<span className="wm-thread-topbar-meta">
 									{selected_req
-										? `${selected_req.category} · ${selected_req.ward}`
-										: selected_conv.request_id}
+										? `${selected_req.category} · ${selected_req.sa_ward}`
+										: selected_conv.request_uid ||
+											selected_conv.request_id}
 								</span>
 							</div>
 							<span
@@ -230,7 +232,10 @@ export default function WorkerMessages({ worker, requests = [] }) {
 
 						<div className="wm-thread-body">
 							<MessageThread
-								request_id={selected_conv.request_id}
+								request_uid={
+									selected_conv.request_uid ||
+									selected_conv.request_id
+								} // FIX: Now successfully passes the expected prop!
 								current_uid={worker.uid}
 								current_name={worker.name}
 								current_role="worker"
@@ -256,7 +261,7 @@ export default function WorkerMessages({ worker, requests = [] }) {
 function ConversationItem({ conv, req, is_selected, worker_uid, on_click }) {
 	const { last_message, unread_count } = conv
 	const category = req?.category ?? 'Request'
-	const ward = req?.ward ?? ''
+	const ward = req?.sa_ward ?? ''
 	const status = req?.status ?? ''
 	const time_label = format_conv_time(last_message?.sent_at)
 	const is_mine = last_message?.sender_uid === worker_uid
