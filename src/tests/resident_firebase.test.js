@@ -1,6 +1,10 @@
 import { fetchResidentRequests } from '../backend/resident_firebase'
 import { getDocs } from 'firebase/firestore'
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
 jest.mock('firebase/firestore', () => ({
 	getDocs: jest.fn(),
 	collection: jest.fn(),

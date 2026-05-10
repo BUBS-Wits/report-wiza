@@ -7,6 +7,7 @@ import {
 	fetch_resident_requests,
 	subscribe_to_resident_unread_count,
 } from '../../backend/resident_dashboard_service.js'
+import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import LikeButton from '../../components/request_card/like_button/like_button.js'
 import './resident_dashboard.css'
@@ -14,10 +15,26 @@ import './resident_dashboard.css'
 /* ── Status config ───────────────────────────────────────────────────────── */
 
 const STATUS_META = {
-	Pending: { label: 'Pending', cls: 'rd-status--pending' },
-	Acknowledged: { label: 'Acknowledged', cls: 'rd-status--acknowledged' },
-	Resolved: { label: 'Resolved', cls: 'rd-status--resolved' },
-	Closed: { label: 'Closed', cls: 'rd-status--closed' },
+	[STATUS.SUBMITTED]: {
+		label: STATUS_DISPLAY[STATUS.SUBMITTED],
+		cls: 'rd-status--pending',
+	},
+	[STATUS.ASSIGNED]: {
+		label: STATUS_DISPLAY[STATUS.ASSIGNED],
+		cls: 'rd-status--acknowledged',
+	},
+	[STATUS.IN_PROGRESS]: {
+		label: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+		cls: 'rd-status--acknowledged',
+	},
+	[STATUS.RESOLVED]: {
+		label: STATUS_DISPLAY[STATUS.RESOLVED],
+		cls: 'rd-status--resolved',
+	},
+	[STATUS.CLOSED]: {
+		label: STATUS_DISPLAY[STATUS.CLOSED],
+		cls: 'rd-status--closed',
+	},
 }
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -346,7 +363,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 			</div>
 			<p className="rd-req-desc">{req.description}</p>
 			<div className="rd-req-card-bottom">
-				<span className="rd-req-ward">{req.ward}</span>
+				<span className="rd-req-ward">{req.sa_ward}</span>
 				<span className="rd-req-date">
 					{format_date(req.created_at)}
 				</span>
@@ -360,7 +377,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 
 function RequestDetail({ req, resident }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
-	const has_worker = !!req.assigned_worker_uid
+	const has_worker = !!req.worker_uid // FIXED
 
 	return (
 		<div className="rd-detail">
@@ -379,7 +396,7 @@ function RequestDetail({ req, resident }) {
 			<dl className="rd-detail-meta">
 				<div className="rd-detail-meta-item">
 					<dt>Ward</dt>
-					<dd>{req.ward || '—'}</dd>
+					<dd>{req.sa_ward || '—'}</dd>
 				</div>
 				<div className="rd-detail-meta-item">
 					<dt>Submitted</dt>
@@ -412,11 +429,11 @@ function RequestDetail({ req, resident }) {
 			<div className="rd-thread-wrap">
 				{has_worker ? (
 					<MessageThread
-						request_id={req.id}
+						request_uid={req.id} // FIXED
 						current_uid={resident.uid}
 						current_name={resident.name}
 						current_role="resident"
-						other_uid={req.assigned_worker_uid}
+						other_uid={req.worker_uid} // FIXED
 						other_name={req.worker_name ?? 'Worker'}
 					/>
 				) : (

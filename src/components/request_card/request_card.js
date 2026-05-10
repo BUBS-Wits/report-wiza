@@ -1,30 +1,27 @@
 import React from 'react'
 import LikeButton from './like_button/like_button.js'
+import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 
 function RequestCard({ request }) {
-	const status = request.status || ''
-	const category = request.category || 'Uncategorized'
-	const description = request.description || 'No description'
-	const ward = request.ward || ''
-	const municipality = request.municipality || ''
-
 	const showLikeButton =
-		status && status !== 'Resolved' && status !== 'Closed'
+		request.status !== STATUS.RESOLVED && request.status !== STATUS.CLOSED
 
 	return (
 		<div className="request_card">
 			<div className="request_card_top">
-				<h3>{category}</h3>
+				<h3>{request.category}</h3>
 				<span
-					className={`status_badge ${status.toLowerCase().replace(/\s+/g, '_')}`}
+					className={`status_badge ${STATUS_DISPLAY[request.status].toLowerCase().replace(/\s+/g, '_')}`}
 				>
-					{status || 'Unknown'}
+					{STATUS_DISPLAY[request.status]}
 				</span>
 			</div>
 			<p className="request_location">
-				{ward} - {municipality}
+				{request.sa_ward ? `Ward ${request.sa_ward}` : '—'} ·{' '}
+				{' ' + request.sa_m_name || ' —'}
 			</p>
-			<p className="request_description">{description}</p>
+			<p className="request_description">{request.description}</p>
+
 			{showLikeButton && (
 				<div className="request_footer">
 					<LikeButton

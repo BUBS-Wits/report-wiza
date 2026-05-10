@@ -1,15 +1,11 @@
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
-import { REQUEST_CATEGORIES } from '../constants.js'
+import { REQUEST_CATEGORIES, STATUS } from '../constants.js'
 
 export const verify_admin = async (uid) => {
 	const user_doc = await getDoc(doc(db, 'users', uid))
 	return user_doc.exists() && user_doc.data().role === 'admin'
 }
-
-const PENDING_STATUSES = ['pending']
-const IN_PROGRESS_STATUSES = ['in_progress', 'acknowledged']
-const RESOLVED_STATUSES = ['resolved']
 
 const compute_avg_hours = (resolved_requests) => {
 	if (resolved_requests.length === 0) {
@@ -26,17 +22,22 @@ const compute_avg_hours = (resolved_requests) => {
 }
 
 export const build_category_stats = (all_requests) => {
+	const STATUS = Object.freeze({
+		SUBMITTED: 'open',
+		ASSIGNED: 'acknowledged',
+		IN_PROGRESS: 'in_progress',
+		RESOLVED: 'resolved',
+		CLOSED: 'closed',
+	})
 	return REQUEST_CATEGORIES.map((category) => {
 		const cat_requests = all_requests.filter((r) => r.category === category)
 
-		const pending = cat_requests.filter((r) =>
-			PENDING_STATUSES.includes(r.status)
+		const pending = cat_requests.filter((r) => STATUS.ASSIGNED === r.status)
+		const in_progress = cat_requests.filter(
+			(r) => STATUS.IN_PROGRESS === r.status
 		)
-		const in_progress = cat_requests.filter((r) =>
-			IN_PROGRESS_STATUSES.includes(r.status)
-		)
-		const resolved = cat_requests.filter((r) =>
-			RESOLVED_STATUSES.includes(r.status)
+		const resolved = cat_requests.filter(
+			(r) => STATUS.RESOLVED === r.status
 		)
 
 		return {

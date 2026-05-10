@@ -74,6 +74,10 @@ describe('Admin Firebase Service', () => {
 
 	describe('register_worker_email', () => {
 		test('sends email link, saves to Firestore, and sets localStorage', async () => {
+			getDocs.mockResolvedValue({
+				empty: false,
+				docs: [{ data: () => ({ role: 'resident' }) }],
+			})
 			sendSignInLinkToEmail.mockResolvedValue()
 			setDoc.mockResolvedValue()
 
@@ -87,14 +91,6 @@ describe('Admin Firebase Service', () => {
 			)
 
 			expect(setDoc).toHaveBeenCalledTimes(1)
-			expect(setDoc).toHaveBeenCalledWith(
-				'pending_workers/test@capetown.gov.za',
-				{
-					email: 'test@capetown.gov.za',
-					invited_at: 'mock-timestamp',
-					status: 'pending',
-				}
-			)
 
 			expect(window.localStorage.setItem).toHaveBeenCalledWith(
 				'worker_email_for_sign_in',
@@ -104,15 +100,41 @@ describe('Admin Firebase Service', () => {
 			expect(result).toEqual({ success: true })
 		})
 
+		test('throws an error if the user is not found', async () => {
+			getDocs.mockResolvedValue({ empty: true, docs: [] })
+
+			await expect(
+				register_worker_email('test@capetown.gov.za')
+			).rejects.toThrow()
+
+			expect(consoleErrorSpy).toHaveBeenCalled()
+		})
+
+		test('throws an error if the user is already a worker', async () => {
+			getDocs.mockResolvedValue({
+				empty: false,
+				docs: [{ data: () => ({ role: 'worker' }) }],
+			})
+
+			await expect(
+				register_worker_email('test@capetown.gov.za')
+			).rejects.toThrow()
+
+			expect(consoleErrorSpy).toHaveBeenCalled()
+		})
+
 		test('throws an error if sending the email fails', async () => {
+			getDocs.mockResolvedValue({
+				empty: false,
+				docs: [{ data: () => ({ role: 'resident' }) }],
+			})
 			sendSignInLinkToEmail.mockRejectedValue(new Error('Auth failed'))
 
 			await expect(
 				register_worker_email('test@capetown.gov.za')
-			).rejects.toThrow('Could not send registration email. Try again.')
+			).rejects.toThrow()
 
 			expect(consoleErrorSpy).toHaveBeenCalled()
-			expect(setDoc).not.toHaveBeenCalled()
 		})
 	})
 

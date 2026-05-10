@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import Login from '../pages/login_page/login.js'
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
 jest.mock('../firebase_config.js', () => ({ auth: {}, db: {} }))
 jest.mock('../pages/login_page/login.css', () => ({}))
 jest.mock('../components/nav_bar/nav_bar.js', () => {
@@ -13,7 +17,9 @@ jest.mock('../components/nav_bar/nav_bar.js', () => {
 })
 
 jest.mock('firebase/auth', () => ({
-	GoogleAuthProvider: jest.fn().mockImplementation(() => ({})),
+	GoogleAuthProvider: jest.fn(() => ({
+		setCustomParameters: jest.fn(),
+	})),
 	signInWithPopup: jest.fn(),
 }))
 

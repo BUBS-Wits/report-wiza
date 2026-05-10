@@ -327,7 +327,7 @@ describe('RequestForm', () => {
 		expect(Request).toHaveBeenCalledWith(
 			'Potholes',
 			'Large pothole near road',
-			file,
+			'data:image/png;base64,test',
 			18.4,
 			-33.9,
 			expect.any(Object)

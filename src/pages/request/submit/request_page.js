@@ -52,8 +52,6 @@ function RequestPage() {
 	async function submit_request(request) {
 		set_submitting(true)
 		try {
-			request.set_placeholder_image()
-
 			// Build headers — token only if logged in
 			const headers = { 'Content-Type': 'application/json' }
 			if (current_user) {
@@ -85,9 +83,6 @@ function RequestPage() {
 			} else {
 				alert('Request successfully submitted.')
 				console.log(await res.json())
-
-				// Navigate to home after success
-				navigate('/')
 			}
 		} catch (e) {
 			console.error('Error during upload:', e)
