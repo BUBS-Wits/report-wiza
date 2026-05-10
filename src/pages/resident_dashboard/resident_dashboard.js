@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { useNavigate } from 'react-router-dom'
 import { Link, useLocation } from 'react-router-dom'
 import { auth } from '../../firebase_config.js'
 import {
@@ -71,6 +72,7 @@ export default function ResidentDashboard() {
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [logging_out, set_logging_out] = useState(false)
+	const navigation = useNavigate()
 
 	/* ── Load ─────────────────────────────────────────────────────────── */
 
@@ -125,6 +127,7 @@ export default function ResidentDashboard() {
 	const handle_logout = async () => {
 		set_logging_out(true)
 		await signOut(auth)
+		navigation('/')
 	}
 
 	/* ── Derived ──────────────────────────────────────────────────────── */
@@ -247,6 +250,28 @@ export default function ResidentDashboard() {
 							/>
 						</svg>
 						<span>Submit Request</span>
+					</Link>
+					<Link
+						to="/dashboard"
+						className={`rd-nav-link${location.pathname === '/dashboard' ? ' rd-nav-link--active' : ''}`}
+					>
+						<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+							<circle
+								cx="8"
+								cy="8"
+								r="5.5"
+								stroke="currentColor"
+								strokeWidth="1.5"
+							/>
+							<path
+								d="M8 5v3.5l2 2"
+								stroke="currentColor"
+								strokeWidth="1.5"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
+						</svg>
+						<span>Public Dashboard</span>
 					</Link>
 				</nav>
 
