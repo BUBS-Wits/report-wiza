@@ -1,108 +1,215 @@
-/* src/pages/resident/resident_requests.css */
-.resident_requests_container {
-	max-width: 900px;
-	margin: 2rem auto;
-	padding: 1rem;
-	background-color: #f8fafc;
-	font-family: 'DM Sans', sans-serif;
+/* resident_requests.css – aligned with ResidentDashboard */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --rr-bg: #f5f1eb;
+  --rr-surface: #ffffff;
+  --rr-surface-alt: #faf8f4;
+  --rr-accent: #c05a3a;
+  --rr-accent-light: #fdf0ec;
+  --rr-accent-muted: #e8a48e;
+  --rr-text-primary: #1c1612;
+  --rr-text-secondary: #6b5f52;
+  --rr-text-muted: #a39a8e;
+  --rr-border: #e4ddd3;
+  --rr-border-light: #ede8e1;
+  --rr-status-open-bg: #ebf4fd;
+  --rr-status-open-text: #1b5e98;
+  --rr-status-progress-bg: #fef5e7;
+  --rr-status-progress-text: #976000;
+  --rr-status-resolved-bg: #eaf7ee;
+  --rr-status-resolved-text: #1e6b3a;
+  --rr-font-display: 'Fraunces', Georgia, serif;
+  --rr-font-body: 'DM Sans', sans-serif;
+  --rr-font-mono: 'DM Mono', monospace;
+  --rr-radius-card: 14px;
+  --rr-radius-pill: 20px;
+  --rr-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
-.resident_requests_container h2 {
-	color: #0f1f3d;
-	font-family: 'Barlow Condensed', sans-serif;
-	font-weight: 700;
-	border-left: 4px solid #f59e0b;
-	padding-left: 1rem;
-	margin-bottom: 1.5rem;
+.rr-page {
+  min-height: 100vh;
+  background: var(--rr-bg);
+  font-family: var(--rr-font-body);
+  color: var(--rr-text-primary);
 }
 
-.requests_list {
-	list-style: none;
-	padding: 0;
-	margin: 0;
+.rr-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
 }
 
-.request_item {
-	background: #ffffff;
-	border-radius: 8px;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-	margin-bottom: 1rem;
-	padding: 1rem;
-	transition: box-shadow 0.2s;
-	border-left: 4px solid #f59e0b;
+.rr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.request_header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 0.5rem;
+.rr-header h1 {
+  font-family: var(--rr-font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--rr-text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
 }
 
-.request_category {
-	background: #f8fafc;
-	padding: 0.25rem 0.75rem;
-	border-radius: 20px;
-	font-size: 0.875rem;
-	font-weight: 500;
-	color: #0f1f3d;
+.rr-submit-btn {
+  background: var(--rr-accent);
+  color: white;
+  padding: 0.6rem 1.25rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.request_status {
-	font-size: 0.875rem;
-	font-weight: 600;
-	text-transform: uppercase;
-	padding: 0.25rem 0.75rem;
-	border-radius: 20px;
+.rr-submit-btn:hover {
+  background: #a04528;
 }
 
-.status_open {
-	background-color: #2563eb20;
-	color: #2563eb;
-}
-.status_acknowledged {
-	background-color: #f59e0b20;
-	color: #d97706;
-}
-.status_in_progress {
-	background-color: #f59e0b20;
-	color: #d97706;
-}
-.status_resolved {
-	background-color: #16a34a20;
-	color: #16a34a;
-}
-.status_closed {
-	background-color: #64748b20;
-	color: #64748b;
+/* Navigation links (button-like) */
+.rr-nav-links {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
-.request_description {
-	color: #1e293b;
-	margin: 0.5rem 0;
-	font-size: 0.95rem;
-	line-height: 1.4;
+.rr-nav-link {
+  background: transparent;
+  border: 1px solid var(--rr-border);
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rr-text-secondary);
+  transition: all 0.2s;
 }
 
-.request_footer {
-	font-size: 0.8rem;
-	color: #64748b;
-	margin-top: 0.5rem;
+.rr-nav-link:hover {
+  background: var(--rr-accent-light);
+  border-color: var(--rr-accent-muted);
+  color: var(--rr-accent);
 }
 
-.loading,
-.error,
-.empty {
-	text-align: center;
-	padding: 2rem;
-	font-family: 'DM Sans', sans-serif;
-	background: white;
-	border-radius: 8px;
-	max-width: 600px;
-	margin: 2rem auto;
+.rr-empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--rr-surface);
+  border-radius: var(--rr-radius-card);
+  box-shadow: var(--rr-shadow-card);
+  border: 1px solid var(--rr-border-light);
 }
 
-.error {
-	color: #dc2626;
-	border-left: 4px solid #dc2626;
+.rr-empty-state p {
+  color: var(--rr-text-secondary);
+  margin-bottom: 1.25rem;
+  font-size: 15px;
+}
+
+.rr-requests-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rr-request-card {
+  background: var(--rr-surface);
+  border-radius: var(--rr-radius-card);
+  padding: 16px;
+  border: 1px solid var(--rr-border-light);
+  transition: border-color 0.16s, box-shadow 0.16s;
+  box-shadow: var(--rr-shadow-card);
+}
+
+.rr-request-card:hover {
+  border-color: var(--rr-accent-muted);
+  box-shadow: 0 4px 20px rgba(192, 90, 58, 0.1);
+}
+
+.rr-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rr-category {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rr-text-primary);
+}
+
+.rr-status-badge {
+  font-family: var(--rr-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: var(--rr-radius-pill);
+  white-space: nowrap;
+}
+
+.rr-status-badge--open,
+.rr-status-badge--submitted,
+.rr-status-badge--unassigned {
+  background: var(--rr-status-open-bg);
+  color: var(--rr-status-open-text);
+}
+
+.rr-status-badge--in_progress,
+.rr-status-badge--assigned,
+.rr-status-badge--in-progress {
+  background: var(--rr-status-progress-bg);
+  color: var(--rr-status-progress-text);
+}
+
+.rr-status-badge--resolved,
+.rr-status-badge--closed {
+  background: var(--rr-status-resolved-bg);
+  color: var(--rr-status-resolved-text);
+}
+
+.rr-description {
+  font-size: 13.5px;
+  color: var(--rr-text-secondary);
+  line-height: 1.5;
+  margin: 6px 0 12px;
+}
+
+.rr-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-family: var(--rr-font-mono);
+  font-size: 11px;
+  color: var(--rr-text-muted);
+}
+
+.rr-loading,
+.rr-error {
+  text-align: center;
+  padding: 3rem;
+  font-size: 14px;
+  color: var(--rr-text-secondary);
+}
+
+.rr-error {
+  color: #c0392b;
 }

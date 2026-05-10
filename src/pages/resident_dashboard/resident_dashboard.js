@@ -8,6 +8,7 @@ import {
 	subscribe_to_resident_unread_count,
 } from '../../backend/resident_dashboard_service.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
+import LikeButton from '../../components/request_card/like_button/like_button.js'
 import './resident_dashboard.css'
 
 /* ── Status config ───────────────────────────────────────────────────────── */
@@ -349,6 +350,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 				<span className="rd-req-date">
 					{format_date(req.created_at)}
 				</span>
+				<LikeButton requestId={req.id} initialLikeCount={req.like_count || 0} />
 			</div>
 		</button>
 	)
