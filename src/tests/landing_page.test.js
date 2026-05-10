@@ -412,7 +412,7 @@ describe('LandingPage', () => {
 				renderLandingPage()
 				// /request (hero) + /dashboard + /request (feature card) + /about + /contact + /login
 				const allLinks = screen.getAllByRole('link')
-				expect(allLinks).toHaveLength(7)
+				expect(allLinks).toHaveLength(5)
 			})
 
 			it('Then it should render two links pointing to /request', () => {

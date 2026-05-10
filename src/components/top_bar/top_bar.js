@@ -41,6 +41,12 @@ function TopBar({ active_section }) {
 				<h1 className="top_bar_title">{title}</h1>
 				<p className="top_bar_sub">{sub}</p>
 			</div>
+			<button
+				className="top_bar_public_btn"
+				onClick={() => navigate('/dashboard')}
+			>
+				Public Dashboard
+			</button>
 			<button className="top_bar_signout" onClick={handle_signout}>
 				Sign out
 			</button>

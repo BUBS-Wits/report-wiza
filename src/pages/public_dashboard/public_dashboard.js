@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import { onAuthStateChanged } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db } from '../../firebase_config.js'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import RequestCard from '../../components/request_card/request_card.js'
@@ -147,7 +150,33 @@ function PublicDashboard() {
 	})
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
+	const navigate = useNavigate()
+	const [homeRoute, setHomeRoute] = useState('/')
 
+	useEffect(() => {
+		const unsub = onAuthStateChanged(auth, async (user) => {
+			if (!user) {
+				setHomeRoute('/')
+				return
+			}
+			try {
+				const snap = await getDoc(doc(db, 'users', user.uid))
+				const role = snap.data()?.role
+				if (role === 'worker') {
+					setHomeRoute('/worker-dashboard')
+				} else if (role === 'resident') {
+					setHomeRoute('/resident-dashboard')
+				} else if (role === 'admin') {
+					setHomeRoute('/admin')
+				} else {
+					setHomeRoute('/')
+				}
+			} catch {
+				setHomeRoute('/')
+			}
+		})
+		return () => unsub()
+	}, [])
 	useEffect(() => {
 		fetchPublicDashboardData()
 			.then(({ active, resolved, stats }) => {
@@ -190,7 +219,7 @@ function PublicDashboard() {
 		<div className="public_dashboard">
 			<Navbar />
 			<header className="dashboard_header">
-				<Link to="/" className="home_button">
+				<Link to={homeRoute} className="home_button">
 					🏠 Home
 				</Link>
 				<p className="dashboard_eyebrow">Public Municipal Dashboard</p>
