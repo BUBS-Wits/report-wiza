@@ -39,6 +39,8 @@
 .ar_tabs {
 	display: flex;
 	gap: 8px;
+	/* Added flex-wrap so tabs drop to a new line on narrow phones */
+	flex-wrap: wrap;
 }
 
 .ar_tab {
@@ -72,9 +74,11 @@
 	background: #fff;
 	border: 1px solid #e8e5e0;
 	border-radius: 8px;
-	overflow: hidden;
+	/* Allows the inner grid tables to scroll horizontally on small screens */
+	overflow-x: auto;
 }
 
+/* All Requests Grid (6 Columns) */
 .ar_table_header {
 	display: grid;
 	grid-template-columns: 90px 130px 1fr 110px 120px 100px;
@@ -87,6 +91,8 @@
 	letter-spacing: 0.06em;
 	color: #94a3b8;
 	gap: 12px;
+	/* Prevents the grid from crushing on mobile */
+	min-width: 800px;
 }
 
 .ar_row {
@@ -97,6 +103,14 @@
 	align-items: center;
 	gap: 12px;
 	transition: background 0.1s;
+	/* Prevents the grid from crushing on mobile */
+	min-width: 800px;
+}
+
+/* Stale Requests Grid (5 Columns) */
+.ar_table_header_stale,
+.ar_row_stale {
+	grid-template-columns: 90px 130px 1fr 110px 150px;
 }
 
 .ar_row:last-child {
@@ -207,6 +221,8 @@
 	color: #94a3b8;
 	padding: 10px 20px;
 	border-bottom: 1px solid #f4f1ed;
+	/* Keeps the note from forcing the container too wide */
+	white-space: normal;
 }
 
 .ar_date {

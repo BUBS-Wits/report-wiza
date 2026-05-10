@@ -92,10 +92,11 @@ export default function WorkerDashboard() {
 	})
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
+	const [error_handling, set_error_handling] = useState(null)
 	const [active_filter, set_filter] = useState('All')
-	const [active_section, set_active_section] = useState('queue')
-	const [selected_req, set_selected_req] = useState(null) // drives the panel
-	const [panel_visible, set_panel_visible] = useState(false) // drives CSS transition
+	const [active_section, set_active_section] = useState(null)
+	const [selected_req, set_selected_req] = useState(null)
+	const [panel_visible, set_panel_visible] = useState(false)
 	const [show_busy_tip, set_show_busy_tip] = useState(false)
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
@@ -107,6 +108,22 @@ export default function WorkerDashboard() {
 		setTimeout(() => set_show_busy_tip(false), 2000)
 	}
 
+	/* ── Load dashboard data ──────────────────────────────────────────── */
+
+	const load_dashboard = useCallback(async (uid) => {
+		set_error(null)
+		try {
+			const snap = await verify_worker_and_get_profile(uid)
+			const profile = snap.data()
+			set_worker({ uid, ...profile })
+			set_active_section('queue')
+		} catch (err) {
+			set_error(err.message || 'Failed to load dashboard.')
+			set_error_handling(() => () => navigate('/login'))
+		} finally {
+			set_loading(false)
+		}
+	}, [])
 	/* ── Panel helpers ────────────────────────────────────────────────── */
 
 	const open_panel = useCallback((req) => {
@@ -144,6 +161,7 @@ export default function WorkerDashboard() {
 		set_active_section('available')
 		close_panel()
 	}
+
 	const set_messages_section = () => {
 		set_active_section('messages')
 		close_panel()
@@ -155,18 +173,11 @@ export default function WorkerDashboard() {
 		const unsub = onAuthStateChanged(auth, async (user) => {
 			if (!user) {
 				set_error('You are not logged in.')
+				set_error_handling(() => () => navigate('/login'))
 				set_loading(false)
 				return
 			}
-			const snap = await verify_worker_and_get_profile(user.uid)
-			const data = snap.data()
-			set_worker({
-				uid: user.uid,
-				name: data.name ?? 'Municipal Worker',
-				email: data.email ?? '',
-				role: data.role,
-			})
-			set_loading(false)
+			load_dashboard(user.uid)
 		})
 		return () => unsub()
 	}, [])
@@ -323,7 +334,7 @@ export default function WorkerDashboard() {
 	}
 
 	if (error) {
-		return <ErrorScreen message={error} onRetry={() => null} />
+		return <ErrorScreen message={error} onRetry={error_handling} />
 	}
 
 	/* ── Derived values ───────────────────────────────────────────────── */

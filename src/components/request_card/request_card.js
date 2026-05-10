@@ -13,6 +13,9 @@ function RequestCard({ request, visibleFields }) {
 		...visibleFields,
 	}
 
+	const statusText =
+		STATUS_DISPLAY[request.status] ?? request.status ?? 'unknown'
+
 	const showLikeButton =
 		fields.likes &&
 		request.status !== STATUS.RESOLVED &&
@@ -25,11 +28,11 @@ function RequestCard({ request, visibleFields }) {
 
 				{fields.status && (
 					<span
-						className={`status_badge ${STATUS_DISPLAY[request.status]
+						className={`status_badge ${statusText
 							.toLowerCase()
 							.replace(/\s+/g, '_')}`}
 					>
-						{STATUS_DISPLAY[request.status]}
+						{statusText}
 					</span>
 				)}
 			</div>

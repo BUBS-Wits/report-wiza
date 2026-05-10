@@ -249,7 +249,8 @@ function AdminRequests() {
 						These requests have had no status update for 3 or more
 						days.
 					</p>
-					<div className="ar_table_header">
+					{/* ADDED: Specific class for the 5-column grid layout */}
+					<div className="ar_table_header ar_table_header_stale">
 						<span>ID</span>
 						<span>Category</span>
 						<span>Description</span>
@@ -260,7 +261,8 @@ function AdminRequests() {
 						<div className="ar_empty">No stale requests.</div>
 					) : (
 						stale_requests.map((req) => (
-							<div className="ar_row" key={req.id}>
+							// ADDED: Specific class for the 5-column grid layout
+							<div className="ar_row ar_row_stale" key={req.id}>
 								<span className="ar_id">
 									{req.id.slice(0, 8)}
 								</span>

@@ -56,7 +56,14 @@
 	display: flex;
 	flex: 1;
 	overflow: hidden;
-	height: calc(100dvh - var(--wm-navbar-h));
+	/* Added relative positioning so mobile children map to this container */
+	position: relative;
+	/* Rely on the parent container (Worker Dashboard) for outer height bounds */
+	height: 100%;
+	min-height: 600px; /* Provides a safe minimum height */
+	border: 1px solid var(--wm-border);
+	border-radius: 12px;
+	background: var(--wm-surface);
 }
 
 /* ── LEFT SIDEBAR ────────────────────────────────────────────── */
@@ -575,7 +582,8 @@
 	.wm-sidebar {
 		width: 100%;
 		position: absolute;
-		inset: var(--wm-navbar-h) 0 0 0;
+		/* Changed inset to 0 so it aligns securely to its relative .wm-layout wrapper */
+		inset: 0;
 		z-index: 10;
 		transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
 	}
@@ -588,7 +596,8 @@
 
 	.wm-thread-area {
 		position: absolute;
-		inset: var(--wm-navbar-h) 0 0 0;
+		/* Changed inset to 0 so it aligns securely to its relative wrapper */
+		inset: 0;
 	}
 
 	.wm-back-btn {
