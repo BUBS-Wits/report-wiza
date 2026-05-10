@@ -797,7 +797,7 @@
 
 .wd-retry-btn:hover {
 	background: rgba(245, 158, 11, 0.16);
-/* ── Priority pill — add to resident_dashboard.css ── */
+	/* ── Priority pill — add to resident_dashboard.css ── */
 }
 .rd-priority-pill {
 	display: inline-block;
