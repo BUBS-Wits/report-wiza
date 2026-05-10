@@ -116,7 +116,7 @@ export const remove_category = async (category_id, active) => {
 
 // ── US030 — Assign stale requests ─────────────────────────────────────────
 
-const STALE_DAYS = 3
+const STALE_DAYS = -1
 
 export const fetch_stale_requests = async () => {
 	try {
