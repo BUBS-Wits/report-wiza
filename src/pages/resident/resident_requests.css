@@ -3,213 +3,215 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-  --rr-bg: #f5f1eb;
-  --rr-surface: #ffffff;
-  --rr-surface-alt: #faf8f4;
-  --rr-accent: #c05a3a;
-  --rr-accent-light: #fdf0ec;
-  --rr-accent-muted: #e8a48e;
-  --rr-text-primary: #1c1612;
-  --rr-text-secondary: #6b5f52;
-  --rr-text-muted: #a39a8e;
-  --rr-border: #e4ddd3;
-  --rr-border-light: #ede8e1;
-  --rr-status-open-bg: #ebf4fd;
-  --rr-status-open-text: #1b5e98;
-  --rr-status-progress-bg: #fef5e7;
-  --rr-status-progress-text: #976000;
-  --rr-status-resolved-bg: #eaf7ee;
-  --rr-status-resolved-text: #1e6b3a;
-  --rr-font-display: 'Fraunces', Georgia, serif;
-  --rr-font-body: 'DM Sans', sans-serif;
-  --rr-font-mono: 'DM Mono', monospace;
-  --rr-radius-card: 14px;
-  --rr-radius-pill: 20px;
-  --rr-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+	--rr-bg: #f5f1eb;
+	--rr-surface: #ffffff;
+	--rr-surface-alt: #faf8f4;
+	--rr-accent: #c05a3a;
+	--rr-accent-light: #fdf0ec;
+	--rr-accent-muted: #e8a48e;
+	--rr-text-primary: #1c1612;
+	--rr-text-secondary: #6b5f52;
+	--rr-text-muted: #a39a8e;
+	--rr-border: #e4ddd3;
+	--rr-border-light: #ede8e1;
+	--rr-status-open-bg: #ebf4fd;
+	--rr-status-open-text: #1b5e98;
+	--rr-status-progress-bg: #fef5e7;
+	--rr-status-progress-text: #976000;
+	--rr-status-resolved-bg: #eaf7ee;
+	--rr-status-resolved-text: #1e6b3a;
+	--rr-font-display: 'Fraunces', Georgia, serif;
+	--rr-font-body: 'DM Sans', sans-serif;
+	--rr-font-mono: 'DM Mono', monospace;
+	--rr-radius-card: 14px;
+	--rr-radius-pill: 20px;
+	--rr-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .rr-page {
-  min-height: 100vh;
-  background: var(--rr-bg);
-  font-family: var(--rr-font-body);
-  color: var(--rr-text-primary);
+	min-height: 100vh;
+	background: var(--rr-bg);
+	font-family: var(--rr-font-body);
+	color: var(--rr-text-primary);
 }
 
 .rr-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 2rem;
+	max-width: 1000px;
+	margin: 0 auto;
+	padding: 2rem;
 }
 
 .rr-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2rem;
+	flex-wrap: wrap;
+	gap: 1rem;
 }
 
 .rr-header h1 {
-  font-family: var(--rr-font-display);
-  font-size: 28px;
-  font-weight: 600;
-  color: var(--rr-text-primary);
-  margin: 0;
-  letter-spacing: -0.02em;
+	font-family: var(--rr-font-display);
+	font-size: 28px;
+	font-weight: 600;
+	color: var(--rr-text-primary);
+	margin: 0;
+	letter-spacing: -0.02em;
 }
 
 .rr-submit-btn {
-  background: var(--rr-accent);
-  color: white;
-  padding: 0.6rem 1.25rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 14px;
-  transition: background 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+	background: var(--rr-accent);
+	color: white;
+	padding: 0.6rem 1.25rem;
+	border-radius: 10px;
+	text-decoration: none;
+	font-weight: 500;
+	font-size: 14px;
+	transition: background 0.2s;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 }
 
 .rr-submit-btn:hover {
-  background: #a04528;
+	background: #a04528;
 }
 
 /* Navigation links (button-like) */
 .rr-nav-links {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
+	display: flex;
+	gap: 12px;
+	margin-bottom: 24px;
+	flex-wrap: wrap;
 }
 
 .rr-nav-link {
-  background: transparent;
-  border: 1px solid var(--rr-border);
-  padding: 8px 16px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--rr-text-secondary);
-  transition: all 0.2s;
+	background: transparent;
+	border: 1px solid var(--rr-border);
+	padding: 8px 16px;
+	border-radius: 8px;
+	text-decoration: none;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--rr-text-secondary);
+	transition: all 0.2s;
 }
 
 .rr-nav-link:hover {
-  background: var(--rr-accent-light);
-  border-color: var(--rr-accent-muted);
-  color: var(--rr-accent);
+	background: var(--rr-accent-light);
+	border-color: var(--rr-accent-muted);
+	color: var(--rr-accent);
 }
 
 .rr-empty-state {
-  text-align: center;
-  padding: 3rem 2rem;
-  background: var(--rr-surface);
-  border-radius: var(--rr-radius-card);
-  box-shadow: var(--rr-shadow-card);
-  border: 1px solid var(--rr-border-light);
+	text-align: center;
+	padding: 3rem 2rem;
+	background: var(--rr-surface);
+	border-radius: var(--rr-radius-card);
+	box-shadow: var(--rr-shadow-card);
+	border: 1px solid var(--rr-border-light);
 }
 
 .rr-empty-state p {
-  color: var(--rr-text-secondary);
-  margin-bottom: 1.25rem;
-  font-size: 15px;
+	color: var(--rr-text-secondary);
+	margin-bottom: 1.25rem;
+	font-size: 15px;
 }
 
 .rr-requests-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
 }
 
 .rr-request-card {
-  background: var(--rr-surface);
-  border-radius: var(--rr-radius-card);
-  padding: 16px;
-  border: 1px solid var(--rr-border-light);
-  transition: border-color 0.16s, box-shadow 0.16s;
-  box-shadow: var(--rr-shadow-card);
+	background: var(--rr-surface);
+	border-radius: var(--rr-radius-card);
+	padding: 16px;
+	border: 1px solid var(--rr-border-light);
+	transition:
+		border-color 0.16s,
+		box-shadow 0.16s;
+	box-shadow: var(--rr-shadow-card);
 }
 
 .rr-request-card:hover {
-  border-color: var(--rr-accent-muted);
-  box-shadow: 0 4px 20px rgba(192, 90, 58, 0.1);
+	border-color: var(--rr-accent-muted);
+	box-shadow: 0 4px 20px rgba(192, 90, 58, 0.1);
 }
 
 .rr-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-  gap: 8px;
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 8px;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .rr-category {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--rr-text-primary);
+	font-size: 15px;
+	font-weight: 600;
+	color: var(--rr-text-primary);
 }
 
 .rr-status-badge {
-  font-family: var(--rr-font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  padding: 3px 10px;
-  border-radius: var(--rr-radius-pill);
-  white-space: nowrap;
+	font-family: var(--rr-font-mono);
+	font-size: 11px;
+	font-weight: 500;
+	padding: 3px 10px;
+	border-radius: var(--rr-radius-pill);
+	white-space: nowrap;
 }
 
 .rr-status-badge--open,
 .rr-status-badge--submitted,
 .rr-status-badge--unassigned {
-  background: var(--rr-status-open-bg);
-  color: var(--rr-status-open-text);
+	background: var(--rr-status-open-bg);
+	color: var(--rr-status-open-text);
 }
 
 .rr-status-badge--in_progress,
 .rr-status-badge--assigned,
 .rr-status-badge--in-progress {
-  background: var(--rr-status-progress-bg);
-  color: var(--rr-status-progress-text);
+	background: var(--rr-status-progress-bg);
+	color: var(--rr-status-progress-text);
 }
 
 .rr-status-badge--resolved,
 .rr-status-badge--closed {
-  background: var(--rr-status-resolved-bg);
-  color: var(--rr-status-resolved-text);
+	background: var(--rr-status-resolved-bg);
+	color: var(--rr-status-resolved-text);
 }
 
 .rr-description {
-  font-size: 13.5px;
-  color: var(--rr-text-secondary);
-  line-height: 1.5;
-  margin: 6px 0 12px;
+	font-size: 13.5px;
+	color: var(--rr-text-secondary);
+	line-height: 1.5;
+	margin: 6px 0 12px;
 }
 
 .rr-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  font-family: var(--rr-font-mono);
-  font-size: 11px;
-  color: var(--rr-text-muted);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 10px;
+	font-family: var(--rr-font-mono);
+	font-size: 11px;
+	color: var(--rr-text-muted);
 }
 
 .rr-loading,
 .rr-error {
-  text-align: center;
-  padding: 3rem;
-  font-size: 14px;
-  color: var(--rr-text-secondary);
+	text-align: center;
+	padding: 3rem;
+	font-size: 14px;
+	color: var(--rr-text-secondary);
 }
 
 .rr-error {
-  color: #c0392b;
+	color: #c0392b;
 }

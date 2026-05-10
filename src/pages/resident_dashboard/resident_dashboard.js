@@ -428,11 +428,22 @@ function RequestDetail({ req, resident }) {
 					<h2 className="rd-detail-title">{req.category}</h2>
 					<span className="rd-detail-id">{req.id}</span>
 				</div>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-					<span className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}>
+				<div
+					style={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: '12px',
+					}}
+				>
+					<span
+						className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}
+					>
 						{meta.label}
 					</span>
-					<LikeButton requestId={req.id} initialLikeCount={req.like_count || 0} />
+					<LikeButton
+						requestId={req.id}
+						initialLikeCount={req.like_count || 0}
+					/>
 				</div>
 			</div>
 

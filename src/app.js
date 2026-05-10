@@ -15,55 +15,55 @@ import ResidentDashboard from './pages/resident_dashboard/resident_dashboard.js'
 import './app.css'
 
 function App() {
-        return (
-                <BrowserRouter>
-                        <Routes>
-                                <Route path="/" element={<LandingPage />} />
-                                <Route path="/about" element={<About />} />
-                                <Route path="/contact" element={<Contact />} />
-                                <Route path="/dashboard" element={<PublicDashboard />} />
-                                <Route path="/request" element={<RequestPage />} />
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/worker-verify" element={<WorkerVerify />} />
-                                <Route path="/worker-dashboard" element={<WorkerDashboard />} />
-                                <Route
-                                        path="/worker-dashboard/messages"
-                                        element={<WorkerMessages />}
-                                />
-                                <Route
-                                        path="/resident-dashboard"
-                                        element={<ResidentDashboard />}
-                                />
-                                <Route
-                                        path="/admin"
-                                        element={<AdminDashboard section="workers" />}
-                                />
-                                <Route
-                                        path="/admin/workers"
-                                        element={<AdminDashboard section="workers" />}
-                                />
-                                <Route
-                                        path="/admin/requests"
-                                        element={<AdminDashboard section="requests" />}
-                                />
-                                <Route
-                                        path="/admin/residents"
-                                        element={<AdminDashboard section="residents" />}
-                                />
-                                <Route
-                                        path="/admin/messaging"
-                                        element={<AdminDashboard section="messaging" />}
-                                />
-                                <Route
-                                        path="/admin/settings"
-                                        element={<AdminDashboard section="settings" />}
-                                />
-                                <Route
-                                        path="/admin/analytics/category-report"
-                                        element={<CategoryReport />}
-                                />
-                        </Routes>
-                </BrowserRouter>
-        )
+	return (
+		<BrowserRouter>
+			<Routes>
+				<Route path="/" element={<LandingPage />} />
+				<Route path="/about" element={<About />} />
+				<Route path="/contact" element={<Contact />} />
+				<Route path="/dashboard" element={<PublicDashboard />} />
+				<Route path="/request" element={<RequestPage />} />
+				<Route path="/login" element={<Login />} />
+				<Route path="/worker-verify" element={<WorkerVerify />} />
+				<Route path="/worker-dashboard" element={<WorkerDashboard />} />
+				<Route
+					path="/worker-dashboard/messages"
+					element={<WorkerMessages />}
+				/>
+				<Route
+					path="/resident-dashboard"
+					element={<ResidentDashboard />}
+				/>
+				<Route
+					path="/admin"
+					element={<AdminDashboard section="workers" />}
+				/>
+				<Route
+					path="/admin/workers"
+					element={<AdminDashboard section="workers" />}
+				/>
+				<Route
+					path="/admin/requests"
+					element={<AdminDashboard section="requests" />}
+				/>
+				<Route
+					path="/admin/residents"
+					element={<AdminDashboard section="residents" />}
+				/>
+				<Route
+					path="/admin/messaging"
+					element={<AdminDashboard section="messaging" />}
+				/>
+				<Route
+					path="/admin/settings"
+					element={<AdminDashboard section="settings" />}
+				/>
+				<Route
+					path="/admin/analytics/category-report"
+					element={<CategoryReport />}
+				/>
+			</Routes>
+		</BrowserRouter>
+	)
 }
 export default App
