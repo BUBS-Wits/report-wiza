@@ -1,29 +1,539 @@
-div.service_request_page {
+/* ============================================
+   request_page.css — WardWatch Service Request
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=DM+Sans:wght@400;500&display=swap');
+
+/* ---------- tokens ---------- */
+:root {
+	--navy: #0f1f3d;
+	--navy-deep: #080f1e;
+	--navy-mid: #162342;
+	--navy-light: #1e3160;
+	--amber: #f59e0b;
+	--amber-dark: #d97706;
+	--amber-glow: rgba(245, 158, 11, 0.18);
+	--amber-line: rgba(245, 158, 11, 0.35);
+	--white: #ffffff;
+	--grey-light: #f8fafc;
+	--muted: #64748b;
+	--muted-light: #94a3b8;
+	--success: #16a34a;
+	--error: #dc2626;
+	--border: rgba(255, 255, 255, 0.07);
+	--card-bg: rgba(255, 255, 255, 0.04);
+	--font-head: 'Barlow Condensed', sans-serif;
+	--font-body: 'DM Sans', sans-serif;
+}
+
+/* ---------- reset / base ---------- */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+/* ---------- page shell ---------- */
+.service_request_page {
 	min-height: 100vh;
-	background: #0a1628;
-	color: rgb(148, 163, 184);
-	font-family:
-		DM Sans,
-		sans-serif;
+	background-color: var(--navy-deep);
+	background-image:
+		/* amber radial accent top-right */
+		radial-gradient(
+			ellipse 60% 40% at 80% -5%,
+			rgba(245, 158, 11, 0.12) 0%,
+			transparent 70%
+		),
+		/* subtle grid lines */
+		repeating-linear-gradient(
+				0deg,
+				transparent,
+				transparent 79px,
+				rgba(255, 255, 255, 0.025) 79px,
+				rgba(255, 255, 255, 0.025) 80px
+			),
+		repeating-linear-gradient(
+			90deg,
+			transparent,
+			transparent 79px,
+			rgba(255, 255, 255, 0.025) 79px,
+			rgba(255, 255, 255, 0.025) 80px
+		);
+	font-family: var(--font-body);
+	color: var(--muted-light);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: space-evenly;
-	padding: 1rem 5rem;
 }
 
-header {
-	color: rgb(251, 191, 36);
-	justify-content: center;
-	align-items: center;
-	text-align: center;
-	padding: 2rem 1rem 1rem;
+/* ---------- page hero header ---------- */
+.request_page_header {
+	width: 100%;
+	max-width: 860px;
+	padding: 3.5rem 2rem 0;
+	animation: fade_up 0.5s ease both;
 }
 
-main {
-	flex: 1;
+.request_page_eyebrow {
 	display: flex;
-	align-items: flex-start;
+	align-items: center;
+	gap: 0.5rem;
+	font-family: var(--font-head);
+	font-size: 0.8rem;
+	font-weight: 500;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--amber);
+	margin-bottom: 0.75rem;
+}
+
+.request_page_eyebrow::before {
+	content: '';
+	display: inline-block;
+	width: 24px;
+	height: 2px;
+	background: var(--amber);
+	border-radius: 2px;
+}
+
+.request_page_header h1 {
+	font-family: var(--font-head);
+	font-size: clamp(2rem, 5vw, 3.2rem);
+	font-weight: 700;
+	line-height: 1.05;
+	color: var(--white);
+	letter-spacing: 0.01em;
+}
+
+.request_page_header h1 span {
+	color: var(--amber);
+}
+
+.request_page_subtitle {
+	margin-top: 0.75rem;
+	font-size: 0.95rem;
+	color: var(--muted);
+	max-width: 500px;
+	line-height: 1.6;
+}
+
+/* ---------- divider ---------- */
+.request_page_divider {
+	width: 100%;
+	max-width: 860px;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		var(--amber-line) 30%,
+		var(--amber-line) 70%,
+		transparent
+	);
+	margin: 2rem 2rem 0;
+	animation: fade_up 0.5s 0.1s ease both;
+}
+
+/* ---------- step indicators ---------- */
+.request_page_steps {
+	width: 100%;
+	max-width: 860px;
+	padding: 1.75rem 2rem 0;
+	display: flex;
+	align-items: center;
+	gap: 0;
+	animation: fade_up 0.5s 0.15s ease both;
+}
+
+.step_item {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	flex: 1;
+	position: relative;
+}
+
+.step_item:not(:last-child)::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	background: var(--border);
+	margin: 0 0.5rem;
+}
+
+.step_number {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--navy-light);
+	border: 1px solid var(--border);
+	display: flex;
+	align-items: center;
 	justify-content: center;
-	padding: 2rem 1rem;
+	font-family: var(--font-head);
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--muted);
+	flex-shrink: 0;
+	transition:
+		background 0.2s,
+		border-color 0.2s,
+		color 0.2s;
+}
+
+.step_item.active .step_number {
+	background: var(--amber);
+	border-color: var(--amber);
+	color: var(--navy-deep);
+}
+
+.step_label {
+	font-size: 0.78rem;
+	font-weight: 500;
+	color: var(--muted);
+	white-space: nowrap;
+}
+
+.step_item.active .step_label {
+	color: var(--amber);
+}
+
+/* ---------- main form area ---------- */
+.request_page_main {
+	width: 100%;
+	max-width: 860px;
+	padding: 2rem 2rem 5rem;
+	animation: fade_up 0.5s 0.2s ease both;
+}
+
+/* ---------- form card wrapper ---------- */
+.request_form_card {
+	background: var(--card-bg);
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	padding: 2.5rem;
+	backdrop-filter: blur(8px);
+	position: relative;
+	overflow: hidden;
+}
+
+/* amber top-edge glow on card */
+.request_form_card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 10%;
+	right: 10%;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		var(--amber) 50%,
+		transparent
+	);
+}
+
+/* ---------- section headings inside card ---------- */
+.form_section_label {
+	font-family: var(--font-head);
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+	color: var(--amber);
+	margin-bottom: 1.25rem;
+}
+
+/* ---------- field groups ---------- */
+.form_field_group {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	margin-bottom: 2rem;
+}
+
+.form_field_row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.25rem;
+}
+
+/* ---------- individual field ---------- */
+.form_field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+}
+
+.form_field label {
+	font-size: 0.8rem;
+	font-weight: 500;
+	color: var(--muted-light);
+	letter-spacing: 0.02em;
+}
+
+.form_field input,
+.form_field select,
+.form_field textarea {
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	color: var(--white);
+	font-family: var(--font-body);
+	font-size: 0.9rem;
+	padding: 0.7rem 0.9rem;
+	outline: none;
+	transition:
+		border-color 0.2s,
+		background 0.2s,
+		box-shadow 0.2s;
+	width: 100%;
+}
+
+.form_field input::placeholder,
+.form_field textarea::placeholder {
+	color: var(--muted);
+}
+
+.form_field input:focus,
+.form_field select:focus,
+.form_field textarea:focus {
+	border-color: var(--amber);
+	background: rgba(245, 158, 11, 0.05);
+	box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form_field select {
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	padding-right: 2.5rem;
+	cursor: pointer;
+}
+
+.form_field select option {
+	background: var(--navy-mid);
+	color: var(--white);
+}
+
+.form_field textarea {
+	resize: vertical;
+	min-height: 110px;
+	line-height: 1.6;
+}
+
+/* ---------- image upload area ---------- */
+.image_upload_area {
+	border: 1.5px dashed rgba(255, 255, 255, 0.12);
+	border-radius: 10px;
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6rem;
+	cursor: pointer;
+	text-align: center;
+	transition:
+		border-color 0.2s,
+		background 0.2s;
+	background: rgba(255, 255, 255, 0.02);
+	position: relative;
+}
+
+.image_upload_area:hover {
+	border-color: var(--amber-line);
+	background: var(--amber-glow);
+}
+
+.image_upload_area input[type='file'] {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	cursor: pointer;
+	width: 100%;
+	height: 100%;
+}
+
+.image_upload_icon {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: var(--amber-glow);
+	border: 1px solid var(--amber-line);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.1rem;
+}
+
+.image_upload_label {
+	font-size: 0.85rem;
+	color: var(--muted-light);
+	font-weight: 500;
+}
+
+.image_upload_label span {
+	color: var(--amber);
+}
+
+.image_upload_hint {
+	font-size: 0.75rem;
+	color: var(--muted);
+}
+
+/* ---------- location pill ---------- */
+.location_pill {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 0.7rem 1rem;
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+.location_pill_dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--amber);
+	flex-shrink: 0;
+	animation: pulse_dot 2s ease infinite;
+}
+
+@keyframes pulse_dot {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
+	}
+	50% {
+		box-shadow: 0 0 0 5px rgba(245, 158, 11, 0);
+	}
+}
+
+/* ---------- card separator ---------- */
+.form_separator {
+	height: 1px;
+	background: var(--border);
+	margin: 2rem 0;
+}
+
+/* ---------- submit row ---------- */
+.form_submit_row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.form_submit_note {
+	font-size: 0.78rem;
+	color: var(--muted);
+	line-height: 1.5;
+}
+
+.form_submit_note strong {
+	color: var(--muted-light);
+}
+
+/* ---------- submit button ---------- */
+.submit_button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	background: var(--amber);
+	color: var(--navy-deep);
+	border: none;
+	border-radius: 8px;
+	padding: 0.75rem 2rem;
+	font-family: var(--font-head);
+	font-size: 1rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+	transition:
+		background 0.2s,
+		transform 0.15s,
+		box-shadow 0.2s;
+	white-space: nowrap;
+}
+
+.submit_button:hover {
+	background: var(--amber-dark);
+	box-shadow: 0 4px 20px rgba(245, 158, 11, 0.35);
+	transform: translateY(-1px);
+}
+
+.submit_button:active {
+	transform: translateY(0);
+}
+
+.submit_button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+	box-shadow: none;
+}
+
+.submit_button_arrow {
+	font-size: 1.1rem;
+	transition: transform 0.2s;
+}
+
+.submit_button:hover .submit_button_arrow {
+	transform: translateX(3px);
+}
+
+/* ---------- animation ---------- */
+@keyframes fade_up {
+	from {
+		opacity: 0;
+		transform: translateY(18px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 640px) {
+	.request_page_header {
+		padding: 2.5rem 1.25rem 0;
+	}
+
+	.request_page_steps {
+		padding: 1.5rem 1.25rem 0;
+	}
+
+	.step_label {
+		display: none;
+	}
+
+	.request_page_main {
+		padding: 1.5rem 1.25rem 4rem;
+	}
+
+	.request_form_card {
+		padding: 1.5rem;
+	}
+
+	.form_field_row {
+		grid-template-columns: 1fr;
+	}
+
+	.form_submit_row {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.submit_button {
+		justify-content: center;
+	}
 }

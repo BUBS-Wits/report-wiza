@@ -1,3 +1,4 @@
+/* global jest */
 import React from 'react'
 import {
 	render,
@@ -6,46 +7,101 @@ import {
 	waitFor,
 	within,
 } from '@testing-library/react'
+import '@testing-library/jest-dom'
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Mocks — set up before importing the modules under test
+   Mocks
 ───────────────────────────────────────────────────────────────────────────── */
 
-// 1. Corrected path to the CSS file based on your tree
+// ── CSS ──────────────────────────────────────────────────────────────────────
 jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}))
 
-// 2. Define the mock user using a standard function, NOT jest.fn()
-jest.mock('firebase/auth', () => {
+// ── Worker nav bar ────────────────────────────────────────────────────────────
+jest.mock(
+	'../components/worker_nav_bar/worker_nav_bar.js',
+	() =>
+		function MockWorkerNavBar({ user }) {
+			return (
+				<nav data-testid="worker-nav-bar">
+					<span>{user?.name}</span>
+					<span>{user?.email}</span>
+				</nav>
+			)
+		}
+)
+
+// ── Message Thread ────────────────────────────────────────────────────────────
+// Mocked to prevent complex Firestore listeners from firing during Dashboard tests
+jest.mock(
+	'../components/message_thread/message_thread.js',
+	() =>
+		function MockMessageThread() {
+			return <div data-testid="mock-message-thread">Message Thread</div>
+		}
+)
+
+// ── Firebase auth ─────────────────────────────────────────────────────────────
+jest.mock('firebase/auth', () => ({
+	getAuth: jest.fn(),
+	onAuthStateChanged: jest.fn((auth, callback) => {
+		callback({ uid: 'worker_001' })
+		return jest.fn() // unsubscribe
+	}),
+}))
+
+// ── Firebase config ───────────────────────────────────────────────────────────
+jest.mock('../firebase_config.js', () => ({
+	auth: { currentUser: { uid: 'worker_001' } },
+	db: {},
+}))
+
+// ── Service layer ─────────────────────────────────────────────────────────────
+jest.mock('../backend/worker_dashboard_service.js', () => {
+	const compute_worker_stats = (requests) => {
+		const by_status = (status) =>
+			requests.filter((r) => r.status === status)
+
+		const resolved = by_status('Resolved')
+		let avg_resolution_days = 0
+
+		if (resolved.length > 0) {
+			const total_ms = resolved.reduce((sum, r) => {
+				const assigned = r.assignedAt?.toMillis?.() ?? 0
+				const resolved_at =
+					r.resolvedAt?.toMillis?.() ?? r.updatedAt?.toMillis?.() ?? 0
+				return sum + Math.max(0, resolved_at - assigned)
+			}, 0)
+
+			avg_resolution_days = parseFloat(
+				(total_ms / resolved.length / (1000 * 60 * 60 * 24)).toFixed(1)
+			)
+		}
+
+		return {
+			total: requests.length,
+			resolved: resolved.length,
+			pending: by_status('Pending').length,
+			acknowledged: by_status('Acknowledged').length,
+			closed: by_status('Closed').length,
+			avg_resolution_days,
+		}
+	}
+
 	return {
-		__esModule: true,
-		getAuth: () => ({
-			currentUser: {
-				uid: 'worker_001',
-				displayName: 'Thendo Mukhuba',
-				email: 'thendo@capetown.gov.za',
-			},
-		}),
+		fetch_worker_dashboard_data: jest.fn(),
+		compute_worker_stats,
 	}
 })
 
-// 3. Corrected path to the client-side service based on your tree
-jest.mock('../backend/worker_dashboard_service.js', () => ({
-	fetch_worker_dashboard_data: jest.fn(),
-	compute_worker_stats: jest.requireActual(
-		'../backend/worker_dashboard_service.js'
-	).compute_worker_stats,
-}))
-
 /* ─────────────────────────────────────────────────────────────────────────────
-   Import modules under test (after mocks are in place)
+   Imports
 ───────────────────────────────────────────────────────────────────────────── */
 
-// 4. Corrected paths to your component and service
-import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard'
+import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard.js'
 import {
 	fetch_worker_dashboard_data,
 	compute_worker_stats,
-} from '../backend/worker_dashboard_service'
+} from '../backend/worker_dashboard_service.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared fixtures
@@ -64,6 +120,8 @@ const MOCK_REQUESTS = [
 		municipality: 'City of Cape Town',
 		status: 'Pending',
 		priority: 'High',
+		user_uid: 'resident_123', // <--- Added for MessageThread rendering
+		resident_name: 'Jane Doe', // <--- Added for MessageThread rendering
 		assignedAt: mockTimestamp('2026-04-15T00:00:00Z'),
 		updatedAt: mockTimestamp('2026-04-15T00:00:00Z'),
 	},
@@ -75,6 +133,7 @@ const MOCK_REQUESTS = [
 		municipality: 'City of Cape Town',
 		status: 'Acknowledged',
 		priority: 'Critical',
+		// No user_uid provided here to test the fallback UI
 		assignedAt: mockTimestamp('2026-04-14T00:00:00Z'),
 		updatedAt: mockTimestamp('2026-04-17T00:00:00Z'),
 	},
@@ -178,6 +237,14 @@ describe('compute_worker_stats', () => {
 ───────────────────────────────────────────────────────────────────────────── */
 
 describe('WorkerDashboard component', () => {
+	beforeEach(() => {
+		const { onAuthStateChanged } = require('firebase/auth')
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'worker_001' })
+			return jest.fn()
+		})
+	})
+
 	afterEach(() => {
 		jest.clearAllMocks()
 	})
@@ -194,7 +261,7 @@ describe('WorkerDashboard component', () => {
 		expect(screen.getByText('Loading dashboard…')).toBeInTheDocument()
 	})
 
-	test('US-003 — renders worker name in header after data loads', async () => {
+	test('US-003 — renders worker name after data loads', async () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() =>
@@ -202,7 +269,7 @@ describe('WorkerDashboard component', () => {
 		)
 	})
 
-	test('US-003 — renders worker email in header after data loads', async () => {
+	test('US-003 — renders worker email after data loads', async () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() =>
@@ -249,7 +316,6 @@ describe('WorkerDashboard component', () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() => {
-			// Isolate the specific stat card so we don't accidentally match filter counts
 			const card = screen
 				.getByText('Total assigned')
 				.closest('.wd-stat-card')
@@ -261,13 +327,10 @@ describe('WorkerDashboard component', () => {
 		mockSuccessfulFetch()
 		render(<WorkerDashboard />)
 		await waitFor(() => {
-			// "Resolved" appears multiple times (stat label, filter button, request badge)
-			// Safely get all of them, then find the specific one that is the stat card label
 			const resolvedElements = screen.getAllByText('Resolved')
 			const statLabel = resolvedElements.find((el) =>
 				el.classList.contains('wd-stat-label')
 			)
-
 			const card = statLabel.closest('.wd-stat-card')
 			expect(within(card).getByText(/1/)).toBeInTheDocument()
 		})
@@ -312,9 +375,8 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Assigned request queue'))
 		;['All', 'Pending', 'Acknowledged', 'Resolved', 'Closed'].forEach((s) =>
-			// Target buttons specifically to avoid matching subtext like "All time"
 			expect(
-				screen.getByRole('button', { name: new RegExp(s) })
+				screen.getByRole('button', { name: new RegExp(`^${s}`) })
 			).toBeInTheDocument()
 		)
 	})
@@ -333,8 +395,7 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('REQ-001'))
 
-		fireEvent.click(screen.getByRole('button', { name: /Pending/ }))
-
+		fireEvent.click(screen.getByRole('button', { name: /^Pending/ }))
 		expect(screen.getByText('REQ-001')).toBeInTheDocument()
 		expect(screen.queryByText('REQ-007')).not.toBeInTheDocument()
 		expect(screen.queryByText('REQ-019')).not.toBeInTheDocument()
@@ -346,21 +407,17 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('REQ-019'))
 
-		fireEvent.click(screen.getByRole('button', { name: /Resolved/ }))
-
+		fireEvent.click(screen.getByRole('button', { name: /^Resolved/ }))
 		expect(screen.getByText('REQ-019')).toBeInTheDocument()
 		expect(screen.queryByText('REQ-001')).not.toBeInTheDocument()
 	})
 
 	test('US-022 — shows empty state message when a filter has no results', async () => {
-		const responseWithNoAcknowledged = {
+		fetch_worker_dashboard_data.mockResolvedValueOnce({
 			...MOCK_SERVICE_RESPONSE,
 			requests: MOCK_REQUESTS.filter((r) => r.status !== 'Acknowledged'),
 			stats: { ...MOCK_STATS, acknowledged: 0 },
-		}
-		fetch_worker_dashboard_data.mockResolvedValueOnce(
-			responseWithNoAcknowledged
-		)
+		})
 
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Assigned request queue'))
@@ -376,9 +433,106 @@ describe('WorkerDashboard component', () => {
 		render(<WorkerDashboard />)
 		await waitFor(() => screen.getByText('Potholes'))
 
-		// Isolate the exact row to verify its specific data
 		const row = screen.getByText('REQ-001').closest('.wd-req-row')
 		expect(within(row).getByText(/Ward 12/)).toBeInTheDocument()
 		expect(within(row).getByText('Pending')).toBeInTheDocument()
+	})
+
+	/* ── Slide-in Panel & Detail View ───────────────────────────────────────── */
+
+	test('clicking a request row opens the detail panel and renders MessageThread', async () => {
+		mockSuccessfulFetch()
+		render(<WorkerDashboard />)
+		await waitFor(() => screen.getByText('REQ-001'))
+
+		// Click the row
+		fireEvent.click(screen.getByText('REQ-001').closest('.wd-req-row'))
+
+		// Panel should open - FIX: using within() to safely query just the panel text
+		const panel = screen.getByLabelText('Request detail and messaging')
+		expect(panel).toBeInTheDocument()
+		expect(
+			within(panel).getByText('Large pothole on Main Rd')
+		).toBeInTheDocument()
+
+		// MessageThread should mount because REQ-001 has a user_uid
+		expect(screen.getByTestId('mock-message-thread')).toBeInTheDocument()
+	})
+
+	test('shows fallback message when a request has no resident attached', async () => {
+		mockSuccessfulFetch()
+		render(<WorkerDashboard />)
+		await waitFor(() => screen.getByText('REQ-007'))
+
+		// REQ-007 has no user_uid in our mock data
+		fireEvent.click(screen.getByText('REQ-007').closest('.wd-req-row'))
+
+		expect(
+			screen.getByText(/Resident information unavailable/i)
+		).toBeInTheDocument()
+		expect(
+			screen.queryByTestId('mock-message-thread')
+		).not.toBeInTheDocument()
+	})
+
+	test('clicking the close button dismisses the panel', async () => {
+		mockSuccessfulFetch()
+		render(<WorkerDashboard />)
+		await waitFor(() => screen.getByText('REQ-001'))
+
+		fireEvent.click(screen.getByText('REQ-001').closest('.wd-req-row'))
+		expect(
+			screen.getByLabelText('Request detail and messaging')
+		).toBeInTheDocument()
+
+		// Click close
+		fireEvent.click(screen.getByLabelText('Close panel'))
+
+		// The component uses a 280ms timeout to unmount the panel, waitFor automatically handles this
+		await waitFor(() => {
+			expect(
+				screen.queryByLabelText('Request detail and messaging')
+			).not.toBeInTheDocument()
+		})
+	})
+
+	test('pressing Escape closes the panel', async () => {
+		mockSuccessfulFetch()
+		render(<WorkerDashboard />)
+		await waitFor(() => screen.getByText('REQ-001'))
+
+		fireEvent.click(screen.getByText('REQ-001').closest('.wd-req-row'))
+		expect(
+			screen.getByLabelText('Request detail and messaging')
+		).toBeInTheDocument()
+
+		fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' })
+
+		await waitFor(() => {
+			expect(
+				screen.queryByLabelText('Request detail and messaging')
+			).not.toBeInTheDocument()
+		})
+	})
+
+	test('clicking the backdrop closes the panel', async () => {
+		mockSuccessfulFetch()
+		render(<WorkerDashboard />)
+		await waitFor(() => screen.getByText('REQ-001'))
+
+		fireEvent.click(screen.getByText('REQ-001').closest('.wd-req-row'))
+		expect(
+			screen.getByLabelText('Request detail and messaging')
+		).toBeInTheDocument()
+
+		// Find the backdrop dynamically
+		const backdrop = document.querySelector('.wd-backdrop')
+		fireEvent.click(backdrop)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByLabelText('Request detail and messaging')
+			).not.toBeInTheDocument()
+		})
 	})
 })

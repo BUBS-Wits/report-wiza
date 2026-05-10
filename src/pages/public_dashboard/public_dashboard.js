@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import RequestCard from '../../components/request_card/request_card.js'
+import { fetchPublicDashboardData } from '../../backend/public_dashboard_service.js'
 import './public_dashboard.css'
 import * as esri from 'esri-leaflet'
 import { db } from '../../firebase_config.js'
@@ -29,11 +30,13 @@ function parseWktPoint(locationStr) {
 let safeEsri = esri
 if (process.env.NODE_ENV === 'test') {
 	const dummyLayer = {
-		bindPopup: () => this,
-		on: () => this,
-		addTo: () => this,
 		resetStyle: () => {},
 	}
+	// Return dummyLayer to allow method chaining safely
+	dummyLayer.bindPopup = () => dummyLayer
+	dummyLayer.on = () => dummyLayer
+	dummyLayer.addTo = () => dummyLayer
+
 	safeEsri = {
 		featureLayer: () => dummyLayer,
 	}
@@ -153,65 +156,67 @@ function FitMapToRequests({ requests }) {
 }
 
 function getStatusIcon(status) {
-	const s = status?.toLowerCase()
-	if (s === 'open') {
-		return openIcon
+	switch (status) {
+		case 'SUBMITTED':
+		case 'UNASSIGNED':
+			return openIcon
+		case 'ASSIGNED':
+		case 'IN_PROGRESS':
+			return inProgressIcon
+		case 'RESOLVED':
+			return resolvedIcon
+		default:
+			return inProgressIcon
 	}
-	if (s === 'in progress') {
-		return inProgressIcon
-	}
-	if (s === 'resolved') {
-		return resolvedIcon
-	}
-	return inProgressIcon
 }
 
 function PublicDashboard() {
-	const [openRequests, setOpenRequests] = useState([])
-	const [resolvedRequests, setResolvedRequests] = useState([])
+	const [active, setActive] = useState([])
+	const [resolved, setResolved] = useState([])
+	const [stats, setStats] = useState({
+		open_count: 0,
+		resolved_count: 0,
+		wards_affected: 0,
+	})
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
 
 	useEffect(() => {
-		const fetchRequests = async () => {
-			try {
-				const snapshot = await getDocs(
-					collection(db, 'service_requests')
+		fetchPublicDashboardData()
+			.then(({ active, resolved, stats }) => {
+				setActive(active)
+				setResolved(resolved)
+				setStats(stats)
+			})
+			.catch((err) => {
+				console.error('Failed to load dashboard data:', err)
+				setError(
+					'Failed to load service requests. Please try again later.'
 				)
-				const all = snapshot.docs.map((doc) => ({
-					id: doc.id,
-					...doc.data(),
-				}))
-				const open = all.filter(
-					(req) => req.status?.toLowerCase() !== 'resolved'
-				)
-				const resolved = all.filter(
-					(req) => req.status?.toLowerCase() === 'resolved'
-				)
-				setOpenRequests(open)
-				setResolvedRequests(resolved)
-			} catch (err) {
-				console.error('Failed to load service requests:', err)
-				setError('Could not load requests. Please try again later.')
-			} finally {
-				setLoading(false)
-			}
-		}
-		fetchRequests()
+			})
+			.finally(() => setLoading(false))
 	}, [])
 
-	const allRequests = [...openRequests, ...resolvedRequests]
-	const wardsAffected = new Set(
-		allRequests.map((req) => req.ward).filter(Boolean)
-	).size
+	const allRequests = [...active, ...resolved]
 
 	if (loading) {
 		return (
-			<div className="public_dashboard_loading">Loading dashboard...</div>
+			<div className="public_dashboard">
+				<div className="dashboard_loading">
+					<p>Loading service requests…</p>
+				</div>
+			</div>
 		)
 	}
+
 	if (error) {
-		return <div className="public_dashboard_error">{error}</div>
+		return (
+			<div className="public_dashboard">
+				<div className="dashboard_error">
+					<p>{error}</p>
+				</div>
+			</div>
+		)
 	}
 
 	return (
@@ -232,17 +237,19 @@ function PublicDashboard() {
 			<section className="summary_grid">
 				<div className="summary_card">
 					<span className="summary_label">Open Requests</span>
-					<span className="summary_value">{openRequests.length}</span>
+					<span className="summary_value">{stats.open_count}</span>
 				</div>
 				<div className="summary_card">
 					<span className="summary_label">Recently Resolved</span>
 					<span className="summary_value">
-						{resolvedRequests.length}
+						{stats.resolved_count}
 					</span>
 				</div>
 				<div className="summary_card">
 					<span className="summary_label">Wards Affected</span>
-					<span className="summary_value">{wardsAffected}</span>
+					<span className="summary_value">
+						{stats.wards_affected}
+					</span>
 				</div>
 			</section>
 
@@ -327,9 +334,15 @@ function PublicDashboard() {
 					</span>
 				</div>
 				<div className="request_list">
-					{openRequests.map((request) => (
-						<RequestCard key={request.id} request={request} />
-					))}
+					{active.length > 0 ? (
+						active.map((request) => (
+							<RequestCard key={request.id} request={request} />
+						))
+					) : (
+						<p className="empty_state">
+							No active requests at this time.
+						</p>
+					)}
 				</div>
 			</section>
 
@@ -341,9 +354,15 @@ function PublicDashboard() {
 					</span>
 				</div>
 				<div className="request_list">
-					{resolvedRequests.map((request) => (
-						<RequestCard key={request.id} request={request} />
-					))}
+					{resolved.length > 0 ? (
+						resolved.map((request) => (
+							<RequestCard key={request.id} request={request} />
+						))
+					) : (
+						<p className="empty_state">
+							No resolved requests to show.
+						</p>
+					)}
 				</div>
 			</section>
 		</div>

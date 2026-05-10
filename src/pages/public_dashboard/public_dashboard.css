@@ -240,3 +240,17 @@
 	line-height: 1.6;
 	margin: 0;
 }
+
+.dashboard_loading,
+.dashboard_error {
+	display: flex;
+	justify-content: center;
+	padding: 4rem;
+	color: var(--color-text-muted);
+}
+
+.empty_state {
+	color: var(--color-text-muted);
+	font-size: 0.95rem;
+	padding: 1rem 0;
+}
