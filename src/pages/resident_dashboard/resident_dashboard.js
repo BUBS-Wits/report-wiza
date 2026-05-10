@@ -373,9 +373,51 @@ function RequestCard({ req, is_selected, on_click, index }) {
 
 /* ── RequestDetail ───────────────────────────────────────────────────────── */
 
+const PRIORITY_META = {
+	Low: { label: 'Low', cls: 'rd-priority--low' },
+	Medium: { label: 'Medium', cls: 'rd-priority--medium' },
+	High: { label: 'High', cls: 'rd-priority--high' },
+	Critical: { label: 'Critical', cls: 'rd-priority--critical' },
+}
+
 function RequestDetail({ req, resident }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
-	const has_worker = !!req.worker_uid // FIXED
+	const has_worker = !!req.worker_uid
+	const priority_meta = PRIORITY_META[req.priority] ?? null
+	const [close_reason, set_close_reason] = useState(null)
+	const [close_reason_loading, set_close_reason_loading] = useState(false)
+
+	useEffect(() => {
+		if (req.status !== 'closed') {
+			set_close_reason(null)
+			return
+		}
+		set_close_reason_loading(true)
+		import('firebase/firestore').then(
+			({ getDocs, collection, query, where }) => {
+				import('../../firebase_config.js').then(({ db }) => {
+					getDocs(
+						query(
+							collection(
+								db,
+								'service_requests',
+								req.id,
+								'comments'
+							),
+							where('type', '==', 'close_reason')
+						)
+					)
+						.then((snap) => {
+							if (!snap.empty) {
+								set_close_reason(snap.docs[0].data().text)
+							}
+						})
+						.catch(() => set_close_reason(null))
+						.finally(() => set_close_reason_loading(false))
+				})
+			}
+		)
+	}, [req.id, req.status])
 
 	return (
 		<div className="rd-detail">
@@ -395,6 +437,20 @@ function RequestDetail({ req, resident }) {
 				<div className="rd-detail-meta-item">
 					<dt>Ward</dt>
 					<dd>{req.sa_ward || '—'}</dd>
+				</div>
+				<div className="rd-detail-meta-item">
+					<dt>Priority</dt>
+					<dd>
+						{priority_meta ? (
+							<span
+								className={`rd-priority-pill ${priority_meta.cls}`}
+							>
+								{priority_meta.label}
+							</span>
+						) : (
+							<span className="rd-priority-none">Not set</span>
+						)}
+					</dd>
 				</div>
 				<div className="rd-detail-meta-item">
 					<dt>Submitted</dt>
@@ -418,6 +474,16 @@ function RequestDetail({ req, resident }) {
 					<dt>Description</dt>
 					<dd>{req.description}</dd>
 				</div>
+				{req.status === 'closed' && (
+					<div className="rd-detail-meta-item rd-detail-meta-item--full">
+						<dt>Close reason</dt>
+						<dd className="rd-close-reason">
+							{close_reason_loading
+								? 'Loading…'
+								: (close_reason ?? '—')}
+						</dd>
+					</div>
+				)}
 			</dl>
 
 			<div className="rd-section-divider">
