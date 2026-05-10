@@ -194,6 +194,7 @@
 
 .bar_fill {
 	height: 100%;
+	flex-shrink: 0; /* ← add this */
 	transition: width 0.4s ease;
 }
 

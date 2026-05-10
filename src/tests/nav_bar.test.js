@@ -2,6 +2,9 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
+// 🔥 Import the auth function so we can control its mock in beforeEach
+import { onAuthStateChanged } from 'firebase/auth'
+
 // Adjust this path to reach out of 'tests' and into 'components'
 import Navbar from '../components/nav_bar/nav_bar.js'
 
@@ -16,14 +19,41 @@ jest.mock('../components/nav_bar/nav_bar.css', () => ({}))
 jest.mock(
 	'react-router-dom',
 	() => ({
+		...jest.requireActual('react-router-dom'),
 		Link: ({ to, className, children }) => (
 			<a href={to} className={className}>
 				{children}
 			</a>
 		),
+		useNavigate: () => jest.fn(),
 	}),
 	{ virtual: true }
 )
+
+// Mock Firebase Config
+jest.mock('../firebase_config.js', () => ({
+	auth: {},
+	db: {},
+}))
+
+// Mock Firebase Auth base
+jest.mock('firebase/auth', () => ({
+	getAuth: jest.fn(),
+	onAuthStateChanged: jest.fn(),
+	signOut: jest.fn(),
+}))
+
+// Mock Firestore base (in case Navbar listens to notifications)
+jest.mock('firebase/firestore', () => ({
+	getFirestore: jest.fn(),
+	onSnapshot: jest.fn(() => jest.fn()), // Return dummy unsubscribe
+	collection: jest.fn(),
+	query: jest.fn(),
+	where: jest.fn(),
+	orderBy: jest.fn(),
+	limit: jest.fn(),
+	doc: jest.fn(),
+}))
 
 // ---------------------------------------------------------------------------
 // Test Suite
@@ -33,6 +63,14 @@ describe('Navbar', () => {
 		jest.clearAllMocks()
 		// Reset scroll position before each test
 		window.scrollY = 0
+
+		// 🔥 THE MAGIC FIX: Force the mock to return a dummy unsubscribe function before EVERY test
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			if (typeof callback === 'function') {
+				callback(null) // Simulate no user logged in
+			}
+			return jest.fn() // Prevent 'unsub is not a function' on unmount
+		})
 	})
 
 	// -----------------------------------------------------------------------

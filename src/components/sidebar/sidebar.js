@@ -31,6 +31,12 @@ const nav_items = [
 				path: '/admin/residents',
 				ready: true,
 			},
+			{
+				id: 'public_dashboard',
+				label: 'Public Dashboard',
+				path: '/dashboard',
+				ready: true,
+			},
 		],
 	},
 	{

@@ -52,6 +52,17 @@ const NAV_ITEMS = [
 			</svg>
 		),
 	},
+	{
+		key: 'public_dashboard',
+		label: 'Public Dashboard',
+		to: '/dashboard',
+		icon: (
+			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
+				<circle cx="8" cy="8" r="6" />
+				<path d="M8 5v3.5l2 2" />
+			</svg>
+		),
+	},
 ]
 
 function Worker_nav_bar({

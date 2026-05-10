@@ -34,11 +34,13 @@ jest.mock('firebase/auth', () => ({
 	signOut: jest.fn().mockResolvedValue(),
 }))
 
+const mockNavigate = jest.fn()
+
+// Mock react-router-dom
 jest.mock('react-router-dom', () => ({
-	Link: function MockLink({ children, to }) {
-		return <a href={to}>{children}</a>
-	},
-	useLocation: () => ({ pathname: '/dashboard' }),
+	...jest.requireActual('react-router-dom'),
+	Link: ({ children, to }) => <a href={to}>{children}</a>,
+	useNavigate: () => mockNavigate,
 }))
 
 jest.mock('../backend/resident_dashboard_service.js', () => ({

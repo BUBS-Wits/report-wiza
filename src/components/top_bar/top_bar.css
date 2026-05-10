@@ -78,3 +78,25 @@
 		display: none;
 	}
 }
+.top_bar_actions {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.top_bar_public_btn {
+	padding: 8px 16px;
+	background: #f59e0b;
+	color: #0f1f3d;
+	border: none;
+	border-radius: 8px; /* Slightly modernized border radius */
+	font-family: 'DM Sans', sans-serif;
+	font-size: 13px;
+	font-weight: 600; /* Bumped weight slightly for better contrast */
+	cursor: pointer;
+	transition:
+		background 0.15s ease,
+		transform 0.1s ease;
+	white-space: nowrap;
+	flex-shrink: 0;
+}

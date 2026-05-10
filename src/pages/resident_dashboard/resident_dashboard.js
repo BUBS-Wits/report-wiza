@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom' // merged both
 import { auth } from '../../firebase_config.js'
 import {
 	fetch_resident_profile,
@@ -240,6 +240,30 @@ export default function ResidentDashboard() {
 						</svg>
 						<span>Submit Request</span>
 					</Link>
+
+					{/* Added from remote – Public Dashboard link */}
+					<Link
+						to="/dashboard"
+						className={`rd-nav-link${location.pathname === '/dashboard' ? ' rd-nav-link--active' : ''}`}
+					>
+						<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+							<circle
+								cx="8"
+								cy="8"
+								r="5.5"
+								stroke="currentColor"
+								strokeWidth="1.5"
+							/>
+							<path
+								d="M8 5v3.5l2 2"
+								stroke="currentColor"
+								strokeWidth="1.5"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
+						</svg>
+						<span>Public Dashboard</span>
+					</Link>
 				</nav>
 
 				<div className="rd-topbar-right">
@@ -290,7 +314,8 @@ export default function ResidentDashboard() {
 					{requests.length === 0 ? (
 						<div className="rd-no-requests">
 							<p>
-								You haven&apos;t submitted any service requests yet.
+								You haven&apos;t submitted any service requests
+								yet.
 							</p>
 							<Link to="/request" className="rd-no-requests-cta">
 								Submit your first request →
