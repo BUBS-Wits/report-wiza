@@ -2,6 +2,7 @@ import { Readable } from 'node:stream'
 import express from 'express'
 import rate_limit from 'express-rate-limit'
 import path from 'path'
+import crypto from 'crypto'
 import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import admin from 'firebase-admin'
@@ -10,6 +11,7 @@ import {
 	ListBucketsCommand,
 	PutObjectCommand,
 	GetObjectCommand,
+	HeadObjectCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import http from 'http'
@@ -83,6 +85,12 @@ const get_content_type = (data_uri) => {
 	return data_uri.split(';')[0].split(':')[1]
 }
 
+const get_file_hash = (buffer) => {
+	// Strip metadata so the same photo taken twice hashes identically
+	// const normalized = await sharp(buffer).toBuffer();
+	return crypto.createHash('sha256').update(buffer).digest('hex')
+}
+
 const b2_get_content_command = (key_name) => {
 	return new GetObjectCommand({
 		Bucket: process.env.B2_BUCKET,
@@ -102,34 +110,70 @@ const b2_get_signed_url = (command) => {
 			return { ok: false, value: err }
 		})
 }
+const b2_check_exists = (key) => {
+	return b2_client
+		.send(
+			new HeadObjectCommand({
+				Bucket: process.env.B2_BUCKET,
+				Key: key,
+			})
+		)
+		.then((response) => {
+			return { ok: true, value: response }
+		})
+		.catch((err) => {
+			if (
+				err.name !== 'NotFound' &&
+				err['$metadata']?.httpStatusCode !== 404
+			) {
+				console.error(
+					`b2_check_exists > error checking existance: `,
+					err
+				)
+			}
+			return { ok: false, value: err }
+		})
+}
 
 const b2_key_to_signed_url = (key_name) => {
 	const command = b2_get_content_command(key_name)
 	return b2_get_signed_url(command)
 }
 
-const b2_upload_data_uri = (data_uri, key_name) => {
+const b2_upload_data_uri = async (data_uri, key_name) => {
 	const base64Content = data_uri.split(',')[1]
 	const buffer = Buffer.from(base64Content, 'base64')
 	const file_stream = Readable.from(buffer)
 
 	const mime_type = get_content_type(data_uri)
+	const hash = get_file_hash(buffer)
+	const tmp = await b2_check_exists(hash)
+	if (tmp.ok) {
+		/*
+		console.log(
+			`upload_file > already exists (${hash}): ${JSON.stringify(tmp.value, null, 2)}`
+		)
+		*/
+		return { ok: true, value: hash }
+	}
 
 	return b2_client
 		.send(
 			new PutObjectCommand({
 				Bucket: process.env.B2_BUCKET,
-				Key: key_name,
+				Key: hash,
 				Body: file_stream,
 				ContentType: mime_type,
 				ContentLength: buffer.length,
 			})
 		)
 		.then((response) => {
+			/*
 			console.log(
 				`upload_file > uploaded (${buffer.length} bytes): ${JSON.stringify(response, null, 2)}`
 			)
-			return { ok: true, value: response }
+			*/
+			return { ok: true, value: hash }
 		})
 		.catch((err) => {
 			console.error('upload_file > error uploading file:', err)
@@ -173,11 +217,7 @@ const b2_get_expiry_from_signed_url = (signed_url) => {
 	return new Date(created.getTime() + parseInt(expires_in) * 1000)
 }
 
-const b2_is_expired = (signed_url) => {
-	return b2_get_expiry_from_signed_url(signed_url) < new Date()
-}
-
-const is_expired = (expires_at) => {
+const b2_is_expired = (expires_at) => {
 	const expiry = expires_at
 	const now = new Date()
 	const buffer_ms = 5 * 60 * 1000
@@ -186,7 +226,7 @@ const is_expired = (expires_at) => {
 }
 
 const b2_refresh_signed_url = async (
-	key_name,
+	image_hash,
 	image_url,
 	expires = undefined
 ) => {
@@ -194,8 +234,8 @@ const b2_refresh_signed_url = async (
 	if (expires === undefined || expires === null) {
 		expires_at = b2_get_expiry_from_signed_url(image_url)
 	}
-	if (is_expired(expires_at)) {
-		let new_signed_url = await b2_key_to_signed_url(key_name)
+	if (b2_is_expired(expires_at)) {
+		let new_signed_url = await b2_key_to_signed_url(image_hash)
 		if (!new_signed_url.ok) {
 			return {}
 		}
@@ -501,7 +541,9 @@ const spam_middleware = (req, res, next) => {
 	const is_ham = entropy_check(description, 0.9)
 	const is_unique = repetition_check(description)
 	if (!is_ham || !is_unique) {
-		console.debug(`Possible Spam Rejected: '${description.replace("'", "\\'")}'`)
+		console.debug(
+			`Possible Spam Rejected: '${description.replace("'", "\\'")}'`
+		)
 		return res.status(400).json({
 			error: 'Invalid description. Rejected due to the possibility of being spam.',
 			cause: !is_ham ? 'entropy' : 'repetition',
@@ -567,7 +609,7 @@ app.post(
 					.json({ error: 'Failed to upload image.' })
 			}
 			const mime_type = get_content_type(image)
-			const key_name = doc_result.value
+			const key_name = ret.value
 			ret = await b2_key_to_signed_url(key_name)
 			if (!ret.ok) {
 				console.error(ret.value)
@@ -580,6 +622,7 @@ app.post(
 				'service_requests',
 				doc_result.value,
 				[
+					['image_hash', key_name],
 					['image', ret.value],
 					[
 						'image_expires_at',
@@ -681,7 +724,7 @@ app.get('/api/get-requests', async (req, res) => {
 		}
 		for (const tmp of ret.value) {
 			const url = await b2_refresh_signed_url(
-				tmp.id,
+				tmp.image_hash,
 				tmp.image,
 				tmp.image_expires_at
 			)
@@ -736,7 +779,7 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 				continue
 			}
 			const url = await b2_refresh_signed_url(
-				data.id,
+				data.image_hash,
 				data.image,
 				data.image_expires_at
 			)
@@ -789,7 +832,7 @@ app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 				continue
 			}
 			const url = await b2_refresh_signed_url(
-				doc.id,
+				doc.image_hash,
 				doc.image,
 				doc.image_expires_at
 			)
@@ -838,7 +881,7 @@ app.get('/api/get-signed-url', async (req, res) => {
 				.json({ error: 'Failed to get requested service request.' })
 		}
 		const url = await b2_refresh_signed_url(
-			data.id,
+			data.image_hash,
 			data.image,
 			data.image_expires_at ? new Date(data.image_expires_at) : undefined
 		)
