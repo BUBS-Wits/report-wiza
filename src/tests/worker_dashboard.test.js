@@ -83,6 +83,8 @@ const mock_update_request_status = jest.fn()
 jest.mock('../backend/worker_analytics_service.js', () => ({
 	verify_worker_and_get_profile: (...a) => mock_verify_worker(...a),
 	compute_worker_stats: (...a) => mock_compute_stats(...a),
+	fetch_comment: jest.fn().mockResolvedValue([]),
+    add_comment: jest.fn().mockResolvedValue(undefined),
 }))
 
 jest.mock('../backend/worker_firebase.js', () => ({
