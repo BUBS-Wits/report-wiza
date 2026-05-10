@@ -11,6 +11,17 @@ import {
 	subscribe_to_resident_unread_count,
 } from '../backend/resident_dashboard_service.js'
 
+jest.mock('firebase/firestore', () => ({
+	collection: jest.fn(),
+	query: jest.fn(),
+	where: jest.fn(),
+	getDocs: jest.fn(),
+	doc: jest.fn(),
+	getDoc: jest.fn(),
+	onSnapshot: jest.fn(() => jest.fn()),
+	orderBy: jest.fn(),
+}))
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Mocks
 ───────────────────────────────────────────────────────────────────────────── */
@@ -36,7 +47,6 @@ jest.mock('../backend/resident_dashboard_service.js', () => ({
 	subscribe_to_resident_unread_count: jest.fn(),
 }))
 
-// Mock Notification Bell & Message Thread to simplify DOM
 jest.mock(
 	'../components/notification_bell/notification_bell.js',
 	() =>
@@ -63,7 +73,6 @@ describe('ResidentDashboard Component', () => {
 		jest.clearAllMocks()
 		mockUnsubscribe = jest.fn()
 
-		// Simulate authenticated resident
 		onAuthStateChanged.mockImplementation((auth, callback) => {
 			callback({ uid: 'res_1' })
 			return jest.fn()
@@ -104,44 +113,34 @@ describe('ResidentDashboard Component', () => {
 
 	test('renders loading screen initially and resolves cleanly', async () => {
 		render(<ResidentDashboard />)
-
-		// FIX: Match the exact text rendered by the component
-		expect(screen.getByText('Loading your dashboard…')).toBeInTheDocument()
-
-		// FIX: Await the data load to prevent act(...) state warnings leaking into the console
+		expect(
+			screen.getByText('Loading your dashboard\u2026')
+		).toBeInTheDocument()
 		await waitFor(() => {
 			expect(
-				screen.queryByText('Loading your dashboard…')
+				screen.queryByText('Loading your dashboard\u2026')
 			).not.toBeInTheDocument()
 		})
 	})
 
 	test('loads and displays resident profile and requests', async () => {
 		render(<ResidentDashboard />)
-
 		await waitFor(() => {
 			expect(screen.getByText('Sarah Connor')).toBeInTheDocument()
 			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
 		})
-
-		// Assert user initials logic
 		expect(screen.getByText('SC')).toBeInTheDocument()
 	})
 
 	test('selects a request and shows detail view', async () => {
 		render(<ResidentDashboard />)
-
 		await waitFor(() => {
 			expect(screen.getAllByText('Pothole').length).toBeGreaterThan(0)
 		})
-
-		// Click the second request card (Pothole) from the sidebar
 		const requestCard = screen
 			.getAllByText('Pothole')[0]
 			.closest('.rd-req-card')
 		fireEvent.click(requestCard)
-
-		// FIX: Handle multiple description elements by grabbing the first one
 		expect(
 			screen.getAllByText('Huge crater in the road.').length
 		).toBeGreaterThan(0)
@@ -150,9 +149,7 @@ describe('ResidentDashboard Component', () => {
 
 	test('displays empty state when resident has no requests', async () => {
 		fetch_resident_requests.mockResolvedValue([])
-
 		render(<ResidentDashboard />)
-
 		await waitFor(() => {
 			expect(
 				screen.getByText(
@@ -164,16 +161,80 @@ describe('ResidentDashboard Component', () => {
 
 	test('handles user logout correctly', async () => {
 		render(<ResidentDashboard />)
-
 		await waitFor(() => {
 			expect(screen.getByText('Sarah Connor')).toBeInTheDocument()
 		})
-
 		const logoutBtn = screen.getByRole('button', { name: /Log out/i })
 		fireEvent.click(logoutBtn)
-
 		await waitFor(() => {
 			expect(signOut).toHaveBeenCalledTimes(1)
 		})
+	})
+
+	test('shows priority badge when request has priority set', async () => {
+		fetch_resident_requests.mockResolvedValueOnce([
+			{
+				id: 'req_priority',
+				category: 'Streetlight',
+				status: 'open',
+				description: 'Burst pipe',
+				priority: 'High',
+				created_at: new Date(),
+				updated_at: new Date(),
+				worker_uid: null,
+				worker_name: null,
+			},
+		])
+		render(<ResidentDashboard />)
+		await waitFor(() => {
+			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
+		})
+		expect(screen.getByText('High')).toBeInTheDocument()
+	})
+
+	test('shows Not set when request has no priority', async () => {
+		fetch_resident_requests.mockResolvedValueOnce([
+			{
+				id: 'req_no_priority',
+				category: 'Streetlight',
+				status: 'open',
+				description: 'Burst pipe',
+				priority: null,
+				created_at: new Date(),
+				updated_at: new Date(),
+				worker_uid: null,
+				worker_name: null,
+			},
+		])
+		render(<ResidentDashboard />)
+		await waitFor(() => {
+			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
+		})
+		expect(screen.getByText('Not set')).toBeInTheDocument()
+	})
+
+	test('shows messaging unavailable when no worker assigned', async () => {
+		fetch_resident_requests.mockResolvedValueOnce([
+			{
+				id: 'req_no_worker',
+				category: 'Streetlight',
+				status: 'open',
+				description: 'Burst pipe',
+				priority: null,
+				created_at: new Date(),
+				updated_at: new Date(),
+				worker_uid: null,
+				worker_name: null,
+			},
+		])
+		render(<ResidentDashboard />)
+		await waitFor(() => {
+			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
+		})
+		expect(
+			screen.getByText(
+				/Messaging will be available once a worker is assigned/i
+			)
+		).toBeInTheDocument()
 	})
 })

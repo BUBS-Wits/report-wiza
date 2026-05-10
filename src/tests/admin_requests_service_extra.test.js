@@ -45,15 +45,12 @@ describe('fetch_stale_requests', () => {
 				docs: [
 					{
 						id: 'r1',
-						data: () => ({
-							status: 0,
-							created_at: old_date,
-						}),
+						data: () => ({ status: 'open', created_at: old_date }),
 					},
 					{
 						id: 'r2',
 						data: () => ({
-							status: 1,
+							status: 'acknowledged',
 							created_at: old_date,
 						}),
 					},
@@ -66,10 +63,7 @@ describe('fetch_stale_requests', () => {
 					},
 					{
 						id: 'r4',
-						data: () => ({
-							status: 0,
-							created_at: new_date,
-						}),
+						data: () => ({ status: 'open', created_at: new_date }),
 					},
 				],
 			})

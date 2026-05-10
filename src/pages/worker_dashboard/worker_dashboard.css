@@ -645,3 +645,49 @@ button.wd-req-row {
 	opacity: 0.9;
 	z-index: 100;
 }
+
+/* ── Priority badge — add to worker_dashboard.css ── */
+
+.wd-priority-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.wd-priority--low {
+	background: #f0fdf4;
+	color: #15803d;
+}
+
+.wd-priority--medium {
+	background: #fefce8;
+	color: #a16207;
+}
+
+.wd-priority--high {
+	background: #fff7ed;
+	color: #c2410c;
+}
+
+.wd-priority--critical {
+	background: #fef2f2;
+	color: #dc2626;
+	font-weight: 700;
+}
+
+.wd-priority-none {
+	color: #9ca3af;
+	font-size: 13px;
+}
+
+.wd-close-reason {
+	font-style: italic;
+	color: #6b7280;
+	background: #f9fafb;
+	border-left: 3px solid #e5e7eb;
+	padding: 6px 10px;
+	border-radius: 4px;
+	margin-top: 4px;
+}
