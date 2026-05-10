@@ -23,6 +23,19 @@ jest.mock('../firebase_config.js', () => ({
 	db: {},
 }))
 
+const mock_fetch_ok = (response = {}) => {
+	global.fetch = jest.fn().mockResolvedValue({
+		ok: true,
+		json: jest.fn().mockResolvedValue(response),
+	})
+}
+const mock_fetch_not_ok = (response = {}) => {
+	global.fetch = jest.fn().mockResolvedValue({
+		ok: false,
+		json: jest.fn().mockResolvedValue(response),
+	})
+}
+
 import { STATUS, STATUS_DISPLAY } from '../constants.js'
 /*
 jest.mock('../../constants.js', () => ({
@@ -90,6 +103,9 @@ jest.mock(
 					<button onClick={sections.available_onclick}>
 						Available
 					</button>
+					<button onClick={sections.messages_onclick}>
+						Messages
+					</button>
 				</nav>
 			)
 		}
@@ -107,15 +123,17 @@ jest.mock(
 		}
 )
 
-jest.mock(
-	'../components/message_thread/message_thread.js',
-	() =>
-		function MockMessageThread({ request_id }) {
-			return <div data-testid="message-thread">{request_id}</div>
-		}
-)
+jest.mock('../components/message_thread/message_thread.js', () => {
+	// CHANGE request_id to request_uid here:
+	return function MockMessageThread({ request_uid }) {
+		// AND here:
+		return <div data-testid="message-thread">{request_uid}</div>
+	}
+})
 
-jest.mock('./worker_dashboard.css', () => ({}), { virtual: true })
+jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}), {
+	virtual: true,
+})
 
 import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard.js'
 
@@ -133,11 +151,29 @@ const MOCK_STATS = {
 	avg_resolution_days: 3,
 }
 
+const buffer = 24 * 60 * 60 * 1000
+const MOCK_CLAIMED_EXPIRED = [
+	{
+		id: 'req-001',
+		category: 'Electricity',
+		description: 'Street light is out',
+		image_expires_at: new Date(new Date() - buffer).toUTCString(),
+		status: 1,
+		sa_ward: 5,
+		sa_province: 'Gauteng',
+		sa_m_name: 'Joburg',
+		user_uid: 'user-uid-1',
+		resident_name: 'John Doe',
+		created_at: '2024-01-15T10:00:00Z',
+		updated_at: '2024-01-16T12:00:00Z',
+	},
+]
 const MOCK_CLAIMED = [
 	{
 		id: 'req-001',
 		category: 'Electricity',
 		description: 'Street light is out',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
 		status: 1,
 		sa_ward: 5,
 		sa_province: 'Gauteng',
@@ -151,6 +187,7 @@ const MOCK_CLAIMED = [
 		id: 'req-002',
 		category: 'Water',
 		description: 'Pipe burst',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
 		status: 2,
 		sa_ward: 3,
 		sa_province: 'Gauteng',
@@ -167,6 +204,7 @@ const MOCK_UNCLAIMED = [
 		id: 'req-003',
 		category: 'Roads',
 		description: 'Pothole on main road',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
 		status: 0,
 		sa_ward: 7,
 		sa_province: 'Western Cape',
@@ -296,6 +334,7 @@ beforeEach(() => {
 	mock_on_auth_state_changed.mockImplementation(() => {
 		return mock_unsub
 	})
+	mock_fetch_ok()
 	setup_firestore_mocks()
 	setup_service_mocks()
 })
@@ -437,6 +476,7 @@ describe('Real-time snapshot updates', () => {
 
 		await act(async () => {
 			const tmp = make_snapshot([])
+			assignment_handler(tmp)
 			claimed_handler(tmp)
 		})
 
@@ -447,6 +487,29 @@ describe('Real-time snapshot updates', () => {
 
 		expect(screen.getByText('Roads')).toBeInTheDocument()
 		expect(screen.queryByText(/Pothole on main road/i)).toBeInTheDocument()
+	})
+})
+
+describe('Image expiration', () => {
+	test('expired signed image url', async () => {
+		await mount_and_load()
+
+		await act(async () => {
+			const tmp = make_snapshot(MOCK_CLAIMED_EXPIRED)
+			assignment_handler(tmp)
+			claimed_handler(tmp)
+		})
+	})
+
+	test('signed url refresh failed', async () => {
+		mock_fetch_not_ok()
+		await mount_and_load()
+
+		await act(async () => {
+			const tmp = make_snapshot(MOCK_CLAIMED_EXPIRED)
+			assignment_handler(tmp)
+			claimed_handler(tmp)
+		})
 	})
 })
 
@@ -463,9 +526,20 @@ describe('Section switching', () => {
 	test('switching back to queue shows claimed requests again', async () => {
 		await mount_and_load()
 		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Available requests')).toBeInTheDocument()
+		)
 		fireEvent.click(screen.getByText('Queue'))
 		await waitFor(() =>
 			expect(screen.getByText('Electricity')).toBeInTheDocument()
+		)
+	})
+
+	test('switching to messages section and shows messages ui', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Messages'))
+		await waitFor(() =>
+			expect(screen.getByLabelText('Conversations')).toBeInTheDocument()
 		)
 	})
 
@@ -767,6 +841,20 @@ describe('Status update', () => {
 				screen.getByText('Failed to update request status.')
 			).toBeInTheDocument()
 		)
+	})
+
+	test('claim request button clickable', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Roads')).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getAllByLabelText(/open request req-003/i)[0])
+		await waitFor(() =>
+			expect(screen.getByTestId('claim-btn')).toBeInTheDocument()
+		)
+		expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
+		fireEvent.click(screen.getByTestId('claim-btn'))
 	})
 
 	test('does not call update again while first update is in-flight', async () => {

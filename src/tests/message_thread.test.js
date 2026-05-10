@@ -34,7 +34,7 @@ window.HTMLElement.prototype.scrollIntoView = jest.fn()
 ───────────────────────────────────────────────────────────────────────────── */
 
 const defaultProps = {
-	request_id: 'req_123',
+	request_uid: 'req_123',
 	current_uid: 'user_1',
 	current_name: 'John Doe',
 	current_role: 'resident',
@@ -116,7 +116,7 @@ describe('MessageThread Component', () => {
 		await waitFor(() => {
 			expect(send_message).toHaveBeenCalledWith(
 				expect.objectContaining({
-					request_id: 'req_123',
+					request_uid: 'req_123',
 					sender_uid: 'user_1',
 					text: 'Is it fixed?',
 				})
@@ -125,7 +125,7 @@ describe('MessageThread Component', () => {
 			// FIX: Match the object payload your component actually sends
 			expect(notify_new_message).toHaveBeenCalledWith(
 				expect.objectContaining({
-					request_id: 'req_123',
+					request_uid: 'req_123',
 					sender_name: 'John Doe',
 					receiver_uid: 'worker_1',
 					receiver_role: 'worker', // The component derives the receiver role correctly

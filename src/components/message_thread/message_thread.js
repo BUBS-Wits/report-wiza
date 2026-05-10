@@ -14,15 +14,15 @@ import './message_thread.css'
  * request-detail pages. Renders realtime messages and a send input.
  *
  * Props:
- *   request_id    {string}  — The service request ID (= thread ID)
- *   current_uid   {string}  — Firebase Auth UID of the logged-in user
- *   current_name  {string}  — Display name of the logged-in user
- *   current_role  {string}  — 'resident' | 'worker'
- *   other_uid     {string}  — UID of the other party
- *   other_name    {string}  — Display name of the other party
+ * request_uid   {string}  — The service request ID (= thread ID)
+ * current_uid   {string}  — Firebase Auth UID of the logged-in user
+ * current_name  {string}  — Display name of the logged-in user
+ * current_role  {string}  — 'resident' | 'worker'
+ * other_uid     {string}  — UID of the other party
+ * other_name    {string}  — Display name of the other party
  */
 export default function MessageThread({
-	request_id,
+	request_uid,
 	current_uid,
 	current_name,
 	current_role,
@@ -40,13 +40,13 @@ export default function MessageThread({
 
 	// ── Realtime subscription ──────────────────────────────────────────────
 	useEffect(() => {
-		if (!request_id) {
+		if (!request_uid) {
 			return
 		}
 		set_loading(true)
 
 		const unsub = subscribe_to_thread(
-			request_id,
+			request_uid,
 			(msgs) => {
 				set_messages(msgs)
 				set_loading(false)
@@ -60,7 +60,7 @@ export default function MessageThread({
 		)
 
 		return unsub
-	}, [request_id, current_uid])
+	}, [request_uid, current_uid])
 
 	// ── Auto-scroll on new messages ────────────────────────────────────────
 	useEffect(() => {
@@ -80,7 +80,7 @@ export default function MessageThread({
 
 		try {
 			await send_message({
-				request_id,
+				request_uid,
 				sender_uid: current_uid,
 				receiver_uid: other_uid,
 				text,
@@ -93,7 +93,7 @@ export default function MessageThread({
 				receiver_role,
 				sender_name: current_name,
 				text,
-				request_id,
+				request_uid,
 			})
 		} catch (err) {
 			console.error('[MessageThread] send failed:', err)
@@ -106,7 +106,7 @@ export default function MessageThread({
 	}, [
 		input,
 		sending,
-		request_id,
+		request_uid,
 		current_uid,
 		other_uid,
 		current_name,
