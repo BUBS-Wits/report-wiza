@@ -1,0 +1,80 @@
+.apds_card {
+	background: #ffffff;
+	border: 1px solid #e2e8f0;
+	border-radius: 16px;
+	padding: 28px;
+	max-width: 620px;
+}
+
+.apds_header h2 {
+	margin: 0 0 8px;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 24px;
+	color: #0f1f3d;
+}
+
+.apds_header p {
+	margin: 0 0 22px;
+	font-size: 14px;
+	color: #64748b;
+}
+
+.apds_fields {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-bottom: 24px;
+}
+
+.apds_field {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-size: 14px;
+	color: #1f2937;
+}
+
+.apds_field input {
+	width: 16px;
+	height: 16px;
+	accent-color: #f59e0b;
+}
+
+.apds_save_btn {
+	background: #f59e0b;
+	color: #ffffff;
+	border: none;
+	border-radius: 8px;
+	padding: 10px 18px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.apds_save_btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.apds_message {
+	padding: 10px 14px;
+	border-radius: 8px;
+	font-size: 13px;
+	margin-bottom: 16px;
+}
+
+.apds_success {
+	background: #f0fdf4;
+	border: 1px solid #bbf7d0;
+	color: #16a34a;
+}
+
+.apds_error {
+	background: #fef2f2;
+	border: 1px solid #fecaca;
+	color: #dc2626;
+}
+
+.apds_muted {
+	color: #94a3b8;
+	font-size: 14px;
+}

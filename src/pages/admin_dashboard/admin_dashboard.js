@@ -10,6 +10,7 @@ import RegisterWorker from '../../components/register_worker/register_worker.js'
 import WorkersList from '../../components/workers_list/workers_list.js'
 import './admin_dashboard.css'
 import AdminRequests from '../../components/admin_requests/admin_requests.js'
+import AdminPublicDashboardSettings from '../../components/admin_public_dashboard_settings/admin_public_dashboard_settings.js'
 
 function AdminDashboard({ section = 'workers' }) {
 	const [active_section, set_active_section] = useState(section)
@@ -103,12 +104,7 @@ function AdminDashboard({ section = 'workers' }) {
 					</div>
 				)
 			case 'settings':
-				return (
-					<div className="admin_placeholder">
-						<p>Settings section — coming soon</p>
-						<span>US044</span>
-					</div>
-				)
+				return <AdminPublicDashboardSettings />
 			default:
 				return null
 		}
