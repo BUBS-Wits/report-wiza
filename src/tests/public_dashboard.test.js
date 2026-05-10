@@ -15,9 +15,13 @@ import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js
 jest.mock('../pages/public_dashboard/public_dashboard.css', () => ({}))
 jest.mock('leaflet/dist/leaflet.css', () => ({}))
 
+const mockNavigate = jest.fn()
+
 // Mock react-router-dom
 jest.mock('react-router-dom', () => ({
+	...jest.requireActual('react-router-dom'),
 	Link: ({ children, to }) => <a href={to}>{children}</a>,
+	useNavigate: () => mockNavigate,
 }))
 
 // Mock the backend service
