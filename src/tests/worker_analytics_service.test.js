@@ -1,1 +1,401 @@
-git
+import {
+	compute_worker_stats,
+	fetch_worker_dashboard_data,
+} from '../backend/worker_analytics_service.js'
+import { STATUS, STATUS_DISPLAY } from '../constants.js'
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Mocks
+───────────────────────────────────────────────────────────────────────────── */
+
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
+jest.mock('firebase/firestore', () => ({
+	collection: jest.fn(),
+	query: jest.fn(),
+	where: jest.fn(),
+	getDocs: jest.fn(),
+	doc: jest.fn(),
+	getDoc: jest.fn(),
+}))
+
+jest.mock('../firebase_config.js', () => ({
+	db: {},
+}))
+
+import { getDoc, getDocs, where } from 'firebase/firestore'
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helpers & Fixtures
+───────────────────────────────────────────────────────────────────────────── */
+
+// Helper to create mock Firestore timestamps
+const mockTimestamp = (ms) => ({
+	toMillis: () => ms,
+})
+
+const ONE_DAY_MS = 1000 * 60 * 60 * 24
+
+describe('Worker Dashboard Service', () => {
+	beforeEach(() => {
+		jest.clearAllMocks()
+	})
+
+	/* ── compute_worker_stats ────────────────────────────────────────────── */
+
+	describe('compute_worker_stats', () => {
+		test('returns zeroed stats for an empty array', () => {
+			const stats = compute_worker_stats([])
+			expect(stats).toEqual({
+				total: 0,
+				resolved: 0,
+				pending: 0,
+				acknowledged: 0,
+				closed: 0,
+				avg_resolution_days: 0,
+			})
+		})
+
+		test('correctly tallies request statuses', () => {
+			const requests = [
+				{ status: STATUS.ASSIGNED },
+				{ status: STATUS.ASSIGNED },
+				{ status: STATUS.IN_PROGRESS },
+				{ status: STATUS.RESOLVED },
+				{ status: STATUS.CLOSED },
+				{ status: STATUS.CLOSED },
+			]
+
+			const stats = compute_worker_stats(requests)
+			expect(stats.total).toBe(6)
+			expect(stats.pending).toBe(2)
+			expect(stats.acknowledged).toBe(1)
+			expect(stats.resolved).toBe(1)
+			expect(stats.closed).toBe(2)
+		})
+
+		test('calculates average resolution days correctly', () => {
+			const now = new Date()
+			const requests = [
+				{
+					status: STATUS.RESOLVED,
+					assigned_at: now.toUTCString(),
+					updated_at: new Date(
+						now.getTime() + ONE_DAY_MS * 2
+					).toUTCString(), // 2 days
+					resolved_at: new Date(
+						now.getTime() + ONE_DAY_MS * 2
+					).toUTCString(), // 4 days
+				},
+				{
+					status: STATUS.RESOLVED,
+					assigned_at: now.toUTCString(),
+					updated_at: new Date(
+						now.getTime() + ONE_DAY_MS * 4
+					).toUTCString(), // 4 days
+					resolved_at: new Date(
+						now.getTime() + ONE_DAY_MS * 4
+					).toUTCString(), // 4 days
+				},
+				{
+					status: STATUS.ASSIGNED, // Should be ignored in avg calculation
+					assigned_at: now.toUTCString(),
+				},
+			]
+
+			const stats = compute_worker_stats(requests)
+			// (2 days + 4 days) / 2 = 3.0 days
+			expect(stats.avg_resolution_days).toBe(3.0)
+		})
+
+		test('falls back to updatedAt if resolvedAt is missing', () => {
+			const now = new Date()
+			const requests = [
+				{
+					status: STATUS.RESOLVED,
+					assigned_at: now.toUTCString(),
+					updated_at: new Date(
+						now.getTime() + ONE_DAY_MS * 1.5
+					).toUTCString(), // 1.5 days
+				},
+			]
+
+			const stats = compute_worker_stats(requests)
+			expect(stats.avg_resolution_days).toBe(1.5)
+		})
+	})
+
+	/* ── fetch_worker_dashboard_data ─────────────────────────────────────── */
+
+	describe('fetch_worker_dashboard_data', () => {
+		const MOCK_UID = 'worker_123'
+
+		test('throws an error if user does not exist', async () => {
+			getDoc.mockResolvedValueOnce({ exists: () => false })
+
+			await expect(fetch_worker_dashboard_data(MOCK_UID)).rejects.toThrow(
+				'Not authenticated.'
+			)
+		})
+
+		test('throws an error if user is not a worker', async () => {
+			getDoc.mockResolvedValueOnce({
+				exists: () => true,
+				data: () => ({ role: 'resident' }),
+			})
+
+			await expect(fetch_worker_dashboard_data(MOCK_UID)).rejects.toThrow(
+				'Access denied. Worker role required.'
+			)
+		})
+
+		test('returns dashboard data with empty requests if no assignments exist', async () => {
+			// Mock verify_worker_and_get_profile
+			getDoc.mockResolvedValueOnce({
+				exists: () => true,
+				data: () => ({
+					role: 'worker',
+					name: 'Bob Builder',
+					email: 'bob@test.com',
+				}),
+			})
+
+			// Mock fetch_assigned_requests (returns empty)
+			getDocs.mockResolvedValueOnce({ empty: true })
+
+			const data = await fetch_worker_dashboard_data(MOCK_UID)
+
+			expect(data.worker.name).toBe('Bob Builder')
+			expect(data.requests).toEqual([])
+			expect(data.stats.total).toBe(0)
+		})
+
+		test('fetches, normalises, and sorts assigned requests successfully', async () => {
+			// 1. Mock worker profile
+			getDoc.mockResolvedValueOnce({
+				exists: () => true,
+				data: () => ({ role: 'worker', name: 'John Doe' }),
+			})
+
+			// 2. Mock assignments collection response
+			getDocs.mockResolvedValueOnce({
+				empty: false,
+				docs: [
+					{ data: () => ({ request_uid: 'req_1' }) },
+					{ data: () => ({ request_uid: 'req_2' }) },
+				],
+			})
+
+			// 3. Mock service_requests chunk fetch response
+			const mockUpdatedAt1 = new Date(Date.now() + 1000)
+			const mockUpdatedAt2 = new Date(Date.now() + 5000) // Newer
+
+			getDocs.mockResolvedValueOnce({
+				docs: [
+					{
+						id: 'req_1',
+						data: () => ({
+							status: STATUS.ASSIGNED,
+							category: 'Pothole',
+							updated_at: mockUpdatedAt1,
+							location: { ward_name: 'Ward 10' },
+						}),
+					},
+					{
+						id: 'req_2',
+						data: () => ({
+							status: STATUS.IN_PROGRESS,
+							category: 'Water Leak',
+							updated_at: mockUpdatedAt2,
+							sa_ward: '15',
+						}),
+					},
+				],
+			})
+
+			const data = await fetch_worker_dashboard_data(MOCK_UID)
+
+			// Verify normalisation and fallback logic
+			expect(data.requests.length).toBe(2)
+
+			// Should be sorted by newest updated first (req_2 then req_1)
+			expect(data.requests[0].id).toBe('req_2')
+			expect(data.requests[0].status).toBe(STATUS.IN_PROGRESS) // IN_PROGRESS -> Acknowledged
+			expect(data.requests[0].ward).toBe('Ward 15') // Fallback to sa_ward
+
+			expect(data.requests[1].id).toBe('req_1')
+			expect(data.requests[1].status).toBe(STATUS.ASSIGNED) // OPEN -> Pending
+			expect(data.requests[1].ward).toBe('Ward 10')
+
+			// Verify stats were computed
+			expect(data.stats.total).toBe(2)
+			expect(data.stats.pending).toBe(1)
+			expect(data.stats.acknowledged).toBe(1)
+		})
+
+		test('handles chunking correctly for more than 30 assignments', async () => {
+			getDoc.mockResolvedValueOnce({
+				exists: () => true,
+				data: () => ({ role: 'worker' }),
+			})
+
+			// Generate 35 mock assignments
+			const mockAssignments = Array.from({ length: 35 }, (_, i) => ({
+				data: () => ({ request_uid: `req_${i}` }),
+			}))
+
+			// Mock assignments collection response
+			getDocs.mockResolvedValueOnce({
+				empty: false,
+				docs: mockAssignments,
+			})
+
+			// Mock the two chunk fetches (one for 30, one for 5)
+			getDocs
+				.mockResolvedValueOnce({ docs: [] }) // Chunk 1 results
+				.mockResolvedValueOnce({ docs: [] }) // Chunk 2 results
+
+			await fetch_worker_dashboard_data(MOCK_UID)
+
+			// getDocs should have been called 3 times total:
+			// 1 time for assignments, 2 times for service_request chunks
+			expect(getDocs).toHaveBeenCalledTimes(3)
+
+			// Verify the 'in' operator was used properly to chunk the queries
+			expect(where).toHaveBeenCalledWith(
+				'__name__',
+				'in',
+				expect.any(Array)
+			)
+		})
+	})
+
+	/* ── add_comment ─────────────────────────────────────────────────────── */
+
+	describe('add_comment', () => {
+		const mock_add_doc = jest.fn()
+		const mock_server_timestamp = jest.fn(() => 'mock-timestamp')
+
+		beforeEach(() => {
+			jest.resetModules()
+			jest.doMock('firebase/firestore', () => ({
+				collection: jest.fn(),
+				query: jest.fn(),
+				where: jest.fn(),
+				getDocs: jest.fn(),
+				doc: jest.fn(),
+				getDoc: jest.fn(),
+				addDoc: mock_add_doc,
+				orderBy: jest.fn(),
+				serverTimestamp: mock_server_timestamp,
+			}))
+		})
+
+		test('calls addDoc with correct collection path and fields', async () => {
+			mock_add_doc.mockResolvedValueOnce({ id: 'comment-123' })
+
+			const { add_comment } = await import('../backend/worker_analytics_service.js')
+
+			await add_comment('req-001', 'Jane Smith', 'worker-uid-1', 'Road is flooded')
+
+			expect(mock_add_doc).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					text: 'Road is flooded',
+					worker_uid: 'worker-uid-1',
+					worker_name: 'Jane Smith',
+					created_at: 'mock-timestamp',
+				})
+			)
+		})
+
+		test('trims whitespace from comment text before saving', async () => {
+			mock_add_doc.mockResolvedValueOnce({ id: 'comment-456' })
+
+			const { add_comment } = await import('../backend/worker_analytics_service.js')
+
+			await add_comment('req-001', 'Jane Smith', 'worker-uid-1', '  spaces around  ')
+
+			expect(mock_add_doc).toHaveBeenCalledWith(
+				expect.anything(),
+				expect.objectContaining({
+					text: 'spaces around',
+				})
+			)
+		})
+	})
+
+	/* ── fetch_comment ───────────────────────────────────────────────────── */
+
+	describe('fetch_comment', () => {
+		const mock_get_docs = jest.fn()
+
+		beforeEach(() => {
+			jest.resetModules()
+			jest.doMock('firebase/firestore', () => ({
+				collection: jest.fn(),
+				query: jest.fn(),
+				where: jest.fn(),
+				getDocs: mock_get_docs,
+				doc: jest.fn(),
+				getDoc: jest.fn(),
+				addDoc: jest.fn(),
+				orderBy: jest.fn(),
+				serverTimestamp: jest.fn(),
+			}))
+		})
+
+		test('returns mapped array of comments from Firestore', async () => {
+			mock_get_docs.mockResolvedValueOnce({
+				docs: [
+					{
+						id: 'comment-001',
+						data: () => ({
+							text: 'Work is delayed',
+							worker_name: 'Jane Smith',
+							created_at: 'timestamp-1',
+						}),
+					},
+					{
+						id: 'comment-002',
+						data: () => ({
+							text: 'Parts ordered',
+							worker_name: 'John Doe',
+							created_at: 'timestamp-2',
+						}),
+					},
+				],
+			})
+
+			const { fetch_comment } = await import('../backend/worker_analytics_service.js')
+
+			const result = await fetch_comment('req-001')
+
+			expect(result).toHaveLength(2)
+			expect(result[0]).toEqual({
+				id: 'comment-001',
+				text: 'Work is delayed',
+				worker_name: 'Jane Smith',
+				created_at: 'timestamp-1',
+			})
+			expect(result[1]).toEqual({
+				id: 'comment-002',
+				text: 'Parts ordered',
+				worker_name: 'John Doe',
+				created_at: 'timestamp-2',
+			})
+		})
+
+		test('returns empty array when no comments exist', async () => {
+			mock_get_docs.mockResolvedValueOnce({ docs: [] })
+
+			const { fetch_comment } = await import('../backend/worker_analytics_service.js')
+
+			const result = await fetch_comment('req-001')
+
+			expect(result).toEqual([])
+		})
+	})
+})

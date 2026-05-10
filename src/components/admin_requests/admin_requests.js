@@ -140,7 +140,7 @@ function AdminRequests() {
 
 	// Helper — find worker name from uid
 	const get_worker_name = (uid) => {
-		if (!uid) return null
+		if (!uid) {return null}
 		const worker = workers.find((w) => w.id === uid)
 		return worker ? (worker.display_name ?? worker.email) : 'Unknown worker'
 	}
@@ -163,7 +163,7 @@ function AdminRequests() {
 
 	// US026 — assign request to worker
 	const handle_assign_ticket = async (worker_uid) => {
-		if (!assign_modal_req) return
+		if (!assign_modal_req) {return}
 		const request_id = assign_modal_req
 		set_assign_modal_req(null)
 		set_updating_id(request_id)
