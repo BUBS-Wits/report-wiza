@@ -152,6 +152,9 @@ const b2_get_expiry_from_signed_url = (signed_url) => {
 	const url = new URL(signed_url)
 	const date = url.searchParams.get('X-Amz-Date')
 	const expires_in = url.searchParams.get('X-Amz-Expires')
+	if (!date || !expires_in) {
+		return new Date(0)
+	}
 
 	const created = new Date(
 		date.replace(
@@ -164,6 +167,37 @@ const b2_get_expiry_from_signed_url = (signed_url) => {
 
 const b2_is_expired = (signed_url) => {
 	return b2_get_expiry_from_signed_url(signed_url) < new Date()
+}
+
+const is_expired = (expires_at) => {
+	const expiry = expires_at
+	const now = new Date()
+	const buffer_ms = 5 * 60 * 1000
+
+	return expiry.getTime() - now.getTime() < buffer_ms
+}
+
+const b2_refresh_signed_url = async (
+	key_name,
+	image_url,
+	expires = undefined
+) => {
+	let expires_at = expires
+	if (expires === undefined || expires === null) {
+		expires_at = b2_get_expiry_from_signed_url(image_url)
+	}
+	if (is_expired(expires_at)) {
+		let new_signed_url = await b2_key_to_signed_url(key_name)
+		if (!new_signed_url.ok) {
+			return {}
+		}
+		new_signed_url = new_signed_url.value
+		const expires_at = new Date(
+			Date.now() + B2_SIGNED_URL_EXPIRES_IN * 1000
+		)
+		return { new_signed_url, expires_at }
+	}
+	return {}
 }
 
 /********************* Backend *********************/
@@ -449,6 +483,12 @@ app.post('/api/submit-request', authenticate_optional, async (req, res) => {
 		}
 		ret = await update_db_document('service_requests', doc_result.value, [
 			['image', ret.value],
+			[
+				'image_expires_at',
+				new Date(
+					Date.now() + B2_SIGNED_URL_EXPIRES_IN * 1000
+				).toUTCString(),
+			],
 		])
 		if (!ret.ok) {
 			console.error(ret.value)
@@ -531,6 +571,20 @@ app.get('/api/get-requests', async (req, res) => {
 		if (!ret.ok) {
 			return res.status(400).json({ error: ret.value })
 		}
+		for (const tmp of ret.value) {
+			const url = await b2_refresh_signed_url(
+				tmp.id,
+				tmp.image,
+				tmp.image_expires_at
+			)
+			if (url.expires_at) {
+				await update_db_document('service_requests', tmp.id, [
+					['image', url.new_signed_url],
+					['image_expires_at', url.expires_at.toUTCString()],
+				])
+				tmp.image = url.new_signed_url
+			}
+		}
 		return res.status(200).json({ data: ret.value })
 	} catch (err) {
 		console.error('Database error:', err)
@@ -566,6 +620,18 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 			const data = iret.value
 			if (data === null) {
 				continue
+			}
+			const url = await b2_refresh_signed_url(
+				data.id,
+				data.image,
+				data.image_expires_at
+			)
+			if (url.expires_at) {
+				await update_db_document('service_requests', data.id, [
+					['image', url.new_signed_url],
+					['image_expires_at', url.expires_at.toUTCString()],
+				])
+				data.image = url.new_signed_url
 			}
 			claimed_requests.push({
 				id: data.id,
@@ -608,6 +674,18 @@ app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 			if (await exists_db_document('assignments', doc.id)) {
 				continue
 			}
+			const url = await b2_refresh_signed_url(
+				doc.id,
+				doc.image,
+				doc.image_expires_at
+			)
+			if (url.expires_at) {
+				await update_db_document('service_requests', doc.id, [
+					['image', url.new_signed_url],
+					['image_expires_at', url.expires_at.toUTCString()],
+				])
+				doc.image = url.new_signed_url
+			}
 			requests.push({
 				id: doc.id,
 				created_at: doc.created_at,
@@ -623,6 +701,43 @@ app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 			})
 		}
 		return res.status(200).json({ data: requests })
+	} catch (err) {
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
+app.get('/api/get-signed-url', async (req, res) => {
+	try {
+		const request_uid = req.query.request_uid
+		if (!request_uid || Object.keys(req.query).length !== 1) {
+			return respond.invalid_parameters(res)
+		}
+		const iret = await get_db_document('service_requests', request_uid)
+		if (!iret.ok) {
+			return res.status(400).json({ error: iret.value })
+		}
+		const data = iret.value
+		if (data === null) {
+			return res
+				.status(400)
+				.json({ error: 'Failed to get requested service request' })
+		}
+		const url = await b2_refresh_signed_url(
+			data.id,
+			data.image,
+			data.image_expires_at ? new Date(data.image_expires_at) : undefined
+		)
+		if (url.expires_at) {
+			await update_db_document('service_requests', data.id, [
+				['image', url.new_signed_url],
+				['image_expires_at', url.expires_at.toUTCString()],
+			])
+			return res.status(200).json({ data: url.new_signed_url })
+		}
+		return res.status(400).json({
+			error: "Failed to get requested service request's signed url",
+		})
 	} catch (err) {
 		console.error('Database error:', err)
 		res.status(500).json({ error: 'Internal server error' })
