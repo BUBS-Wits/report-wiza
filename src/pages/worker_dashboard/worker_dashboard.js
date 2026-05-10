@@ -87,46 +87,6 @@ export default function WorkerDashboard() {
 		setTimeout(() => set_show_busy_tip(false), 2000)
 	}
 
-	/* ── Load dashboard data ──────────────────────────────────────────── */
-
-	const get_claimed_requests = async () => {
-		const token = await auth.currentUser.getIdToken()
-		const ret = await fetch('/api/get-claimed-requests', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-		})
-		if (!ret.ok) {
-			console.error('Failed: ', await ret.json())
-			return []
-		}
-		const tmp = await ret.json()
-		const data = tmp.data
-		console.log('claimed: ', data)
-		return data
-	}
-
-	const get_unclaimed_requests = async () => {
-		const token = await auth.currentUser.getIdToken()
-		const ret = await fetch('/api/get-unclaimed-requests', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-		})
-		if (!ret.ok) {
-			console.error('Failed: ', await ret.json())
-			return []
-		}
-		const tmp = await ret.json()
-		const data = tmp.data
-		console.log('unclaimed: ', data)
-		return data
-	}
-
 	/* ── Panel helpers ────────────────────────────────────────────────── */
 
 	const open_panel = useCallback((req) => {

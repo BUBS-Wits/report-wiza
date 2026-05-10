@@ -447,6 +447,7 @@ describe('Real-time snapshot updates', () => {
 
 		await act(async () => {
 			const tmp = make_snapshot([])
+			assignment_handler(tmp)
 			claimed_handler(tmp)
 		})
 
@@ -777,6 +778,20 @@ describe('Status update', () => {
 				screen.getByText('Failed to update request status.')
 			).toBeInTheDocument()
 		)
+	})
+
+	test('claim request button clickable', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Roads')).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getAllByLabelText(/open request req-003/i)[0])
+		await waitFor(() =>
+			expect(screen.getByTestId('claim-btn')).toBeInTheDocument()
+		)
+		expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
+		fireEvent.click(screen.getByTestId('claim-btn'))
 	})
 
 	test('does not call update again while first update is in-flight', async () => {
