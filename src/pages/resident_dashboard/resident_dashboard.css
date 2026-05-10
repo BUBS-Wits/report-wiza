@@ -807,6 +807,43 @@
 	}
 }
 
+/* ── Error Msg ──────────────────────────────────────────────── */
+.wd-centered-screen {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16px;
+	font-family: 'DM Sans', sans-serif;
+}
+
+.wd-error-text {
+	font-size: 14px;
+	color: #b45309;
+	max-width: 360px;
+	text-align: center;
+}
+
+.wd-retry-btn {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	padding: 8px 20px;
+	border: 1px solid #f59e0b;
+	border-radius: 6px;
+	background: rgba(245, 158, 11, 0.08);
+	color: #b45309;
+	cursor: pointer;
+	font-family: 'DM Sans', sans-serif;
+	transition: background 0.15s;
+}
+
+.wd-retry-btn:hover {
+	background: rgba(245, 158, 11, 0.16);
+}
+
 /* ── Priority pill — add to resident_dashboard.css ── */
 
 .rd-priority-pill {

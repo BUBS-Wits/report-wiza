@@ -92,6 +92,7 @@ export default function WorkerDashboard() {
 	})
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
+	const [error_handling, set_error_handling] = useState(null)
 	const [active_filter, set_filter] = useState('All')
 	const [active_section, set_active_section] = useState(null)
 	const [selected_req, set_selected_req] = useState(null)
@@ -118,6 +119,7 @@ export default function WorkerDashboard() {
 			set_active_section('queue')
 		} catch (err) {
 			set_error(err.message || 'Failed to load dashboard.')
+			set_error_handling(() => () => navigate('/login'))
 		} finally {
 			set_loading(false)
 		}
@@ -171,6 +173,7 @@ export default function WorkerDashboard() {
 		const unsub = onAuthStateChanged(auth, async (user) => {
 			if (!user) {
 				set_error('You are not logged in.')
+				set_error_handling(() => () => navigate('/login'))
 				set_loading(false)
 				return
 			}
@@ -331,7 +334,7 @@ export default function WorkerDashboard() {
 	}
 
 	if (error) {
-		return <ErrorScreen message={error} onRetry={() => null} />
+		return <ErrorScreen message={error} onRetry={error_handling} />
 	}
 
 	/* ── Derived values ───────────────────────────────────────────────── */

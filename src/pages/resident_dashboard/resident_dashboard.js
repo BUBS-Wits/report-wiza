@@ -143,11 +143,7 @@ export default function ResidentDashboard() {
 	}
 
 	if (error) {
-		return (
-			<div className="rd-fullscreen">
-				<p className="rd-error-text">{error}</p>
-			</div>
-		)
+		return <ErrorScreen message={error} onRetry={() => null} />
 	}
 
 	/* ── Render ───────────────────────────────────────────────────────── */
@@ -552,6 +548,17 @@ function RequestDetail({ req, resident, on_back }) {
 					</div>
 				)}
 			</div>
+		</div>
+	)
+}
+
+function ErrorScreen({ message, onRetry }) {
+	return (
+		<div className="wd-centered-screen">
+			<div className="wd-error-text">{message}</div>
+			<button className="wd-retry-btn" onClick={onRetry}>
+				Try again
+			</button>
 		</div>
 	)
 }

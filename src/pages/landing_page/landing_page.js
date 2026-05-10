@@ -34,6 +34,15 @@ function LandingPage() {
 						<Link to="/dashboard" className="btn_secondary">
 							View Public Dashboard
 						</Link>
+						<Link to="/worker-dashboard" className="btn_secondary">
+							View Worker Dashboard
+						</Link>
+						<Link
+							to="/resident-dashboard"
+							className="btn_secondary"
+						>
+							View Resident Dashboard
+						</Link>
 					</div>
 				</div>
 				<div className="hero_stat_row">
