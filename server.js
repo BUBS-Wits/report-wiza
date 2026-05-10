@@ -149,10 +149,17 @@ const b2_get_content = (key_name) => {
 }
 
 const b2_get_expiry_from_signed_url = (signed_url) => {
-	const url = new URL(signed_url)
-	const date = url.searchParams.get('X-Amz-Date')
-	const expires_in = url.searchParams.get('X-Amz-Expires')
-	if (!date || !expires_in) {
+	let url
+	let date
+	let expires_in
+	try {
+		url = new URL(signed_url)
+		date = url.searchParams.get('X-Amz-Date')
+		expires_in = url.searchParams.get('X-Amz-Expires')
+		if (!date || !expires_in) {
+			throw new Error()
+		}
+	} catch (err) {
 		return new Date(0)
 	}
 
@@ -430,7 +437,6 @@ const role_service = {
 	is_worker: (uid) => has_role(uid, 'worker'),
 }
 
-// NOTE: Changed to authenticate_optional
 app.post('/api/submit-request', authenticate, async (req, res) => {
 	try {
 		const user_uid = req.user.uid
