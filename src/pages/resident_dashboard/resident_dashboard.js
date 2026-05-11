@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { Link, useLocation, useNavigate } from 'react-router-dom' // merged both
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { auth } from '../../firebase_config.js'
 import {
 	fetch_resident_profile,
@@ -11,6 +11,7 @@ import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './resident_dashboard.css'
 import LikeButton from '../../components/request_card/like_button/like_button.js'
+import NotificationBell from '../../components/notification_bell/notification_bell.js'
 
 /* ── Status config ───────────────────────────────────────────────────────── */
 
@@ -120,6 +121,51 @@ export default function ResidentDashboard() {
 		set_logging_out(true)
 		await signOut(auth)
 		navigate('/')
+	}
+
+	// NEW: Cancel an unassigned request
+	const cancelRequest = async (requestId) => {
+		try {
+			const user = auth.currentUser
+			if (!user) {
+				return
+			}
+			const token = await user.getIdToken()
+
+			const res = await fetch('/api/cancel-request', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ requestId }),
+			})
+
+			if (!res.ok) {
+				const errData = await res.json()
+				alert(errData.error || 'Failed to cancel request')
+				return
+			}
+
+			// Remove the request from the list
+			set_requests((prev) => prev.filter((r) => r.id !== requestId))
+
+			// If the deleted request was selected, select another one
+			if (selected_id === requestId) {
+				set_requests((prev) => {
+					const remaining = prev.filter((r) => r.id !== requestId)
+					set_selected_id(
+						remaining.length > 0 ? remaining[0].id : null
+					)
+					return remaining
+				})
+			}
+
+			alert('Request cancelled successfully.')
+		} catch (err) {
+			console.error('Cancel error:', err)
+			alert('An error occurred while cancelling the request.')
+		}
 	}
 
 	const selected_req = requests.find((r) => r.id === selected_id) ?? null
@@ -241,7 +287,6 @@ export default function ResidentDashboard() {
 						<span>Submit Request</span>
 					</Link>
 
-					{/* Added from remote – Public Dashboard link */}
 					<Link
 						to="/dashboard"
 						className={`rd-nav-link${location.pathname === '/dashboard' ? ' rd-nav-link--active' : ''}`}
@@ -267,6 +312,13 @@ export default function ResidentDashboard() {
 				</nav>
 
 				<div className="rd-topbar-right">
+					{resident && (
+						<NotificationBell
+							userUid={resident.uid}
+							role="resident"
+						/>
+					)}
+
 					<div className="rd-user-chip">
 						<span className="rd-avatar">
 							{get_initials(resident?.name ?? '')}
@@ -342,6 +394,7 @@ export default function ResidentDashboard() {
 							req={selected_req}
 							resident={resident}
 							on_back={() => set_selected_id(null)}
+							on_cancel={cancelRequest} // NEW prop
 						/>
 					) : (
 						<div className="rd-main-empty">
@@ -356,7 +409,7 @@ export default function ResidentDashboard() {
 	)
 }
 
-/* ── RequestCard ─────────────────────────────────────────────────────────── */
+/* ── RequestCard (unchanged) ─────────────────────────────────────────────── */
 
 function RequestCard({ req, is_selected, on_click, index }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
@@ -385,7 +438,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 	)
 }
 
-/* ── RequestDetail ───────────────────────────────────────────────────────── */
+/* ── RequestDetail (updated with cancel button) ──────────────────────────── */
 
 const PRIORITY_META = {
 	Low: { label: 'Low', cls: 'rd-priority--low' },
@@ -394,12 +447,18 @@ const PRIORITY_META = {
 	Critical: { label: 'Critical', cls: 'rd-priority--critical' },
 }
 
-function RequestDetail({ req, resident, on_back }) {
+function RequestDetail({ req, resident, on_back, on_cancel }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
 	const has_worker = !!req.worker_uid
 	const priority_meta = PRIORITY_META[req.priority] ?? null
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
+
+	// Determine if the request can be cancelled (no worker assigned, not resolved/closed)
+	const canCancel =
+		!has_worker &&
+		req.status !== STATUS.RESOLVED &&
+		req.status !== STATUS.CLOSED
 
 	const parseWktPoint = (locationStr) => {
 		if (!locationStr) {
@@ -427,8 +486,6 @@ function RequestDetail({ req, resident, on_back }) {
 			lng = coords.lon
 		}
 	}
-
-	console.log('Worker name from Firestore:', req.worker_name)
 
 	useEffect(() => {
 		if (req.status !== 'closed') {
@@ -461,6 +518,16 @@ function RequestDetail({ req, resident, on_back }) {
 			}
 		)
 	}, [req.id, req.status])
+
+	const handleCancel = () => {
+		if (
+			window.confirm(
+				'Are you sure you want to cancel this request? This action cannot be undone.'
+			)
+		) {
+			on_cancel(req.id)
+		}
+	}
 
 	return (
 		<div className="rd-detail">
@@ -546,7 +613,6 @@ function RequestDetail({ req, resident, on_back }) {
 						)}
 					</dd>
 				</div>
-
 				<div className="rd-detail-meta-item">
 					<dt>Location</dt>
 					<dd>
@@ -568,12 +634,10 @@ function RequestDetail({ req, resident, on_back }) {
 						)}
 					</dd>
 				</div>
-
 				<div className="rd-detail-meta-item rd-detail-meta-item--full">
 					<dt>Description</dt>
 					<dd>{req.description}</dd>
 				</div>
-
 				{req.image && (
 					<div className="rd-detail-meta-item rd-detail-meta-item--full">
 						<dt>Photo</dt>
@@ -590,7 +654,6 @@ function RequestDetail({ req, resident, on_back }) {
 						</dd>
 					</div>
 				)}
-
 				{req.status === 'closed' && (
 					<div className="rd-detail-meta-item rd-detail-meta-item--full">
 						<dt>Close reason</dt>
@@ -602,6 +665,15 @@ function RequestDetail({ req, resident, on_back }) {
 					</div>
 				)}
 			</dl>
+
+			{/* Cancel button for unassigned requests */}
+			{canCancel && (
+				<div className="rd-cancel-section">
+					<button className="rd-cancel-btn" onClick={handleCancel}>
+						Cancel Request
+					</button>
+				</div>
+			)}
 
 			<div className="rd-section-divider">
 				<span>Messages</span>

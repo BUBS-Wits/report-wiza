@@ -2,7 +2,6 @@
 	min-height: 100vh;
 	background: #0f1f3d;
 	color: #ffffff;
-	/* Updated padding: 100px top (for Navbar), 5% sides (fluid), 64px bottom */
 	padding: 100px 5% 64px;
 	box-sizing: border-box;
 }
@@ -39,7 +38,6 @@
 
 .dashboard_header h1 {
 	margin: 0 0 14px;
-	/* Added clamp() so the text scales down cleanly on mobile */
 	font-size: clamp(2rem, 5vw, 3rem);
 	color: #f59e0b;
 	line-height: 1.1;
@@ -57,7 +55,6 @@
 	max-width: 1100px;
 	margin: 0 auto 36px;
 	display: grid;
-	/* Your existing auto-fit grid here is perfect for responsiveness! */
 	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	gap: 18px;
 }
@@ -96,7 +93,7 @@
 	align-items: center;
 	gap: 12px;
 	margin-bottom: 18px;
-	flex-wrap: wrap; /* Allows wrap if title and tags clash on mobile */
+	flex-wrap: wrap;
 }
 
 .section_heading_row h2 {
@@ -181,7 +178,6 @@
 
 .request_list {
 	display: grid;
-	/* Again, brilliant use of auto-fit grid! */
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	gap: 20px;
 }
@@ -192,6 +188,8 @@
 	border-radius: 18px;
 	padding: 22px;
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+	display: flex;
+	flex-direction: column;
 }
 
 .request_card_top {
@@ -208,28 +206,57 @@
 	color: #f8fafc;
 }
 
-.status_badge {
-	padding: 6px 12px;
+/* ---- Group status + priority together ---- */
+.request_card_status_group {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 4px;
+	max-width: 50%; /*caps the right column at half the card */
+	flex-shrink: 0;
+}
+
+/* Like button alignment and spacing */
+.request_footer {
+	margin-top: auto;
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 16px;
+}
+
+.status_badge,
+.priority_badge {
+	width: 150px;
+	box-sizing: border-box;
+	text-align: center;
+	padding: 6px 10px;
 	border-radius: 999px;
 	font-size: 0.75rem;
 	font-weight: 700;
 	text-transform: uppercase;
-	white-space: nowrap;
+	white-space: nowrap; /* single line, no wrapping */
+	display: inline-block;
+}
+/* Separate colouring for status badges */
+.status_badge.open,
+.status_badge.submitted,
+.status_badge.unassigned {
+	background: #ea580c;
+	color: #fff;
 }
 
-.status_badge.open {
-	background: #7c2d12;
-	color: #fdba74;
+/* In Progress / Assigned / Acknowledged → blue like map */
+.status_badge.in_progress,
+.status_badge.assigned,
+.status_badge.acknowledged {
+	background: #2563eb;
+	color: #fff;
 }
 
-.status_badge.in_progress {
-	background: #1d4ed8;
-	color: #bfdbfe;
-}
-
-.status_badge.resolved {
-	background: #166534;
-	color: #bbf7d0;
+.status_badge.resolved,
+.status_badge.closed {
+	background: #16a34a;
+	color: #fff;
 }
 
 .request_location {
@@ -259,13 +286,52 @@
 	padding: 1rem 0;
 }
 
+/* ── Request card meta row (date) ── */
+.request_meta_row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-top: 12px;
+}
+
+/* Priority row – just spacing, no flex needed */
+.request_priority_row {
+	margin: 0;
+}
+
+.request_date {
+	color: #94a3b8;
+	font-size: 0.8rem;
+}
+
+.priority_badge {
+	border-radius: 12px;
+}
+
+.priority--low {
+	background: #e0f7fa;
+	color: #006064;
+}
+.priority--medium {
+	background: #fff3e0;
+	color: #e65100;
+}
+.priority--high {
+	background: #fce4ec;
+	color: #880e4f;
+}
+.priority--critical {
+	background: #ffebee;
+	color: #b71c1c;
+}
+
 /* =========================================================================
    MOBILE RESPONSIVENESS
    ========================================================================= */
 @media (max-width: 768px) {
 	.map_container,
 	.leaflet_map {
-		/* Prevents the map from dominating the entire screen vertically on mobile */
 		height: 300px;
 		min-height: 300px;
 	}

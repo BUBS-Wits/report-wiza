@@ -7,7 +7,11 @@ import {
 } from '../../../backend/like_service.js'
 import './like_button.css'
 
-const LikeButton = ({ requestId, initialLikeCount }) => {
+const LikeButton = ({
+	requestId,
+	initialLikeCount,
+	onLikeChange = () => {},
+}) => {
 	const [likes, setLikes] = useState(initialLikeCount)
 	const [userLiked, setUserLiked] = useState(false)
 	const [loading, setLoading] = useState(false)
@@ -26,7 +30,7 @@ const LikeButton = ({ requestId, initialLikeCount }) => {
 	const handleLike = async () => {
 		if (!currentUser) {
 			return
-		} // safety, button is disabled for non-logged-in
+		}
 		if (loading) {
 			return
 		}
@@ -41,6 +45,8 @@ const LikeButton = ({ requestId, initialLikeCount }) => {
 				setLikes((prev) => prev + 1)
 				setUserLiked(true)
 			}
+			// ← Refresh the dashboard so priority badges update immediately
+			onLikeChange()
 		} catch (error) {
 			console.error('Error updating like:', error)
 			alert('Something went wrong. Please try again.')

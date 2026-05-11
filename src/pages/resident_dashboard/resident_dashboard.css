@@ -919,3 +919,23 @@
 	border-radius: 4px;
 	margin-top: 4px;
 }
+
+/* Cancel button */
+.rd-cancel-section {
+	margin-top: 24px;
+	text-align: center;
+}
+.rd-cancel-btn {
+	background: none;
+	border: 2px solid #dc2626;
+	color: #dc2626;
+	padding: 10px 24px;
+	border-radius: 8px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: 0.2s;
+}
+.rd-cancel-btn:hover {
+	background: #dc2626;
+	color: white;
+}

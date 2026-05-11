@@ -902,6 +902,66 @@ app.get('/api/get-signed-url', async (req, res) => {
 	}
 })
 
+// Cancel an unassigned request (resident only)
+app.post('/api/cancel-request', authenticate, async (req, res) => {
+	try {
+		const userId = req.user.uid
+
+		// Verify resident role
+		const isResident = await role_service.is_resident(userId)
+		if (!isResident.ok || !isResident.value) {
+			return res
+				.status(403)
+				.json({ error: 'Only residents can cancel requests.' })
+		}
+
+		const { requestId } = req.body
+		if (!requestId) {
+			return res.status(400).json({ error: 'Missing requestId.' })
+		}
+
+		// Fetch the request
+		const docResult = await get_db_document('service_requests', requestId)
+		if (!docResult.ok || !docResult.value) {
+			return res.status(404).json({ error: 'Request not found.' })
+		}
+
+		const data = docResult.value
+
+		// Verify ownership
+		if (data.user_uid !== userId) {
+			return res
+				.status(403)
+				.json({ error: 'You can only cancel your own requests.' })
+		}
+
+		// Verify no worker assigned
+		if (data.worker_uid) {
+			return res
+				.status(400)
+				.json({
+					error: 'Cannot cancel a request that has been assigned to a worker.',
+				})
+		}
+
+		// Delete the document
+		const deleteResult = await delete_db_document(
+			'service_requests',
+			requestId
+		)
+		if (!deleteResult.ok) {
+			return res.status(500).json({ error: 'Failed to delete request.' })
+		}
+
+		return res
+			.status(200)
+			.json({ message: 'Request cancelled successfully.' })
+	} catch (err) {
+		console.error('Cancel request error:', err)
+		return res.status(500).json({ error: 'Internal server error.' })
+	}
+})
+
 /********************* Frontend *********************/
 
 const build_path = path.resolve(path.join(__dirname, 'build'))

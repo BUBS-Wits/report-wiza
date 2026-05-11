@@ -8,7 +8,7 @@ import {
 	prettyDOM,
 } from '@testing-library/react'
 import '@testing-library/jest-dom'
-
+import { subscribe_to_worker_conversations } from '../backend/worker_conversations_service'
 console.log = () => {}
 console.debug = () => {}
 console.error = () => {}
@@ -97,7 +97,9 @@ jest.mock('../backend/worker_firebase.js', () => ({
 jest.mock('react-router-dom', () => ({
 	useNavigate: () => jest.fn(),
 }))
-
+jest.mock('../backend/worker_conversations_service.js', () => ({
+	subscribe_to_worker_conversations: jest.fn(() => jest.fn()), // Mocks the listener and its unsubscribe function
+}))
 jest.mock(
 	'../components/worker_nav_bar/worker_nav_bar.js',
 	() =>
@@ -336,6 +338,7 @@ async function mount_and_load({
 
 beforeEach(() => {
 	jest.clearAllMocks()
+	subscribe_to_worker_conversations.mockImplementation(() => jest.fn())
 	mock_on_auth_state_changed.mockImplementation(() => {
 		return mock_unsub
 	})

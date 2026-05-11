@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -18,7 +18,6 @@ if (process.env.NODE_ENV === 'test') {
 	const dummyLayer = {
 		resetStyle: () => {},
 	}
-	// Return dummyLayer to allow method chaining safely
 	dummyLayer.bindPopup = () => dummyLayer
 	dummyLayer.on = () => dummyLayer
 	dummyLayer.addTo = () => dummyLayer
@@ -114,13 +113,29 @@ function WardBoundaries() {
 function FitMapToRequests({ requests }) {
 	const map = useMap()
 	useEffect(() => {
-		if (!requests.length) {
+		if (!requests || !requests.length) {
 			return
 		}
-		const bounds = L.latLngBounds(
-			requests.map((r) => [r.latitude, r.longitude])
+		const validRequests = requests.filter(
+			(r) =>
+				typeof r.latitude === 'number' &&
+				isFinite(r.latitude) &&
+				typeof r.longitude === 'number' &&
+				isFinite(r.longitude)
 		)
-		map.fitBounds(bounds, { padding: [40, 40] })
+		if (!validRequests.length) {
+			return
+		}
+		try {
+			const bounds = L.latLngBounds(
+				validRequests.map((r) => [r.latitude, r.longitude])
+			)
+			if (bounds.isValid()) {
+				map.fitBounds(bounds, { padding: [40, 40] })
+			}
+		} catch (e) {
+			// ignore
+		}
 	}, [map, requests])
 	return null
 }
@@ -177,6 +192,7 @@ function PublicDashboard() {
 		})
 		return () => unsub()
 	}, [])
+
 	useEffect(() => {
 		fetchPublicDashboardData()
 			.then(({ active, resolved, stats }) => {
@@ -193,7 +209,26 @@ function PublicDashboard() {
 			.finally(() => setLoading(false))
 	}, [])
 
+	// NEW: function to refresh the whole dashboard after a like
+	const refreshDashboard = useCallback(async () => {
+		try {
+			const { active, resolved, stats } = await fetchPublicDashboardData()
+			setActive(active)
+			setResolved(resolved)
+			setStats(stats)
+		} catch (err) {
+			console.error('Failed to refresh dashboard data:', err)
+		}
+	}, [])
+
 	const allRequests = [...active, ...resolved]
+	const mapRequests = allRequests.filter(
+		(r) =>
+			typeof r.latitude === 'number' &&
+			isFinite(r.latitude) &&
+			typeof r.longitude === 'number' &&
+			isFinite(r.longitude)
+	)
 
 	if (loading) {
 		return (
@@ -250,62 +285,68 @@ function PublicDashboard() {
 				</div>
 			</section>
 
-			<section className="map_section">
-				<div className="section_heading_row">
-					<h2>Ward Map Overview</h2>
-				</div>
-				<div className="map_container">
-					<MapContainer
-						center={[-26.2041, 28.0473]}
-						zoom={13}
-						scrollWheelZoom={true}
-						className="leaflet_map"
-					>
-						<FixMapSize />
-						<WardBoundaries />
-						<FitMapToRequests requests={allRequests} />
-						<TileLayer
-							attribution="&copy; OpenStreetMap contributors"
-							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-						/>
-						{allRequests.map((request) => (
-							<Marker
-								key={request.id}
-								position={[request.latitude, request.longitude]}
-								icon={getStatusIcon(request.status)}
-							>
-								<Popup>
-									<div>
-										<strong>{request.category}</strong>
-										<br />
-										Status: {request.status}
-										<br />
-										{request.ward}
-										<br />
-										{request.municipality}
-										<br />
-										{request.description}
-									</div>
-								</Popup>
-							</Marker>
-						))}
-					</MapContainer>
-					<div className="map_legend">
-						<div className="legend_item">
-							<span className="legend_dot legend_open"></span>
-							<span>Open</span>
-						</div>
-						<div className="legend_item">
-							<span className="legend_dot legend_progress"></span>
-							<span>In Progress</span>
-						</div>
-						<div className="legend_item">
-							<span className="legend_dot legend_resolved"></span>
-							<span>Resolved</span>
+			{/* Map section only renders when there are valid coordinates */}
+			{mapRequests.length > 0 && (
+				<section className="map_section">
+					<div className="section_heading_row">
+						<h2>Ward Map Overview</h2>
+					</div>
+					<div className="map_container">
+						<MapContainer
+							center={[-26.2041, 28.0473]}
+							zoom={13}
+							scrollWheelZoom={true}
+							className="leaflet_map"
+						>
+							<FixMapSize />
+							<WardBoundaries />
+							<FitMapToRequests requests={mapRequests} />
+							<TileLayer
+								attribution="&copy; OpenStreetMap contributors"
+								url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+							/>
+							{mapRequests.map((request) => (
+								<Marker
+									key={request.id}
+									position={[
+										request.latitude,
+										request.longitude,
+									]}
+									icon={getStatusIcon(request.status)}
+								>
+									<Popup>
+										<div>
+											<strong>{request.category}</strong>
+											<br />
+											Status: {request.status}
+											<br />
+											{request.ward}
+											<br />
+											{request.municipality}
+											<br />
+											{request.description}
+										</div>
+									</Popup>
+								</Marker>
+							))}
+						</MapContainer>
+						<div className="map_legend">
+							<div className="legend_item">
+								<span className="legend_dot legend_open"></span>
+								<span>Open</span>
+							</div>
+							<div className="legend_item">
+								<span className="legend_dot legend_progress"></span>
+								<span>In Progress</span>
+							</div>
+							<div className="legend_item">
+								<span className="legend_dot legend_resolved"></span>
+								<span>Resolved</span>
+							</div>
 						</div>
 					</div>
-				</div>
-			</section>
+				</section>
+			)}
 
 			<section className="dashboard_section">
 				<div className="section_heading_row">
@@ -317,7 +358,11 @@ function PublicDashboard() {
 				<div className="request_list">
 					{active.length > 0 ? (
 						active.map((request) => (
-							<RequestCard key={request.id} request={request} />
+							<RequestCard
+								key={request.id}
+								request={request}
+								onLikeChange={refreshDashboard}
+							/>
 						))
 					) : (
 						<p className="empty_state">
@@ -337,7 +382,11 @@ function PublicDashboard() {
 				<div className="request_list">
 					{resolved.length > 0 ? (
 						resolved.map((request) => (
-							<RequestCard key={request.id} request={request} />
+							<RequestCard
+								key={request.id}
+								request={request}
+								onLikeChange={refreshDashboard}
+							/>
 						))
 					) : (
 						<p className="empty_state">

@@ -3,33 +3,33 @@ import { db } from '../firebase_config.js'
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { parseLocation } from '../utils/parse_location.js'
 
-// Statuses treated as "open" (active) on the public dashboard
+// Statuses treated as "active" (Open Requests section)
+// All lowercase for case‑insensitive matching
 const ACTIVE_STATUSES = new Set([
-	'SUBMITTED',
-	'UNASSIGNED',
-	'ASSIGNED',
-	'IN_PROGRESS',
+	'submitted',
+	'unassigned',
+	'assigned',
+	'in_progress',
+	'open',
+	'acknowledged',
+	'pending',
 ])
 
-// Max resolved requests to surface on the public dashboard
+// Resolved / closed statuses
+const RESOLVED_STATUSES = new Set(['resolved', 'closed'])
+
+// Maximum resolved requests to show
 const RESOLVED_LIMIT = 20
 
 /**
  * Normalises a raw Firestore request document into the shape
  * expected by the public dashboard and RequestCard component.
- *
- * @param {string} id - Firestore document ID
- * @param {object} data - Raw Firestore document data
- * @returns {object|null} Normalised request, or null if location is unparseable
  */
 const normalise_request = (id, data) => {
 	const coords = parseLocation(data.location)
-	if (!coords) {
-		return null
-	} // skip requests with no valid location
 
 	return {
-		id, // string — Firestore doc ID
+		id,
 		category: data.category ?? 'Unknown',
 		status: data.status ?? 'UNASSIGNED',
 		ward: `Ward ${data.sa_ward ?? 'Unknown'}`,
@@ -40,28 +40,21 @@ const normalise_request = (id, data) => {
 		description: data.description ?? '',
 		image: data.image ?? null,
 		like_count: data.like_count ?? 0,
+		priority: data.priority ?? null,
 		user_uid: data.user_uid ?? null,
 		created_at: data.created_at ?? null,
 		updated_at: data.updated_at ?? null,
-		latitude: coords.latitude,
-		longitude: coords.longitude,
+		latitude: coords ? coords.latitude : null,
+		longitude: coords ? coords.longitude : null,
 	}
 }
 
 /**
- * Fetches all public dashboard data in a single call.
- * Returns separate arrays for active and resolved requests,
- * plus aggregate stats.
- *
- * @returns {{ active: object[], resolved: object[], stats: object }}
+ * Fetches all public dashboard data: active, resolved, and stats.
  */
 export const fetchPublicDashboardData = async () => {
-	const requests_ref = collection(db, 'requests')
+	const requests_ref = collection(db, 'service_requests')
 
-	// Fetch all requests ordered by most recently updated.
-	// A whereIn on status would require a composite index; a full
-	// fetch + client-side split is acceptable for the public dashboard
-	// volume and avoids extra index setup.
 	const q = query(requests_ref, orderBy('updated_at', 'desc'), limit(200))
 	const snapshot = await getDocs(q)
 
@@ -71,17 +64,20 @@ export const fetchPublicDashboardData = async () => {
 
 	snapshot.forEach((doc_snap) => {
 		const normalised = normalise_request(doc_snap.id, doc_snap.data())
-		if (!normalised) {
-			return
-		}
 
 		wards_seen.add(String(normalised.sa_ward))
 
-		if (normalised.status === 'RESOLVED') {
+		// Convert to lowercase once for reliable comparison
+		const rawStatus = (normalised.status || '').toLowerCase().trim()
+
+		if (RESOLVED_STATUSES.has(rawStatus)) {
 			if (resolved.length < RESOLVED_LIMIT) {
 				resolved.push(normalised)
 			}
-		} else if (ACTIVE_STATUSES.has(normalised.status)) {
+		} else if (ACTIVE_STATUSES.has(rawStatus)) {
+			active.push(normalised)
+		} else {
+			// Any other status (e.g. 'escalated', 'blocked') still shows as active
 			active.push(normalised)
 		}
 	})
