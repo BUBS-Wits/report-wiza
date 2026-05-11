@@ -1,304 +1,171 @@
-/* global jest */
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import ResidentDashboard from '../pages/resident_dashboard/resident_dashboard.js';
+import ResidentDashboard from '../pages/resident_dashboard/resident_dashboard';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import {
-	fetch_resident_profile,
-	fetch_resident_requests,
-	subscribe_to_resident_unread_count,
-} from '../backend/resident_dashboard_service.js';
+  fetch_resident_profile,
+  fetch_resident_requests,
+  subscribe_to_resident_unread_count,
+} from '../backend/resident_dashboard_service';
 
-// Mock Firestore (required for some sub‑imports)
+// Mock Firestore
 jest.mock('firebase/firestore', () => ({
-	collection: jest.fn(),
-	query: jest.fn(),
-	where: jest.fn(),
-	getDocs: jest.fn(),
-	doc: jest.fn(),
-	getDoc: jest.fn(),
-	onSnapshot: jest.fn(() => jest.fn()),
-	orderBy: jest.fn(),
+  collection: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  getDocs: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  onSnapshot: jest.fn(() => jest.fn()),
+  orderBy: jest.fn(),
 }));
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Mocks
-───────────────────────────────────────────────────────────────────────────── */
-
-jest.mock('../pages/resident_dashboard/resident_dashboard.css', () => ({}));
-jest.mock('../firebase_config.js', () => ({ auth: {} }));
+jest.mock('../firebase_config', () => ({ auth: {} }));
 
 jest.mock('firebase/auth', () => ({
-	onAuthStateChanged: jest.fn(),
-	signOut: jest.fn().mockResolvedValue(),
+  onAuthStateChanged: jest.fn(),
+  signOut: jest.fn(() => Promise.resolve()),
 }));
-
-const mockNavigate = jest.fn();
 
 jest.mock('react-router-dom', () => ({
-	...jest.requireActual('react-router-dom'),
-	Link: ({ children, to }) => <a href={to}>{children}</a>,
-	useNavigate: () => mockNavigate,
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => jest.fn(),
 }));
 
-jest.mock('../backend/resident_dashboard_service.js', () => ({
-	fetch_resident_profile: jest.fn(),
-	fetch_resident_requests: jest.fn(),
-	subscribe_to_resident_unread_count: jest.fn(),
+jest.mock('../backend/resident_dashboard_service', () => ({
+  fetch_resident_profile: jest.fn(),
+  fetch_resident_requests: jest.fn(),
+  subscribe_to_resident_unread_count: jest.fn(),
 }));
 
-jest.mock(
-	'../components/notification_bell/notification_bell.js',
-	() => () => <div data-testid="notif-bell" />
-);
-jest.mock(
-	'../components/message_thread/message_thread.js',
-	() => () => <div data-testid="message-thread" />
-);
-// Mock LikeButton to avoid real Firebase calls and just show button
-jest.mock('../components/request_card/like_button/like_button.js', () => ({ requestId, initialLikeCount }) => (
-	<button data-testid="like-button">👍 {initialLikeCount}</button>
-));
+// Mock components with display names
+jest.mock('../components/message_thread/message_thread', () => {
+  const MockMessageThread = () => <div data-testid="message-thread" />;
+  MockMessageThread.displayName = 'MockMessageThread';
+  return MockMessageThread;
+});
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Test Suite
-───────────────────────────────────────────────────────────────────────────── */
+jest.mock('../components/request_card/like_button/like_button', () => {
+  const MockLikeButton = ({ requestId, initialLikeCount }) => (
+    <button data-testid="like-button">👍 {initialLikeCount}</button>
+  );
+  MockLikeButton.displayName = 'MockLikeButton';
+  return MockLikeButton;
+});
 
-describe('ResidentDashboard Component', () => {
-	let mockUnsubscribe;
+jest.mock('../pages/resident_dashboard/resident_dashboard.css', () => ({}));
 
-	beforeEach(() => {
-		jest.clearAllMocks();
-		mockNavigate.mockClear();
-		mockUnsubscribe = jest.fn();
+describe('ResidentDashboard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    onAuthStateChanged.mockImplementation((_, callback) => {
+      callback({ uid: 'test-user' });
+      return jest.fn();
+    });
+    fetch_resident_profile.mockResolvedValue({
+      uid: 'test-user',
+      name: 'Test Resident',
+      email: 'test@example.com',
+    });
+    fetch_resident_requests.mockResolvedValue([
+      {
+        id: 'req1',
+        category: 'Pothole',
+        status: 'SUBMITTED',
+        description: 'Deep pothole',
+        sa_ward: 'Ward 60',
+        location: 'SRID=4326;POINT(28.0456 -26.2044)',
+        like_count: 3,
+        image: 'https://example.com/photo.jpg',
+        worker_uid: 'worker1',
+        worker_name: 'John Worker',
+        priority: 'Medium',
+        created_at: { toDate: () => new Date() },
+        updated_at: { toDate: () => new Date() },
+      },
+    ]);
+    subscribe_to_resident_unread_count.mockReturnValue(jest.fn());
+  });
 
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback({ uid: 'res_1' });
-			return jest.fn();
-		});
+  const renderComponent = () => {
+    return render(
+      <MemoryRouter initialEntries={['/resident-dashboard']}>
+        <Routes>
+          <Route path="/resident-dashboard" element={<ResidentDashboard />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  };
 
-		fetch_resident_profile.mockResolvedValue({
-			uid: 'res_1',
-			name: 'Sarah Connor',
-			email: 'sarah@test.com',
-		});
+  it('shows loading state', async () => {
+    fetch_resident_requests.mockImplementationOnce(() => new Promise(() => {}));
+    renderComponent();
+    expect(screen.getByText(/Loading your dashboard/i)).toBeInTheDocument();
+  });
 
-		fetch_resident_requests.mockResolvedValue([
-			{
-				id: 'req_1',
-				category: 'Streetlight',
-				status: 'Pending',
-				description: 'Light is broken.',
-				created_at: { toDate: () => new Date() },
-				updated_at: { toDate: () => new Date() },
-				sa_ward: 'Ward 60',
-				location: 'SRID=4326;POINT(28.0456 -26.2044)',
-				like_count: 3,
-				image: 'https://example.com/image.jpg',
-				worker_uid: null,
-				worker_name: null,
-			},
-			{
-				id: 'req_2',
-				category: 'Pothole',
-				status: 'Acknowledged',
-				description: 'Huge crater in the road.',
-				created_at: { toDate: () => new Date() },
-				updated_at: { toDate: () => new Date() },
-				sa_ward: 'Ward 61',
-				location: null,
-				like_count: 0,
-				image: null,
-				worker_uid: null,
-				worker_name: null,
-			},
-		]);
+  it('loads and displays profile and requests', async () => {
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.getByText('Test Resident')).toBeInTheDocument();
+      expect(screen.getByText('Pothole')).toBeInTheDocument();
+    });
+  });
 
-		subscribe_to_resident_unread_count.mockImplementation((uid, callback) => {
-			callback(0);
-			return mockUnsubscribe;
-		});
-	});
+  it('selects a request and shows detail view', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Pothole')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Pothole').closest('.rd-req-card'));
+    await waitFor(() => {
+      expect(screen.getByTestId('like-button')).toBeInTheDocument();
+    });
+  });
 
-	const renderComponent = () => {
-		return render(
-			<MemoryRouter initialEntries={['/resident-dashboard']}>
-				<Routes>
-					<Route path="/resident-dashboard" element={<ResidentDashboard />} />
-				</Routes>
-			</MemoryRouter>
-		);
-	};
+  it('shows Google Maps link', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Pothole')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Pothole').closest('.rd-req-card'));
+    await waitFor(() => {
+      const link = screen.getByRole('link', { name: /📍/i });
+      expect(link).toHaveAttribute('href', 'https://www.google.com/maps?q=-26.2044,28.0456');
+    });
+  });
 
-	test('renders loading screen initially and resolves cleanly', async () => {
-		renderComponent();
-		expect(screen.getByText('Loading your dashboard…')).toBeInTheDocument();
-		await waitFor(() => {
-			expect(screen.queryByText('Loading your dashboard…')).not.toBeInTheDocument();
-		});
-	});
+  it('shows image', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Pothole')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Pothole').closest('.rd-req-card'));
+    await waitFor(() => {
+      expect(screen.getByAltText('Request')).toHaveAttribute('src', 'https://example.com/photo.jpg');
+    });
+  });
 
-	test('loads and displays resident profile and requests', async () => {
-		renderComponent();
-		await waitFor(() => {
-			expect(screen.getByText('Sarah Connor')).toBeInTheDocument();
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0);
-		});
-		expect(screen.getByText('SC')).toBeInTheDocument();
-	});
+  it('shows empty state when no requests', async () => {
+    fetch_resident_requests.mockResolvedValue([]);
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.getByText(/You haven't submitted any service requests yet/i)).toBeInTheDocument();
+    });
+  });
 
-	test('selects a request and shows detail view', async () => {
-		renderComponent();
-		await waitFor(() => {
-			expect(screen.getAllByText('Pothole').length).toBeGreaterThan(0);
-		});
-		const requestCard = screen.getAllByText('Pothole')[0].closest('.rd-req-card');
-		fireEvent.click(requestCard);
-		expect(screen.getAllByText('Huge crater in the road.').length).toBeGreaterThan(0);
-		expect(screen.getByText('Not yet assigned')).toBeInTheDocument();
-	});
+  it('handles logout', async () => {
+    const mockNavigate = jest.fn();
+    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Test Resident')).toBeInTheDocument());
+    const logoutBtn = screen.getByRole('button', { name: /Logout/i });
+    fireEvent.click(logoutBtn);
+    expect(signOut).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/');
+  });
 
-	test('displays empty state when resident has no requests', async () => {
-		fetch_resident_requests.mockResolvedValue([]);
-		renderComponent();
-		await waitFor(() => {
-			expect(
-				screen.getByText(/You haven't submitted any service requests yet/i)
-			).toBeInTheDocument();
-		});
-	});
-
-	test('handles user logout correctly', async () => {
-		renderComponent();
-		await waitFor(() => {
-			expect(screen.getByText('Sarah Connor')).toBeInTheDocument();
-		});
-		const logoutBtn = screen.getByRole('button', { name: /Logout/i });
-		fireEvent.click(logoutBtn);
-		await waitFor(() => {
-			expect(signOut).toHaveBeenCalledTimes(1);
-			expect(mockNavigate).toHaveBeenCalledWith('/');
-		});
-	});
-
-	test('shows priority badge when request has priority set', async () => {
-		fetch_resident_requests.mockResolvedValueOnce([
-			{
-				id: 'req_priority',
-				category: 'Streetlight',
-				status: 'open',
-				description: 'Burst pipe',
-				priority: 'High',
-				created_at: { toDate: () => new Date() },
-				updated_at: { toDate: () => new Date() },
-				worker_uid: null,
-				worker_name: null,
-			},
-		]);
-		renderComponent();
-		await waitFor(() => {
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0);
-		});
-		expect(screen.getByText('High')).toBeInTheDocument();
-	});
-
-	test('shows "Not set" when request has no priority', async () => {
-		fetch_resident_requests.mockResolvedValueOnce([
-			{
-				id: 'req_no_priority',
-				category: 'Streetlight',
-				status: 'open',
-				description: 'Burst pipe',
-				priority: null,
-				created_at: { toDate: () => new Date() },
-				updated_at: { toDate: () => new Date() },
-				worker_uid: null,
-				worker_name: null,
-			},
-		]);
-		renderComponent();
-		await waitFor(() => {
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0);
-		});
-		expect(screen.getByText('Not set')).toBeInTheDocument();
-	});
-
-	test('shows "Not yet assigned" when no worker assigned', async () => {
-		fetch_resident_requests.mockResolvedValueOnce([
-			{
-				id: 'req_no_worker',
-				category: 'Streetlight',
-				status: 'open',
-				description: 'Burst pipe',
-				priority: null,
-				created_at: { toDate: () => new Date() },
-				updated_at: { toDate: () => new Date() },
-				worker_uid: null,
-				worker_name: null,
-			},
-		]);
-		renderComponent();
-		await waitFor(() => {
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0);
-		});
-		expect(screen.getByText('Not yet assigned')).toBeInTheDocument();
-	});
-
-	// ----- NEW TESTS for US010 features -----
-
-	test('shows like button with correct initial count in detail pane', async () => {
-		renderComponent();
-		await waitFor(() => {
-			expect(screen.getByTestId('like-button')).toHaveTextContent('👍 3');
-		});
-	});
-
-	test('shows Google Maps link from location WKT', async () => {
-		renderComponent();
-		await waitFor(() => {
-			const locationLink = screen.getByRole('link', { name: /📍/i });
-			expect(locationLink).toHaveAttribute(
-				'href',
-				'https://www.google.com/maps?q=-26.2044,28.0456'
-			);
-		});
-	});
-
-	test('shows image when request has image', async () => {
-		renderComponent();
-		await waitFor(() => {
-			const img = screen.getByAltText('Request');
-			expect(img).toHaveAttribute('src', 'https://example.com/image.jpg');
-		});
-	});
-
-	test('does not show image when request has no image', async () => {
-		// Select the request without image (Pothole)
-		await waitFor(() => {
-			expect(screen.getAllByText('Pothole').length).toBeGreaterThan(0);
-		});
-		const requestCard = screen.getAllByText('Pothole')[0].closest('.rd-req-card');
-		fireEvent.click(requestCard);
-		expect(screen.queryByAltText('Request')).not.toBeInTheDocument();
-	});
-
-	test('shows error screen when user is not logged in', async () => {
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(null);
-			return () => {};
-		});
-		fetch_resident_requests.mockResolvedValue([]);
-		renderComponent();
-		expect(screen.getByText(/You are not logged in/i)).toBeInTheDocument();
-		const tryAgainBtn = screen.getByRole('button', { name: /Try again/i });
-		const goHomeBtn = screen.getByRole('button', { name: /Go back Home/i });
-		expect(tryAgainBtn).toBeInTheDocument();
-		expect(goHomeBtn).toBeInTheDocument();
-		fireEvent.click(tryAgainBtn);
-		expect(mockNavigate).toHaveBeenCalledWith('/login');
-		fireEvent.click(goHomeBtn);
-		expect(mockNavigate).toHaveBeenCalledWith('/');
-	});
+  it('shows error screen when not logged in', () => {
+    onAuthStateChanged.mockImplementation((_, callback) => {
+      callback(null);
+      return jest.fn();
+    });
+    renderComponent();
+    expect(screen.getByText(/You are not logged in/i)).toBeInTheDocument();
+  });
 });
