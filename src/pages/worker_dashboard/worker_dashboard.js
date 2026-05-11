@@ -111,7 +111,9 @@ export default function WorkerDashboard() {
 
 	// Listen to conversations in the background to update the nav badge
 	useEffect(() => {
-		if (!worker?.uid) {return} // Wait until the worker is loaded
+		if (!worker?.uid) {
+			return
+		} // Wait until the worker is loaded
 
 		const unsub = subscribe_to_worker_conversations(
 			worker.uid,
