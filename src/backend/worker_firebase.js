@@ -23,7 +23,7 @@ export const notify_status_change = async (
 		const reqRef = doc(db, 'service_requests', request_id)
 		const reqSnap = await getDoc(reqRef)
 
-		if (!reqSnap.exists()) return
+		if (!reqSnap.exists()) {return}
 
 		const request_data = reqSnap.data()
 		const resident_uid = request_data.user_uid

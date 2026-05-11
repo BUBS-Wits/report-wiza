@@ -98,7 +98,7 @@ jest.mock('react-router-dom', () => ({
 	useNavigate: () => jest.fn(),
 }))
 jest.mock('../backend/worker_conversations_service.js', () => ({
-    subscribe_to_worker_conversations: jest.fn(() => jest.fn()) // Mocks the listener and its unsubscribe function
+	subscribe_to_worker_conversations: jest.fn(() => jest.fn()), // Mocks the listener and its unsubscribe function
 }))
 jest.mock(
 	'../components/worker_nav_bar/worker_nav_bar.js',

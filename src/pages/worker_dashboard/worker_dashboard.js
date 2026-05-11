@@ -106,28 +106,31 @@ export default function WorkerDashboard() {
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
 	const busy_ref = useRef(false)
-// Add state for the unread count
-    const [totalUnread, setTotalUnread] = useState(0)
+	// Add state for the unread count
+	const [totalUnread, setTotalUnread] = useState(0)
 
-    // Listen to conversations in the background to update the nav badge
-    useEffect(() => {
-        if (!worker?.uid) return; // Wait until the worker is loaded
+	// Listen to conversations in the background to update the nav badge
+	useEffect(() => {
+		if (!worker?.uid) {return} // Wait until the worker is loaded
 
-        const unsub = subscribe_to_worker_conversations(
-            worker.uid,
-            (convs) => {
-                // Tally up the unread_count from all active conversations
-                const unreadSum = convs.reduce((sum, c) => sum + (c.unread_count || 0), 0);
-                setTotalUnread(unreadSum);
-            },
-            (err) => {
-                console.error("Failed to fetch unread messages:", err);
-            }
-        );
+		const unsub = subscribe_to_worker_conversations(
+			worker.uid,
+			(convs) => {
+				// Tally up the unread_count from all active conversations
+				const unreadSum = convs.reduce(
+					(sum, c) => sum + (c.unread_count || 0),
+					0
+				)
+				setTotalUnread(unreadSum)
+			},
+			(err) => {
+				console.error('Failed to fetch unread messages:', err)
+			}
+		)
 
-        // Cleanup listener when component unmounts
-        return () => unsub();
-    }, [worker?.uid]);
+		// Cleanup listener when component unmounts
+		return () => unsub()
+	}, [worker?.uid])
 	const popup_busy = (text) => {
 		set_show_busy_tip(true)
 		set_busy_tip(text)
