@@ -1,0 +1,171 @@
+import React from 'react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import ResidentDashboard from '../pages/resident_dashboard/resident_dashboard';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import {
+  fetch_resident_profile,
+  fetch_resident_requests,
+  subscribe_to_resident_unread_count,
+} from '../backend/resident_dashboard_service';
+
+// Mock Firestore
+jest.mock('firebase/firestore', () => ({
+  collection: jest.fn(),
+  query: jest.fn(),
+  where: jest.fn(),
+  getDocs: jest.fn(),
+  doc: jest.fn(),
+  getDoc: jest.fn(),
+  onSnapshot: jest.fn(() => jest.fn()),
+  orderBy: jest.fn(),
+}));
+
+jest.mock('../firebase_config', () => ({ auth: {} }));
+
+jest.mock('firebase/auth', () => ({
+  onAuthStateChanged: jest.fn(),
+  signOut: jest.fn(() => Promise.resolve()),
+}));
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => jest.fn(),
+}));
+
+jest.mock('../backend/resident_dashboard_service', () => ({
+  fetch_resident_profile: jest.fn(),
+  fetch_resident_requests: jest.fn(),
+  subscribe_to_resident_unread_count: jest.fn(),
+}));
+
+// Mock components with display names
+jest.mock('../components/message_thread/message_thread', () => {
+  const MockMessageThread = () => <div data-testid="message-thread" />;
+  MockMessageThread.displayName = 'MockMessageThread';
+  return MockMessageThread;
+});
+
+jest.mock('../components/request_card/like_button/like_button', () => {
+  const MockLikeButton = ({ requestId, initialLikeCount }) => (
+    <button data-testid="like-button">👍 {initialLikeCount}</button>
+  );
+  MockLikeButton.displayName = 'MockLikeButton';
+  return MockLikeButton;
+});
+
+jest.mock('../pages/resident_dashboard/resident_dashboard.css', () => ({}));
+
+describe('ResidentDashboard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    onAuthStateChanged.mockImplementation((_, callback) => {
+      callback({ uid: 'test-user' });
+      return jest.fn();
+    });
+    fetch_resident_profile.mockResolvedValue({
+      uid: 'test-user',
+      name: 'Test Resident',
+      email: 'test@example.com',
+    });
+    fetch_resident_requests.mockResolvedValue([
+      {
+        id: 'req1',
+        category: 'Pothole',
+        status: 'SUBMITTED',
+        description: 'Deep pothole',
+        sa_ward: 'Ward 60',
+        location: 'SRID=4326;POINT(28.0456 -26.2044)',
+        like_count: 3,
+        image: 'https://example.com/photo.jpg',
+        worker_uid: 'worker1',
+        worker_name: 'John Worker',
+        priority: 'Medium',
+        created_at: { toDate: () => new Date() },
+        updated_at: { toDate: () => new Date() },
+      },
+    ]);
+    subscribe_to_resident_unread_count.mockReturnValue(jest.fn());
+  });
+
+  const renderComponent = () => {
+    return render(
+      <MemoryRouter initialEntries={['/resident-dashboard']}>
+        <Routes>
+          <Route path="/resident-dashboard" element={<ResidentDashboard />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  };
+
+  it('shows loading state', async () => {
+    fetch_resident_requests.mockImplementationOnce(() => new Promise(() => {}));
+    renderComponent();
+    expect(screen.getByText(/Loading your dashboard/i)).toBeInTheDocument();
+  });
+
+  it('loads and displays profile and requests', async () => {
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.getByText('Test Resident')).toBeInTheDocument();
+      expect(screen.getByText('Pothole')).toBeInTheDocument();
+    });
+  });
+
+  it('selects a request and shows detail view', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Pothole')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Pothole').closest('.rd-req-card'));
+    await waitFor(() => {
+      expect(screen.getByTestId('like-button')).toBeInTheDocument();
+    });
+  });
+
+  it('shows Google Maps link', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Pothole')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Pothole').closest('.rd-req-card'));
+    await waitFor(() => {
+      const link = screen.getByRole('link', { name: /📍/i });
+      expect(link).toHaveAttribute('href', 'https://www.google.com/maps?q=-26.2044,28.0456');
+    });
+  });
+
+  it('shows image', async () => {
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Pothole')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Pothole').closest('.rd-req-card'));
+    await waitFor(() => {
+      expect(screen.getByAltText('Request')).toHaveAttribute('src', 'https://example.com/photo.jpg');
+    });
+  });
+
+  it('shows empty state when no requests', async () => {
+    fetch_resident_requests.mockResolvedValue([]);
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.getByText(/You haven't submitted any service requests yet/i)).toBeInTheDocument();
+    });
+  });
+
+  it('handles logout', async () => {
+    const mockNavigate = jest.fn();
+    jest.spyOn(require('react-router-dom'), 'useNavigate').mockReturnValue(mockNavigate);
+    renderComponent();
+    await waitFor(() => expect(screen.getByText('Test Resident')).toBeInTheDocument());
+    const logoutBtn = screen.getByRole('button', { name: /Logout/i });
+    fireEvent.click(logoutBtn);
+    expect(signOut).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/');
+  });
+
+  it('shows error screen when not logged in', () => {
+    onAuthStateChanged.mockImplementation((_, callback) => {
+      callback(null);
+      return jest.fn();
+    });
+    renderComponent();
+    expect(screen.getByText(/You are not logged in/i)).toBeInTheDocument();
+  });
+});
