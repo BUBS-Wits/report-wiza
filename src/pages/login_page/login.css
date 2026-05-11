@@ -23,12 +23,14 @@
 
 /* ── LEFT PANEL ── */
 .login_left {
-	flex: 1;
+	/* Uses flex: 1.2 to give the branding panel slightly more space on wide screens */
+	flex: 1.2;
 	background: var(--navy);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 48px 40px;
+	/* Added 100px top padding to clear the fixed navbar, and 5% fluid side padding */
+	padding: 100px 5% 48px;
 	position: relative;
 	overflow: hidden;
 }
@@ -63,11 +65,12 @@
 	position: relative;
 	z-index: 1;
 	max-width: 400px;
+	width: 100%;
 }
 
 .login_logo {
 	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 42px;
+	font-size: clamp(32px, 4vw, 42px); /* Scales smoothly */
 	font-weight: 700;
 	letter-spacing: 0.05em;
 	color: #fff;
@@ -80,7 +83,7 @@
 
 .login_tagline {
 	font-family: 'Barlow Condensed', sans-serif;
-	font-size: 32px;
+	font-size: clamp(24px, 3vw, 32px); /* Scales smoothly */
 	font-weight: 700;
 	color: #fff;
 	line-height: 1.15;
@@ -101,6 +104,7 @@
 	gap: 24px;
 	padding: 20px 0;
 	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	flex-wrap: wrap; /* Allows stats to wrap if screen gets narrow */
 }
 
 .login_stat {
@@ -208,18 +212,20 @@
 
 /* ── RIGHT PANEL ── */
 .login_right {
-	width: 700px;
+	flex: 1; /* Replaced fixed width: 700px with fluid flex */
 	background: var(--bg);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	padding: 48px 40px;
+	/* Added 100px top padding to clear navbar, 5% fluid side padding */
+	padding: 100px 5% 48px;
 	gap: 20px;
 }
 
 .login_card {
 	width: 100%;
+	max-width: 420px; /* Caps the card width so it doesn't stretch on large monitors */
 	background: var(--white);
 	border: 1px solid var(--border);
 	border-radius: 16px;
@@ -377,28 +383,29 @@
 	.login_page {
 		flex-direction: column;
 	}
+
 	.login_left {
-		padding: 32px 24px;
-		min-height: 220px;
+		padding: 100px 5% 32px; /* Keeps top padding for navbar */
+		min-height: 250px;
 		flex: none;
 	}
-	.login_logo {
-		font-size: 32px;
-		margin-bottom: 16px;
-	}
-	.login_tagline {
-		font-size: 22px;
-		margin-bottom: 10px;
-	}
+
 	.login_desc {
 		display: none;
 	}
+
 	.login_stats {
 		gap: 16px;
-		padding: 14px 0;
+		padding: 14px 0 0;
 	}
+
+	/* Hide dividers on mobile so stats can wrap cleanly */
+	.login_stat_divider {
+		display: none;
+	}
+
 	.login_right {
 		width: 100%;
-		padding: 32px 20px;
+		padding: 40px 5%; /* Fluid padding */
 	}
 }

@@ -1,9 +1,10 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import { STATUS, STATUS_DISPLAY } from '../constants.js'
 
-// ── Global mocks ───────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────────
+   Mocks
+───────────────────────────────────────────────────────────────────────────── */
 
 jest.mock('../firebase_config.js', () => ({
 	auth: { currentUser: { uid: 'user-1' } },
@@ -31,6 +32,7 @@ jest.mock('firebase/auth', () => ({
 	}),
 }))
 
+// useLocation is required by Sidebar
 jest.mock('react-router-dom', () => ({
 	NavLink: ({ children, to, className }) => (
 		<a
@@ -45,14 +47,46 @@ jest.mock('react-router-dom', () => ({
 		</a>
 	),
 	useNavigate: () => jest.fn(),
+	useLocation: () => ({ pathname: '/' }),
 	BrowserRouter: ({ children }) => <div>{children}</div>,
 }))
 
-// ── Sidebar ────────────────────────────────────────────────────────────────
-
 jest.mock('../components/sidebar/sidebar.css', () => ({}))
+jest.mock('../components/request_card/like_button/like_button.js', () => {
+	return function MockLikeButton() {
+		return <button data-testid="like-button">Like</button>
+	}
+})
+
+jest.mock('../backend/resident_firebase.js', () => ({
+	fetchResidentRequests: jest.fn(),
+}))
+
+jest.mock('../pages/resident/resident_requests.css', () => ({}))
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Imports — after mocks
+───────────────────────────────────────────────────────────────────────────── */
 
 import Sidebar from '../components/sidebar/sidebar.js'
+import YellowBtn from '../components/buttons/yellow_btn.js'
+import TransparentBtn from '../components/buttons/transparent_btn.js'
+import RequestCard from '../components/request_card/request_card.js'
+import ResidentRequests from '../pages/resident/resident_requests.js'
+import { fetchResidentRequests } from '../backend/resident_firebase.js'
+import ClaimBtn from '../pages/request/claim/claim_btn.js'
+import {
+	build_category_stats,
+	compute_summary,
+	format_resolution_time,
+	get_resolution_class,
+	fetch_report_data,
+} from '../backend/category_report_service.js'
+import { getDocs } from 'firebase/firestore'
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Sidebar
+───────────────────────────────────────────────────────────────────────────── */
 
 describe('Sidebar', () => {
 	describe('Given the sidebar is rendered', () => {
@@ -102,10 +136,9 @@ describe('Sidebar', () => {
 	})
 })
 
-// ── Buttons ────────────────────────────────────────────────────────────────
-
-import YellowBtn from '../components/buttons/yellow_btn.js'
-import TransparentBtn from '../components/buttons/transparent_btn.js'
+/* ─────────────────────────────────────────────────────────────────────────────
+   Buttons
+───────────────────────────────────────────────────────────────────────────── */
 
 describe('YellowBtn', () => {
 	it('Then it should render the button text', () => {
@@ -135,22 +168,24 @@ describe('TransparentBtn', () => {
 	})
 })
 
-// ── RequestCard ────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────────
+   RequestCard
 
-jest.mock('../components/request_card/like_button/like_button.js', () => {
-	return function MockLikeButton() {
-		return <button data-testid="like-button">Like</button>
-	}
-})
+   Status values from constants.js STATUS:
+     SUBMITTED → 'open'         → displays 'Submitted'
+     ASSIGNED  → 'acknowledged' → displays 'Assigned'
+     RESOLVED  → 'resolved'     → displays 'Resolved'
+     CLOSED    → 'closed'       → displays 'Closed'
 
-import RequestCard from '../components/request_card/request_card.js'
+   Location fields: sa_ward (number) and sa_m_name (string)
+───────────────────────────────────────────────────────────────────────────── */
 
 const base_request = {
 	id: 'req-001',
 	category: 'water',
-	status: STATUS.SUBMITTED,
-	sa_ward: 'Ward 5',
-	sa_m_name: 'Cape Town',
+	status: 'open', // STATUS.SUBMITTED
+	sa_ward: 5, // renders as 'Ward 5'
+	sa_m_name: 'Cape Town', // renders as municipality name
 	description: 'Burst pipe',
 	like_count: 2,
 }
@@ -159,10 +194,10 @@ describe('RequestCard', () => {
 	it('Then it should render category, status, location and description', () => {
 		render(<RequestCard request={base_request} />)
 		expect(screen.getByText('water')).toBeInTheDocument()
-		expect(
-			screen.getByText(STATUS_DISPLAY[STATUS.SUBMITTED])
-		).toBeInTheDocument()
-		expect(screen.getByText(/ward 5.*cape town/i)).toBeInTheDocument()
+		// STATUS_DISPLAY['open'] = 'Submitted'
+		expect(screen.getByText('Submitted')).toBeInTheDocument()
+		expect(screen.getByText(/Ward 5/)).toBeInTheDocument()
+		expect(screen.getByText(/Cape Town/)).toBeInTheDocument()
 		expect(screen.getByText('Burst pipe')).toBeInTheDocument()
 	})
 
@@ -173,31 +208,20 @@ describe('RequestCard', () => {
 
 	it('Then it should hide LikeButton for Resolved requests', () => {
 		render(
-			<RequestCard
-				request={{ ...base_request, status: STATUS.RESOLVED }}
-			/>
+			<RequestCard request={{ ...base_request, status: 'resolved' }} />
 		)
 		expect(screen.queryByTestId('like-button')).not.toBeInTheDocument()
 	})
 
 	it('Then it should hide LikeButton for Closed requests', () => {
-		render(
-			<RequestCard request={{ ...base_request, status: STATUS.CLOSED }} />
-		)
+		render(<RequestCard request={{ ...base_request, status: 'closed' }} />)
 		expect(screen.queryByTestId('like-button')).not.toBeInTheDocument()
 	})
 })
 
-// ── ResidentRequests ───────────────────────────────────────────────────────
-
-jest.mock('../backend/resident_firebase.js', () => ({
-	fetchResidentRequests: jest.fn(),
-}))
-
-jest.mock('../pages/resident/resident_requests.css', () => ({}))
-
-import ResidentRequests from '../pages/resident/resident_requests.js'
-import { fetchResidentRequests } from '../backend/resident_firebase.js'
+/* ─────────────────────────────────────────────────────────────────────────────
+   ResidentRequests
+───────────────────────────────────────────────────────────────────────────── */
 
 describe('ResidentRequests', () => {
 	beforeEach(() => jest.clearAllMocks())
@@ -225,7 +249,7 @@ describe('ResidentRequests', () => {
 			{
 				id: 'r-1',
 				category: 'electricity',
-				status: STATUS.SUBMITTED,
+				status: 'open',
 				description: 'Power outage',
 				like_count: 0,
 				created_at: { toDate: () => new Date('2024-01-01') },
@@ -262,9 +286,9 @@ describe('ResidentRequests', () => {
 	})
 })
 
-// ── ClaimBtn ───────────────────────────────────────────────────────────────
-
-import ClaimBtn from '../pages/request/claim/claim_btn.js'
+/* ─────────────────────────────────────────────────────────────────────────────
+   ClaimBtn
+───────────────────────────────────────────────────────────────────────────── */
 
 describe('ClaimBtn', () => {
 	it('Then it should render the Claim button', () => {
@@ -273,17 +297,19 @@ describe('ClaimBtn', () => {
 	})
 })
 
-// ── category_report_service ────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────────
+   category_report_service
 
-import {
-	build_category_stats,
-	compute_summary,
-	format_resolution_time,
-	get_resolution_class,
-	fetch_report_data,
-} from '../backend/category_report_service.js'
+   build_category_stats local STATUS:
+     ASSIGNED    → 'acknowledged'  (counted as `pending` in output)
+     IN_PROGRESS → 'in_progress'
+     RESOLVED    → 'resolved'
+     CLOSED      → 'closed'
 
-import { getDocs } from 'firebase/firestore'
+   Note: the function only processes categories in REQUEST_CATEGORIES
+   (['water', 'sewage', 'electricity', 'road']), so test data must use
+   those exact category strings.
+───────────────────────────────────────────────────────────────────────────── */
 
 describe('category_report_service', () => {
 	beforeEach(() => jest.clearAllMocks())
@@ -291,11 +317,12 @@ describe('category_report_service', () => {
 	describe('build_category_stats', () => {
 		it('Then it should count requests per category', () => {
 			const requests = [
-				{ category: 'water', status: STATUS.ASSIGNED },
-				{ category: 'water', status: STATUS.RESOLVED },
-				{ category: 'road', status: STATUS.IN_PROGRESS },
+				// 'acknowledged' → counted as pending (STATUS.ASSIGNED)
+				{ category: 'water', status: 'acknowledged' },
+				// 'resolved' → counted as resolved
+				{ category: 'water', status: 'resolved' },
+				{ category: 'road', status: 'in_progress' },
 			]
-			console.info(requests)
 			const stats = build_category_stats(requests)
 			const water = stats.find((s) => s.category === 'water')
 			expect(water.total).toBe(2)
@@ -318,12 +345,7 @@ describe('category_report_service', () => {
 
 		it('Then it should return null worst_backlog when no pending items', () => {
 			const stats = [
-				{
-					category: 'water',
-					pending: 0,
-					resolved: 0,
-					avg_hours: null,
-				},
+				{ category: 'water', pending: 0, resolved: 0, avg_hours: null },
 			]
 			const summary = compute_summary(stats)
 			expect(summary.overall_avg_hours).toBeNull()
@@ -375,7 +397,7 @@ describe('category_report_service', () => {
 						id: 'r1',
 						data: () => ({
 							category: 'water',
-							status: STATUS.ASSIGNED,
+							status: 'acknowledged',
 						}),
 					},
 				],

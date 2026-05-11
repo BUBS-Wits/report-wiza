@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../../firebase_config.js'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../firebase_config.js'
 import { WARD_API } from '../../../constants.js'
@@ -18,11 +20,31 @@ function RequestPage() {
 	const [submitting, set_submitting] = useState(false)
 	const [show_modal, set_show_modal] = useState(false)
 	const [pending_req, set_pending_req] = useState(null)
+	const [homeRoute, set_homeRoute] = useState('/')
 
 	// Resolve auth state ONCE on mount — never redirect, just observe
 	useEffect(() => {
-		const unsub = onAuthStateChanged(auth, (user) => {
+		const unsub = onAuthStateChanged(auth, async (user) => {
 			set_current_user(user ?? null)
+
+			// ← add role lookup
+			if (user) {
+				try {
+					const snap = await getDoc(doc(db, 'users', user.uid))
+					const role = snap.data()?.role
+					if (role === 'worker') {
+						set_homeRoute('/worker-dashboard')
+					} else if (role === 'resident') {
+						set_homeRoute('/resident-dashboard')
+					} else if (role === 'admin') {
+						set_homeRoute('/admin')
+					} else {
+						set_homeRoute('/')
+					}
+				} catch {
+					set_homeRoute('/')
+				}
+			}
 		})
 		return unsub
 	}, [])
@@ -48,11 +70,9 @@ function RequestPage() {
 		return true
 	}
 
-	/* ── Send to backend ──────────────────────────────────────────── */
 	async function submit_request(request) {
 		set_submitting(true)
 		try {
-			// Build headers — token only if logged in
 			const headers = { 'Content-Type': 'application/json' }
 			if (current_user) {
 				const token = await current_user.getIdToken()
@@ -66,23 +86,20 @@ function RequestPage() {
 			})
 
 			if (!res.ok) {
-				alert('Failed to submit request. Check console for details.')
-
-				// --- NEW SAFE PARSING ---
 				const error_text = await res.text()
 				try {
-					// Try to parse it as JSON if the server sent a nice error
+					alert(JSON.parse(error_text).error)
 					console.error(
 						'Server Error (JSON):',
 						JSON.parse(error_text)
 					)
-				} catch (parse_error) {
-					// Fallback to logging the raw text/HTML if the server crashed hard
+				} catch {
 					console.error('Server Error (HTML/Text):', error_text)
+					alert('Server error. Please check console for details.')
 				}
 			} else {
-				alert('Request successfully submitted.')
-				console.log(await res.json())
+				// ← navigate to the right dashboard instead of alert
+				navigate(homeRoute)
 			}
 		} catch (e) {
 			console.error('Error during upload:', e)
@@ -137,7 +154,6 @@ function RequestPage() {
 	return (
 		<div className="service_request_page">
 			<Navbar />
-
 			<SubmitPromptModal
 				is_open={show_modal}
 				on_close={on_modal_close}
@@ -182,6 +198,7 @@ function RequestPage() {
 					<RequestForm onSubmit={on_submit} submitting={submitting} />
 				</div>
 			</main>
+			<Navbar homeRoute={homeRoute} />
 		</div>
 	)
 }

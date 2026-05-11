@@ -44,11 +44,22 @@ const NAV_ITEMS = [
 	{
 		key: 'messages',
 		label: 'Messages',
-		to: '#', // Changed from hard path to '#' for state-based nav
+		to: '#',
 		badge: 3,
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
 				<path d="M2 2h12v9H9l-3 3v-3H2z" />
+			</svg>
+		),
+	},
+	{
+		key: 'public_dashboard',
+		label: 'Public Dashboard',
+		to: '/dashboard',
+		icon: (
+			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
+				<circle cx="8" cy="8" r="6" />
+				<path d="M8 5v3.5l2 2" />
 			</svg>
 		),
 	},
@@ -61,10 +72,12 @@ function Worker_nav_bar({
 		queue_onclick: null,
 		available_onclick: null,
 		messages_onclick: null,
-	}, // Added messages handler
+	},
 	active_section = 'queue',
 }) {
 	const [scrolled, set_scrolled] = useState(false)
+	// ADDED: State to manage the mobile menu
+	const [mobile_menu_open, set_mobile_menu_open] = useState(false)
 	const location = useLocation()
 	const navigate = useNavigate()
 
@@ -101,9 +114,18 @@ function Worker_nav_bar({
 		} else if (item.key === 'queue') {
 			return sections.queue_onclick
 		} else if (item.key === 'messages') {
-			return sections.messages_onclick // Map to messages handler
+			return sections.messages_onclick
 		} else {
 			return null
+		}
+	}
+
+	// Helper to close the menu and trigger the passed onClick
+	const handle_nav_click = (item) => {
+		set_mobile_menu_open(false)
+		const click_handler = get_onclick(item)
+		if (click_handler) {
+			click_handler()
 		}
 	}
 
@@ -112,8 +134,21 @@ function Worker_nav_bar({
 			className={`wd_navbar ${scrolled ? 'wd_navbar_scrolled' : ''}`}
 			aria-label="Worker dashboard navigation"
 		>
+			{/* ADDED: Mobile Hamburger Button */}
+			<button
+				className="wd_mobile_menu_btn"
+				onClick={() => set_mobile_menu_open(!mobile_menu_open)}
+				aria-label="Toggle navigation menu"
+			>
+				{mobile_menu_open ? '✖' : '☰'}
+			</button>
+
 			{/* Logo */}
-			<Link to="/dashboard" className="wd_navbar_logo">
+			<Link
+				to="/dashboard"
+				className="wd_navbar_logo"
+				onClick={() => set_mobile_menu_open(false)}
+			>
 				<span className="wd_logo_mark" aria-hidden="true">
 					<svg width="15" height="15" viewBox="0 0 16 16" fill="none">
 						<path
@@ -133,8 +168,10 @@ function Worker_nav_bar({
 			{/* Divider */}
 			<span className="wd_nav_divider" aria-hidden="true" />
 
-			{/* Nav links */}
-			<div className="wd_nav_links">
+			{/* Nav links - Added dynamic class for mobile sliding */}
+			<div
+				className={`wd_nav_links ${mobile_menu_open ? 'wd_nav_links_mobile_open' : ''}`}
+			>
 				{NAV_ITEMS.map((item) => {
 					const is_active = active_section === item.key
 
@@ -142,7 +179,7 @@ function Worker_nav_bar({
 						<Link
 							key={item.key}
 							to={item.to}
-							onClick={get_onclick(item)}
+							onClick={() => handle_nav_click(item)}
 							className={`wd_nav_link ${is_active ? 'wd_nav_link_active' : ''}`}
 							aria-current={is_active ? 'page' : undefined}
 						>
@@ -194,7 +231,7 @@ function Worker_nav_bar({
 						<path d="M11 11l3-3-3-3" />
 						<path d="M14 8H6" />
 					</svg>
-					Logout
+					<span>Logout</span>
 				</button>
 			</div>
 		</nav>

@@ -8,6 +8,7 @@ import {
 	where,
 	orderBy,
 	onSnapshot,
+	getDocs,
 } from 'firebase/firestore'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import {
@@ -24,6 +25,18 @@ import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import WorkerMessages from '../worker_messages/worker_messages.js'
 import './worker_dashboard.css'
+
+const parse_date = (val) => {
+	if (!val) {
+		return '-'
+	}
+	try {
+		const d = val.toDate ? val.toDate() : new Date(val)
+		return isNaN(d.getTime()) ? '-' : d.toISOString().split('T')[0]
+	} catch {
+		return '-'
+	}
+}
 
 const AVAILABLE_STATUSES = [
 	STATUS.ASSIGNED,
@@ -44,6 +57,13 @@ const STATUS_BADGE_CLASS = {
 	Acknowledged: 'wd-badge--in-progress',
 	Resolved: 'wd-badge--resolved',
 	Closed: 'wd-badge--closed',
+}
+
+const PRIORITY_BADGE_CLASS = {
+	Low: 'wd-priority--low',
+	Medium: 'wd-priority--medium',
+	High: 'wd-priority--high',
+	Critical: 'wd-priority--critical',
 }
 
 function get_updated_display_date(req) {
@@ -76,8 +96,9 @@ export default function WorkerDashboard() {
 	})
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
+	const [error_handling, set_error_handling] = useState(null)
 	const [active_filter, set_filter] = useState('All')
-	const [active_section, set_active_section] = useState('queue')
+	const [active_section, set_active_section] = useState(null)
 	const [selected_req, set_selected_req] = useState(null)
 	const [panel_visible, set_panel_visible] = useState(false)
 	const [show_busy_tip, set_show_busy_tip] = useState(false)
@@ -91,6 +112,22 @@ export default function WorkerDashboard() {
 		setTimeout(() => set_show_busy_tip(false), 2000)
 	}
 
+	/* ── Load dashboard data ──────────────────────────────────────────── */
+
+	const load_dashboard = useCallback(async (uid) => {
+		set_error(null)
+		try {
+			const snap = await verify_worker_and_get_profile(uid)
+			const profile = snap.data()
+			set_worker({ uid, ...profile })
+			set_active_section('queue')
+		} catch (err) {
+			set_error(err.message || 'Failed to load dashboard.')
+			set_error_handling(() => () => navigate('/login'))
+		} finally {
+			set_loading(false)
+		}
+	}, [])
 	/* ── Panel helpers ────────────────────────────────────────────────── */
 
 	const open_panel = useCallback((req) => {
@@ -140,18 +177,11 @@ export default function WorkerDashboard() {
 		const unsub = onAuthStateChanged(auth, async (user) => {
 			if (!user) {
 				set_error('You are not logged in.')
+				set_error_handling(() => () => navigate('/login'))
 				set_loading(false)
 				return
 			}
-			const snap = await verify_worker_and_get_profile(user.uid)
-			const data = snap.data()
-			set_worker({
-				uid: user.uid,
-				name: data.name ?? 'Municipal Worker',
-				email: data.email ?? '',
-				role: data.role,
-			})
-			set_loading(false)
+			load_dashboard(user.uid)
 		})
 		return () => unsub()
 	}, [])
@@ -308,7 +338,7 @@ export default function WorkerDashboard() {
 	}
 
 	if (error) {
-		return <ErrorScreen message={error} onRetry={() => null} />
+		return <ErrorScreen message={error} onRetry={error_handling} />
 	}
 
 	/* ── Derived values ───────────────────────────────────────────────── */
@@ -520,7 +550,30 @@ function RequestDetailPanel({
 }) {
 	const updating = useRef(false)
 	const navigate = useNavigate()
+	const [close_reason, set_close_reason] = useState(null)
+	const [close_reason_loading, set_close_reason_loading] = useState(false)
 	const display_date = get_updated_display_date(req)
+
+	useEffect(() => {
+		if (req.status !== 'closed') {
+			set_close_reason(null)
+			return
+		}
+		set_close_reason_loading(true)
+		getDocs(
+			query(
+				collection(db, 'service_requests', req.id, 'comments'),
+				where('type', '==', 'close_reason')
+			)
+		)
+			.then((snap) => {
+				if (!snap.empty) {
+					set_close_reason(snap.docs[0].data().text)
+				}
+			})
+			.catch(() => set_close_reason(null))
+			.finally(() => set_close_reason_loading(false))
+	}, [req.id, req.status])
 
 	const resident_name = req.resident_name || 'Resident'
 
@@ -605,6 +658,20 @@ function RequestDetailPanel({
 					<dd className="wd-panel-meta-value">{req.category}</dd>
 				</div>
 				<div className="wd-panel-meta-row">
+					<dt className="wd-panel-meta-label">Priority</dt>
+					<dd className="wd-panel-meta-value">
+						{req.priority ? (
+							<span
+								className={`wd-priority-badge ${PRIORITY_BADGE_CLASS[req.priority] ?? ''}`}
+							>
+								{req.priority}
+							</span>
+						) : (
+							<span className="wd-priority-none">Not set</span>
+						)}
+					</dd>
+				</div>
+				<div className="wd-panel-meta-row">
 					<dt className="wd-panel-meta-label">Province</dt>
 					<dd className="wd-panel-meta-value">{req.sa_province}</dd>
 				</div>
@@ -619,11 +686,7 @@ function RequestDetailPanel({
 				<div className="wd-panel-meta-row">
 					<dt className="wd-panel-meta-label">Created At</dt>
 					<dd className="wd-panel-meta-value">
-						{req.created_at
-							? new Date(req.created_at)
-									.toISOString()
-									.split('T')[0]
-							: '-'}
+						{parse_date(req.created_at)}
 					</dd>
 				</div>
 				<div className="wd-panel-meta-row">
@@ -642,6 +705,16 @@ function RequestDetailPanel({
 						{STATUS_DISPLAY[req.status]}
 					</dd>
 				</div>
+				{req.status === 'closed' && (
+					<div className="wd-panel-meta-row wd-panel-meta-row--full">
+						<dt className="wd-panel-meta-label">Close Reason</dt>
+						<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
+							{close_reason_loading
+								? 'Loading...'
+								: (close_reason ?? '-')}
+						</dd>
+					</div>
+				)}
 			</dl>
 
 			<div className="wd-panel-image">
@@ -676,7 +749,7 @@ function RequestDetailPanel({
 					<div className="wd-panel-thread">
 						{req.user_uid ? (
 							<MessageThread
-								request_uid={req.id} // FIXED
+								request_uid={req.id}
 								current_uid={worker.uid}
 								current_name={worker.name}
 								current_role="worker"

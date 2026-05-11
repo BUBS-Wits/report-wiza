@@ -13,6 +13,7 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	padding-top: 80px;
 }
 
 /* ── Main layout ──────────────────────────────────────────────────────────── */
@@ -20,7 +21,7 @@
 .wd-main {
 	max-width: 1100px;
 	width: 100%;
-	padding: 20px 32px 32px;
+	padding: 20px 5% 32px;
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
@@ -39,9 +40,10 @@
 
 .wd-stats-grid {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 	gap: 14px;
 }
+
 .wd-stat-card {
 	background: #fff;
 	border: 1px solid #e8e5e0;
@@ -152,7 +154,7 @@
 
 .wd-req-row {
 	display: grid;
-	grid-template-columns: 90px 160px 1fr 140px 140px;
+	grid-template-columns: 80px 1.5fr 2fr auto 100px 30px;
 	align-items: center;
 	padding: 16px 24px;
 	border-bottom: 1px solid #f4f1ed;
@@ -274,11 +276,14 @@
 	background: rgba(245, 158, 11, 0.16);
 }
 
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+
 .wd-layout {
 	display: flex;
 	align-items: flex-start;
 	position: relative;
-	min-height: calc(100vh - 60px); /* adjust 60px to your navbar height */
+	min-height: calc(100vh - 80px);
+	width: 100%;
 }
 
 .wd-layout .wd-main {
@@ -287,29 +292,24 @@
 	transition: flex 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* When panel is open, shrink main so panel fits beside it */
 @media (min-width: 900px) {
 	.wd-layout--panel-open .wd-main {
 		flex: 1 1 0;
 	}
 }
 
-/* ── Slide-in detail panel ───────────────────────────────────
-   Enters from the right. On desktop it sits alongside the
-   main content. On mobile it overlays full-width.
-   ─────────────────────────────────────────────────────────── */
+/* ── Slide-in detail panel ────────────────────────────────────────────────── */
+
 .wd-detail-panel {
 	width: 420px;
 	flex-shrink: 0;
-	height: calc(100vh - 60px); /* match navbar height */
+	height: calc(100vh - 80px);
 	position: sticky;
-	top: 60px; /* match navbar height */
+	top: 80px;
 	overflow-y: auto;
 	background: #ffffff;
 	border-left: 1.5px solid #e8e4de;
 	box-shadow: -4px 0 24px rgba(0, 0, 0, 0.07);
-
-	/* Enter from right */
 	transform: translateX(100%);
 	opacity: 0;
 	transition:
@@ -323,7 +323,6 @@
 	opacity: 1;
 }
 
-/* Scrollbar inside panel */
 .wd-detail-panel::-webkit-scrollbar {
 	width: 5px;
 }
@@ -335,7 +334,6 @@
 	border-radius: 10px;
 }
 
-/* Mobile: overlay over the full page */
 @media (max-width: 899px) {
 	.wd-detail-panel {
 		position: fixed;
@@ -349,9 +347,8 @@
 	}
 }
 
-/* ── Mobile backdrop ─────────────────────────────────────────
-   Only visible below the breakpoint where panel overlays.
-   ─────────────────────────────────────────────────────────── */
+/* ── Mobile backdrop ─────────────────────────────────────────────────────── */
+
 .wd-backdrop {
 	display: none;
 }
@@ -371,6 +368,8 @@
 	}
 }
 
+/* ── Panel inner ──────────────────────────────────────────────────────────── */
+
 .wd-panel-inner {
 	display: flex;
 	flex-direction: column;
@@ -378,7 +377,6 @@
 	padding: 0;
 }
 
-/* ── Panel header ────────────────────────────────────────────*/
 .wd-panel-header {
 	display: flex;
 	align-items: center;
@@ -431,13 +429,13 @@
 	width: 15px;
 	height: 15px;
 }
-
 .wd-panel-close:hover {
 	background: #f0ece6;
 	color: #1c1c1c;
 }
 
-/* ── Panel metadata ──────────────────────────────────────────*/
+/* ── Panel metadata ───────────────────────────────────────────────────────── */
+
 .wd-panel-meta {
 	display: flex;
 	flex-direction: column;
@@ -485,10 +483,11 @@
 	color: #3d3730;
 }
 
-/* ── Panel image ───────────────────────────────────*/
+/* ── Panel image ──────────────────────────────────────────────────────────── */
+
 .wd-panel-image {
 	width: 100%;
-	padding: 16px 16px;
+	padding: 16px;
 	box-sizing: border-box;
 }
 
@@ -500,7 +499,8 @@
 	display: block;
 }
 
-/* ── Panel section divider ───────────────────────────────────*/
+/* ── Panel divider ────────────────────────────────────────────────────────── */
+
 .wd-panel-divider {
 	display: flex;
 	align-items: center;
@@ -523,6 +523,8 @@
 	background: #ede9e3;
 }
 
+/* ── Panel thread ─────────────────────────────────────────────────────────── */
+
 .wd-panel-thread {
 	flex: 1;
 	padding: 12px 14px 14px;
@@ -531,7 +533,6 @@
 	flex-direction: column;
 }
 
-/* Override mt_root inside the panel: fill available height */
 .wd-panel-thread .mt_root {
 	flex: 1;
 	height: 100%;
@@ -549,7 +550,8 @@
 	border-radius: 10px;
 }
 
-/* Reset button defaults and re-apply row layout */
+/* ── Request row button reset ─────────────────────────────────────────────── */
+
 button.wd-req-row {
 	width: 100%;
 	text-align: left;
@@ -563,17 +565,14 @@ button.wd-req-row {
 .wd-req-row {
 	transition: background 0.14s;
 }
-
 .wd-req-row:hover {
 	background: #faf8f5;
 }
-
 .wd-req-row--selected {
 	background: #f3f0ea !important;
 	border-left: 3px solid #2d6a4f;
 }
 
-/* Chevron — hidden until hover or selected */
 .wd-req-chevron {
 	font-size: 18px;
 	color: #c8c2bb;
@@ -591,7 +590,8 @@ button.wd-req-row {
 	transform: translateX(2px);
 }
 
-/* ── Panel status selector ───────────────────────────────────*/
+/* ── Panel status selector ────────────────────────────────────────────────── */
+
 .wd-panel-status-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -613,6 +613,8 @@ button.wd-req-row {
 	cursor: pointer;
 	font-family: 'DM Sans', sans-serif;
 	transition: all 0.15s;
+	flex: 1;
+	text-align: center;
 }
 
 .wd-status-opt:hover:not(:disabled) {
@@ -630,6 +632,8 @@ button.wd-req-row {
 	opacity: 0.7;
 }
 
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
+
 .wd-tooltip {
 	position: absolute;
 	bottom: calc(100% + 6px);
@@ -641,7 +645,7 @@ button.wd-req-row {
 	padding: 5px 10px;
 	border-radius: 5px;
 	white-space: nowrap;
-	pointer-events: none; /* non-interactive */
+	pointer-events: none;
 	opacity: 0.9;
 	z-index: 100;
 }
@@ -771,4 +775,83 @@ button.wd-req-row {
 	background: rgba(59, 130, 246, 0.08);
 	color: #1d4ed8;
 	border: 1px solid rgba(59, 130, 246, 0.2);
+/* ── Priority badges ──────────────────────────────────────────────────────── */
+
+.wd-priority-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 999px;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.wd-priority--low {
+	background: #f0fdf4;
+	color: #15803d;
+}
+.wd-priority--medium {
+	background: #fefce8;
+	color: #a16207;
+}
+.wd-priority--high {
+	background: #fff7ed;
+	color: #c2410c;
+}
+.wd-priority--critical {
+	background: #fef2f2;
+	color: #dc2626;
+	font-weight: 700;
+}
+.wd-priority-none {
+	color: #9ca3af;
+	font-size: 13px;
+}
+
+/* ── Close reason ─────────────────────────────────────────────────────────── */
+
+.wd-close-reason {
+	font-style: italic;
+	color: #6b7280;
+	background: #f9fafb;
+	border-left: 3px solid #e5e7eb;
+	padding: 6px 10px;
+	border-radius: 4px;
+	margin-top: 4px;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS
+   ========================================================================= */
+
+@media (max-width: 768px) {
+	.wd-req-row {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+		padding: 16px 5%;
+		position: relative;
+	}
+
+	.wd-req-meta {
+		text-align: left;
+		font-size: 11px;
+	}
+
+	.wd-req-desc {
+		white-space: normal;
+		max-width: 90%;
+	}
+
+	.wd-req-chevron {
+		position: absolute;
+		right: 20px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	.wd-panel-meta-row {
+		grid-template-columns: 1fr;
+		gap: 4px;
+	}
 }

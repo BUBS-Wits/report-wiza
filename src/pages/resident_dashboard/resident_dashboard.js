@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { useNavigate } from 'react-router-dom'
 import { Link, useLocation } from 'react-router-dom'
 import { auth } from '../../firebase_config.js'
 import {
@@ -71,6 +72,7 @@ export default function ResidentDashboard() {
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
 	const [logging_out, set_logging_out] = useState(false)
+	const navigation = useNavigate()
 
 	/* ── Load ─────────────────────────────────────────────────────────── */
 
@@ -125,6 +127,7 @@ export default function ResidentDashboard() {
 	const handle_logout = async () => {
 		set_logging_out(true)
 		await signOut(auth)
+		navigation('/')
 	}
 
 	/* ── Derived ──────────────────────────────────────────────────────── */
@@ -143,11 +146,7 @@ export default function ResidentDashboard() {
 	}
 
 	if (error) {
-		return (
-			<div className="rd-fullscreen">
-				<p className="rd-error-text">{error}</p>
-			</div>
-		)
+		return <ErrorScreen message={error} onRetry={() => null} />
 	}
 
 	/* ── Render ───────────────────────────────────────────────────────── */
@@ -220,7 +219,7 @@ export default function ResidentDashboard() {
 								strokeWidth="1.5"
 							/>
 						</svg>
-						My Requests
+						<span>My Requests</span>
 						{unread_total > 0 && (
 							<span
 								className="rd-nav-badge"
@@ -250,7 +249,29 @@ export default function ResidentDashboard() {
 								strokeLinecap="round"
 							/>
 						</svg>
-						Submit Request
+						<span>Submit Request</span>
+					</Link>
+					<Link
+						to="/dashboard"
+						className={`rd-nav-link${location.pathname === '/dashboard' ? ' rd-nav-link--active' : ''}`}
+					>
+						<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+							<circle
+								cx="8"
+								cy="8"
+								r="5.5"
+								stroke="currentColor"
+								strokeWidth="1.5"
+							/>
+							<path
+								d="M8 5v3.5l2 2"
+								stroke="currentColor"
+								strokeWidth="1.5"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
+						</svg>
+						<span>Public Dashboard</span>
 					</Link>
 				</nav>
 
@@ -286,13 +307,16 @@ export default function ResidentDashboard() {
 								strokeLinejoin="round"
 							/>
 						</svg>
-						{logging_out ? 'Logging out…' : 'Logout'}
+						{logging_out ? 'Logging out…' : <span>Logout</span>}
 					</button>
 				</div>
 			</header>
 
 			{/* ── Main layout ──────────────────────────────────────────── */}
-			<div className="rd-layout">
+			{/* Added dynamic class for mobile sliding layout */}
+			<div
+				className={`rd-layout ${selected_id ? 'rd-layout--detail-open' : ''}`}
+			>
 				{/* ── LEFT: request list ───────────────────────────────── */}
 				<aside className="rd-sidebar">
 					<div className="rd-sidebar-heading">
@@ -328,7 +352,11 @@ export default function ResidentDashboard() {
 				{/* ── RIGHT: detail + messaging ────────────────────────── */}
 				<main className="rd-main">
 					{selected_req ? (
-						<RequestDetail req={selected_req} resident={resident} />
+						<RequestDetail
+							req={selected_req}
+							resident={resident}
+							on_back={() => set_selected_id(null)}
+						/>
 					) : (
 						<div className="rd-main-empty">
 							<p>
@@ -373,16 +401,81 @@ function RequestCard({ req, is_selected, on_click, index }) {
 
 /* ── RequestDetail ───────────────────────────────────────────────────────── */
 
-function RequestDetail({ req, resident }) {
+const PRIORITY_META = {
+	Low: { label: 'Low', cls: 'rd-priority--low' },
+	Medium: { label: 'Medium', cls: 'rd-priority--medium' },
+	High: { label: 'High', cls: 'rd-priority--high' },
+	Critical: { label: 'Critical', cls: 'rd-priority--critical' },
+}
+
+function RequestDetail({ req, resident, on_back }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
-	const has_worker = !!req.worker_uid // FIXED
+	const has_worker = !!req.worker_uid
+	const priority_meta = PRIORITY_META[req.priority] ?? null
+	const [close_reason, set_close_reason] = useState(null)
+	const [close_reason_loading, set_close_reason_loading] = useState(false)
+
+	useEffect(() => {
+		if (req.status !== 'closed') {
+			set_close_reason(null)
+			return
+		}
+		set_close_reason_loading(true)
+		import('firebase/firestore').then(
+			({ getDocs, collection, query, where }) => {
+				import('../../firebase_config.js').then(({ db }) => {
+					getDocs(
+						query(
+							collection(
+								db,
+								'service_requests',
+								req.id,
+								'comments'
+							),
+							where('type', '==', 'close_reason')
+						)
+					)
+						.then((snap) => {
+							if (!snap.empty) {
+								set_close_reason(snap.docs[0].data().text)
+							}
+						})
+						.catch(() => set_close_reason(null))
+						.finally(() => set_close_reason_loading(false))
+				})
+			}
+		)
+	}, [req.id, req.status])
 
 	return (
 		<div className="rd-detail">
 			<div className="rd-detail-header">
 				<div className="rd-detail-header-left">
-					<h2 className="rd-detail-title">{req.category}</h2>
-					<span className="rd-detail-id">{req.id}</span>
+					{/* Added mobile back button */}
+					<button
+						className="rd-back-btn"
+						onClick={on_back}
+						aria-label="Back to requests"
+					>
+						<svg
+							viewBox="0 0 16 16"
+							fill="none"
+							aria-hidden="true"
+							style={{ width: '18px', height: '18px' }}
+						>
+							<path
+								d="M10 3L5 8l5 5"
+								stroke="currentColor"
+								strokeWidth="1.75"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
+						</svg>
+					</button>
+					<div className="rd-detail-title-group">
+						<h2 className="rd-detail-title">{req.category}</h2>
+						<span className="rd-detail-id">{req.id}</span>
+					</div>
 				</div>
 				<span
 					className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}
@@ -395,6 +488,20 @@ function RequestDetail({ req, resident }) {
 				<div className="rd-detail-meta-item">
 					<dt>Ward</dt>
 					<dd>{req.sa_ward || '—'}</dd>
+				</div>
+				<div className="rd-detail-meta-item">
+					<dt>Priority</dt>
+					<dd>
+						{priority_meta ? (
+							<span
+								className={`rd-priority-pill ${priority_meta.cls}`}
+							>
+								{priority_meta.label}
+							</span>
+						) : (
+							<span className="rd-priority-none">Not set</span>
+						)}
+					</dd>
 				</div>
 				<div className="rd-detail-meta-item">
 					<dt>Submitted</dt>
@@ -418,6 +525,16 @@ function RequestDetail({ req, resident }) {
 					<dt>Description</dt>
 					<dd>{req.description}</dd>
 				</div>
+				{req.status === 'closed' && (
+					<div className="rd-detail-meta-item rd-detail-meta-item--full">
+						<dt>Close reason</dt>
+						<dd className="rd-close-reason">
+							{close_reason_loading
+								? 'Loading…'
+								: (close_reason ?? '—')}
+						</dd>
+					</div>
+				)}
 			</dl>
 
 			<div className="rd-section-divider">
@@ -456,6 +573,17 @@ function RequestDetail({ req, resident }) {
 					</div>
 				)}
 			</div>
+		</div>
+	)
+}
+
+function ErrorScreen({ message, onRetry }) {
+	return (
+		<div className="wd-centered-screen">
+			<div className="wd-error-text">{message}</div>
+			<button className="wd-retry-btn" onClick={onRetry}>
+				Try again
+			</button>
 		</div>
 	)
 }

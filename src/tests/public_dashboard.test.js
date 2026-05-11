@@ -3,6 +3,9 @@ import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
+// 🔥 Import the auth function so we can control its mock in beforeEach
+import { onAuthStateChanged } from 'firebase/auth'
+
 // Updated import paths with .js extensions
 import PublicDashboard from '../pages/public_dashboard/public_dashboard.js'
 import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js'
@@ -15,9 +18,45 @@ import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js
 jest.mock('../pages/public_dashboard/public_dashboard.css', () => ({}))
 jest.mock('leaflet/dist/leaflet.css', () => ({}))
 
+const mockNavigate = jest.fn()
+
 // Mock react-router-dom
 jest.mock('react-router-dom', () => ({
+	...jest.requireActual('react-router-dom'),
 	Link: ({ children, to }) => <a href={to}>{children}</a>,
+	useNavigate: () => mockNavigate,
+}))
+
+// Mock NavBar to prevent its internal useEffects from crashing Dashboard tests
+jest.mock('../components/nav_bar/nav_bar.js', () => {
+	return function DummyNavBar() {
+		return <div data-testid="navbar">Mock Navbar</div>
+	}
+})
+
+// Mock Firebase Config
+jest.mock('../firebase_config.js', () => ({
+	auth: {},
+	db: {},
+}))
+
+// Mock Firebase Auth
+jest.mock('firebase/auth', () => ({
+	getAuth: jest.fn(),
+	onAuthStateChanged: jest.fn(),
+	signOut: jest.fn(),
+}))
+
+// Mock Firestore (in case any child components use onSnapshot)
+jest.mock('firebase/firestore', () => ({
+	...jest.requireActual('firebase/firestore'),
+	getFirestore: jest.fn(),
+	onSnapshot: jest.fn(() => jest.fn()), // Return dummy unsubscribe function
+	collection: jest.fn(),
+	query: jest.fn(),
+	where: jest.fn(),
+	orderBy: jest.fn(),
+	limit: jest.fn(),
 }))
 
 // Mock the backend service
@@ -123,6 +162,14 @@ const mockDashboardData = {
 describe('PublicDashboard Component', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
+
+		// 🔥 THE MAGIC FIX: Force the mock to return a dummy unsubscribe function before EVERY test
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			if (typeof callback === 'function') {
+				callback(null) // Simulate no user logged in
+			}
+			return jest.fn() // Prevent 'unsub is not a function' on unmount
+		})
 	})
 
 	test('renders the loading state initially', () => {
@@ -203,7 +250,6 @@ describe('PublicDashboard Component', () => {
 		).toBeInTheDocument()
 
 		// 2. Verify Stats Panel
-		// FIX: Use getAllByText because both open_count and wards_affected equal 2
 		const twos = screen.getAllByText('2')
 		expect(twos.length).toBe(2)
 		expect(screen.getByText('1')).toBeInTheDocument() // resolved_count
