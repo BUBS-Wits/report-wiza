@@ -51,7 +51,7 @@ function CategoryReport() {
 		return () => unsubscribe()
 	}, [navigate])
 
-	const max_total = Math.max(...report_data.map((r) => r.total), 1)
+	const max_total = Math.max(...report_data.map((r) => r.total ?? 0), 1)
 
 	// Helper function to render the correct view based on state
 	const render_content = () => {
@@ -150,23 +150,23 @@ function CategoryReport() {
 										<div
 											className="bar_fill bar_fill_open"
 											style={{
-												width: `${(row.pending / max_total) * 100}%`,
+												width: `${((row.pending ?? 0) / max_total) * 100}%`,
 											}}
-											title={`Pending: ${row.pending}`}
+											title={`Pending: ${row.pending ?? 0}`}
 										/>
 										<div
 											className="bar_fill bar_fill_in_progress"
 											style={{
-												width: `${(row.in_progress / max_total) * 100}%`,
+												width: `${((row.in_progress ?? 0) / max_total) * 100}%`,
 											}}
-											title={`In Progress: ${row.in_progress}`}
+											title={`In Progress: ${row.in_progress ?? 0}`}
 										/>
 										<div
 											className="bar_fill bar_fill_resolved"
 											style={{
-												width: `${(row.resolved / max_total) * 100}%`,
+												width: `${((row.resolved ?? 0) / max_total) * 100}%`,
 											}}
-											title={`Resolved: ${row.resolved}`}
+											title={`Resolved: ${row.resolved ?? 0}`}
 										/>
 									</div>
 									<span className="bar_total">
