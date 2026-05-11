@@ -44,6 +44,14 @@ jest.mock(
 )
 
 jest.mock(
+	'../components/notification_bell/notification_bell',
+	() =>
+		function MockNotificationBell() {
+			return <div data-testid="notification-bell" />
+		}
+)
+
+jest.mock(
 	'../components/request_card/like_button/like_button',
 	() =>
 		function MockLikeButton() {

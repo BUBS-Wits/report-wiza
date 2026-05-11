@@ -11,6 +11,7 @@ import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './resident_dashboard.css'
 import LikeButton from '../../components/request_card/like_button/like_button.js'
+import NotificationBell from '../../components/notification_bell/notification_bell.js'
 
 /* ── Status config ───────────────────────────────────────────────────────── */
 
@@ -267,6 +268,14 @@ export default function ResidentDashboard() {
 				</nav>
 
 				<div className="rd-topbar-right">
+					{/* --- ADD THE NOTIFICATION BELL HERE --- */}
+					{resident && (
+						<NotificationBell
+							userUid={resident.uid}
+							role="resident"
+						/>
+					)}
+
 					<div className="rd-user-chip">
 						<span className="rd-avatar">
 							{get_initials(resident?.name ?? '')}
