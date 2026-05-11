@@ -292,7 +292,9 @@ function PublicDashboard() {
 									<div>
 										{visibleFields.category && (
 											<>
-												<strong>{request.category}</strong>
+												<strong>
+													{request.category}
+												</strong>
 												<br />
 											</>
 										)}

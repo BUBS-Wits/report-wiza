@@ -27,7 +27,9 @@ function AdminPublicDashboardSettings() {
 				const settings = await fetch_public_dashboard_visibility()
 				set_fields(settings)
 			} catch (err) {
-				set_error(err.message || 'Failed to load public dashboard settings.')
+				set_error(
+					err.message || 'Failed to load public dashboard settings.'
+				)
 			} finally {
 				set_loading(false)
 			}
@@ -75,13 +77,15 @@ function AdminPublicDashboardSettings() {
 			<div className="apds_header">
 				<h2>Public dashboard field visibility</h2>
 				<p>
-					Choose which request fields are visible to unauthenticated public
-					users.
+					Choose which request fields are visible to unauthenticated
+					public users.
 				</p>
 			</div>
 
 			{error && <div className="apds_message apds_error">{error}</div>}
-			{message && <div className="apds_message apds_success">{message}</div>}
+			{message && (
+				<div className="apds_message apds_success">{message}</div>
+			)}
 
 			<div className="apds_fields">
 				{Object.keys(FIELD_LABELS).map((field) => (
