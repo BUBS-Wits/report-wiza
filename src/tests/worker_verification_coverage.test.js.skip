@@ -62,7 +62,6 @@ jest.mock('../backend/resident_firebase.js', () => ({
 	fetchResidentRequests: jest.fn(),
 }))
 
-jest.mock('../pages/resident/resident_requests.css', () => ({}))
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Imports — after mocks
