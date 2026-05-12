@@ -323,8 +323,7 @@ export default function ResidentDashboard() {
 					{requests.length === 0 ? (
 						<div className="rd-no-requests">
 							<p>
-								You haven&apos;t submitted any service requests
-								yet.
+								You haven't submitted any service requests yet.
 							</p>
 							<Link to="/request" className="rd-no-requests-cta">
 								Submit your first request →
@@ -624,6 +623,8 @@ function RequestDetail({ req, resident, on_back }) {
 						current_role="resident"
 						other_uid={req.worker_uid}
 						other_name={req.worker_name ?? 'Worker'}
+						/* 👇 FIXED: Using req instead of selected_request */
+						messaging_enabled={req.messaging_enabled !== false}
 					/>
 				) : (
 					<div className="rd-no-worker">

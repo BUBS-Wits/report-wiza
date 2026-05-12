@@ -360,19 +360,23 @@ function AdminRequests() {
 									</button>
 								</div>
 
-								{/* US028 — Close button */}
-								{req.status !== 'closed' &&
-									req.status !== 'resolved' && (
-										<button
-											className="ar_close_btn"
-											onClick={() =>
-												set_close_modal(req.id)
-											}
-											disabled={updating_id === req.id}
-										>
-											Close
-										</button>
-									)}
+								{/* Actions Column — US028 Close only */}
+								<div className="ar_actions_col">
+									{req.status !== 'closed' &&
+										req.status !== 'resolved' && (
+											<button
+												className="ar_close_btn"
+												onClick={() =>
+													set_close_modal(req.id)
+												}
+												disabled={
+													updating_id === req.id
+												}
+											>
+												Close
+											</button>
+										)}
+								</div>
 							</div>
 						))
 					)}
@@ -386,7 +390,6 @@ function AdminRequests() {
 						These requests have had no status update for 3 or more
 						days.
 					</p>
-					{/* ADDED: Specific class for the 5-column grid layout */}
 					<div className="ar_table_header ar_table_header_stale">
 						<span>ID</span>
 						<span>Category</span>
@@ -398,7 +401,6 @@ function AdminRequests() {
 						<div className="ar_empty">No stale requests.</div>
 					) : (
 						stale_requests.map((req) => (
-							// ADDED: Specific class for the 5-column grid layout
 							<div className="ar_row ar_row_stale" key={req.id}>
 								<span className="ar_id">
 									{req.id.slice(0, 8)}
