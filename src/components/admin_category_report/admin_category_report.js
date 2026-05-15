@@ -11,10 +11,10 @@ import {
 } from '../../backend/category_report_service.js'
 
 // Import the layout components
-import Sidebar from '../../components/sidebar/sidebar.js'
-import TopBar from '../../components/top_bar/top_bar.js'
+import Sidebar from '../admin_sidebar/admin_sidebar.js'
+import TopBar from '../top_bar/top_bar.js'
 
-import './category_report.css'
+import './admin_category_report.css'
 
 function CategoryReport() {
 	const navigate = useNavigate()
