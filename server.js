@@ -902,6 +902,48 @@ app.get('/api/get-signed-url', async (req, res) => {
 	}
 })
 
+app.get('/api/submit-review', authenticate, async (req, res) => {
+	try {
+		const body = req.body
+		if (!body || !body.feedback || !body.request_uid) {
+			return respond.invalid_parameters(res)
+		}
+		const request_uid = body.request_uid
+		const feedback = body.feedback
+		if (
+			!request_uid ||
+			Object.keys(req.query).length !== 1 ||
+			!(await exists_db_document('service_requests', request_uid))
+		) {
+			return respond.invalid_parameters(res)
+		}
+		const user_uid = req.user.uid
+		let iret = await get_db_documents('service_requests', [
+			['__name__', request_uid],
+			['user_uid', user_uid],
+		])
+		if (!iret.ok) {
+			return res.status(400).json({ error: iret.value })
+		}
+		const data = iret.value
+		if (data === null) {
+			return res
+				.status(400)
+				.json({ error: 'Failed to get requested service request.' })
+		}
+		iret = await update_db_document('service_requests', data.id, [
+			['feedback', feedback],
+		])
+		if (!iret.ok) {
+			return res.status(400).json({ error: iret.value })
+		}
+		return res.status(200).json({ data: request_uid })
+	} catch (err) {
+		console.error('Database error:', err)
+		res.status(500).json({ error: 'Internal server error' })
+	}
+})
+
 /********************* Frontend *********************/
 
 const build_path = path.resolve(path.join(__dirname, 'build'))
