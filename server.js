@@ -931,6 +931,13 @@ app.get('/api/submit-review', authenticate, async (req, res) => {
 				.status(400)
 				.json({ error: 'Failed to get requested service request.' })
 		}
+		if (data.status !== STATUS.CLOSED) {
+			return res
+				.status(400)
+				.json({
+					error: 'Request selected has not been closed as complete.',
+				})
+		}
 		iret = await update_db_document('service_requests', data.id, [
 			['feedback', feedback],
 		])
