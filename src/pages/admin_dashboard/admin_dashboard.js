@@ -46,8 +46,9 @@ function AdminDashboard({ section = 'workers' }) {
 			!window.confirm(
 				`Are you sure you want to revoke worker access for ${email}?`
 			)
-		)
+		) {
 			return
+		}
 		set_revoking_uid(uid)
 		try {
 			await revoke_worker_role(uid)

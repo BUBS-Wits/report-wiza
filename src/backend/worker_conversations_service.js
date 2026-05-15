@@ -2,151 +2,154 @@ import {
 	collection,
 	query,
 	where,
-	onSnapshot,
+	or,
 	orderBy,
+	onSnapshot,
+	doc,
+	getDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 
-/**
- * Normalise a stored date value (UTC string or Firestore Timestamp) → JS Date.
- */
-function to_date(value) {
-	if (!value) return null
-	if (typeof value.toDate === 'function') return value.toDate()
-	const d = new Date(value)
-	return isNaN(d.getTime()) ? null : d
+// ── Simple cache to avoid re-fetching request docs ───────────────────────────
+const request_cache = new Map()
+
+async function fetch_request(rid) {
+	if (request_cache.has(rid)) {
+		return request_cache.get(rid)
+	}
+	try {
+		const snap = await getDoc(doc(db, 'service_requests', rid))
+		const data = snap.exists() ? { id: snap.id, ...snap.data() } : null
+		request_cache.set(rid, data)
+		return data
+	} catch (e) {
+		return null
+	}
 }
 
-/**
- * Subscribe to all conversations involving the given worker UID.
- *
- * Because Firestore doesn't support OR across different fields in one query,
- * we run two parallel snapshots (sent + received) and merge them client-side.
- *
- * Each conversation in the result list contains:
- *   request_uid   {string}
- *   other_uid     {string}   — resident's Firebase UID
- *   last_message  {object}   — { text, sent_at: Date, sender_uid }
- *   unread_count  {number}   — messages sent TO the worker that are unread
- *   all_messages  {array}    — full message list for this thread (sorted asc)
- *
- * @param {string}   worker_uid
- * @param {function} on_update  — called with conversation[] on every change
- * @param {function} on_error   — called with Error on failure
- * @returns {function}          — unsubscribe (call on unmount)
- */
+// ── Safely parse dates ───────────────────────────────────────────────────────
+function to_date(sent_at) {
+	if (!sent_at) {
+		return new Date(0)
+	}
+	if (typeof sent_at.toDate === 'function') {
+		return sent_at.toDate()
+	}
+	const d = new Date(sent_at)
+	return isNaN(d.getTime()) ? new Date(0) : d
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   subscribe_to_worker_conversations
+   ─────────────────────────────────────────────────────────────────────────────
+   Sets up a SINGLE efficient listener for all messages where the worker is 
+   EITHER the sender OR the receiver.
+───────────────────────────────────────────────────────────────────────────── */
 export function subscribe_to_worker_conversations(
 	worker_uid,
 	on_update,
 	on_error
 ) {
-	// Snapshot A: messages the worker SENT
-	const q_sent = query(
+	const q = query(
 		collection(db, 'messages'),
-		where('sender_uid', '==', worker_uid),
+		or(
+			where('sender_uid', '==', worker_uid),
+			where('receiver_uid', '==', worker_uid)
+		),
 		orderBy('sent_at', 'asc')
 	)
 
-	// Snapshot B: messages the worker RECEIVED
-	const q_received = query(
-		collection(db, 'messages'),
-		where('receiver_uid', '==', worker_uid),
-		orderBy('sent_at', 'asc')
-	)
+	return onSnapshot(
+		q,
+		async (snap) => {
+			try {
+				// 1. Deduplicate (just in case) and parse messages
+				const message_map = new Map()
+				snap.docs.forEach((d) => {
+					message_map.set(d.id, { id: d.id, ...d.data() })
+				})
+				const all_messages = Array.from(message_map.values())
 
-	let sent_msgs = []
-	let received_msgs = []
+				// 2. Group messages by their associated request_id
+				const groups = new Map()
+				for (const msg of all_messages) {
+					const rid = msg.request_id || msg.request_uid
+					if (!rid) {
+						continue
+					}
+					if (!groups.has(rid)) {
+						groups.set(rid, [])
+					}
+					groups.get(rid).push(msg)
+				}
 
-	const merge_and_emit = () => {
-		// Combine and deduplicate by message id
-		const all_by_id = new Map()
-		;[...sent_msgs, ...received_msgs].forEach((m) => all_by_id.set(m.id, m))
+				// 3. Fetch request details for all active conversations in parallel
+				const rids = Array.from(groups.keys())
+				await Promise.all(rids.map((rid) => fetch_request(rid)))
 
-		// Group by request_uid — messages are stored with this field name
-		// (NOT request_id, which is the display ID on the service_request doc)
-		const threads = new Map()
-		for (const msg of all_by_id.values()) {
-			const key = msg.request_uid
-			if (!key) continue // skip malformed messages
-			if (!threads.has(key)) threads.set(key, [])
-			threads.get(key).push(msg)
-		}
+				const conversations = []
 
-		// Build conversation summaries
-		const conversations = []
-		for (const [request_uid, msgs] of threads.entries()) {
-			// Sort messages ascending. Dates are stored as UTC strings so we
-			// normalise to JS Date first — toMillis() only works on Timestamps.
-			const sorted = [...msgs].sort((a, b) => {
-				const ta = to_date(a.sent_at)?.getTime() ?? 0
-				const tb = to_date(b.sent_at)?.getTime() ?? 0
-				return ta - tb
-			})
+				// 4. Build the rich conversation objects
+				for (const [rid, msgs] of groups.entries()) {
+					const request = request_cache.get(rid)
+					if (!request) {
+						continue
+					} // Skip if parent request doc is missing
 
-			const last = sorted[sorted.length - 1]
+					// Identify the other participant (the resident)
+					let other_uid = null
+					for (const m of msgs) {
+						if (m.sender_uid && m.sender_uid !== worker_uid) {
+							other_uid = m.sender_uid
+							break
+						}
+						if (m.receiver_uid && m.receiver_uid !== worker_uid) {
+							other_uid = m.receiver_uid
+							break
+						}
+					}
 
-			// Derive the resident's uid: the uid that isn't the worker
-			const other_uid =
-				last.sender_uid === worker_uid
-					? last.receiver_uid
-					: last.sender_uid
+					// Sort messages strictly by time
+					msgs.sort((a, b) => to_date(a.sent_at) - to_date(b.sent_at))
 
-			const unread_count = sorted.filter(
-				(m) => m.receiver_uid === worker_uid && !m.read
-			).length
+					const last_message = msgs[msgs.length - 1]
 
-			conversations.push({
-				request_uid,
-				other_uid,
-				last_message: {
-					...last,
-					sent_at: to_date(last.sent_at),
-				},
-				unread_count,
-				all_messages: sorted.map((m) => ({
-					...m,
-					sent_at: to_date(m.sent_at),
-				})),
-			})
-		}
+					// Calculate unread count (only messages sent to the worker that are unread)
+					const unread_count = msgs.filter(
+						(m) => m.receiver_uid === worker_uid && !m.read
+					).length
 
-		// Sort conversations: most recently active first
-		conversations.sort((a, b) => {
-			const ta = a.last_message?.sent_at?.getTime() ?? 0
-			const tb = b.last_message?.sent_at?.getTime() ?? 0
-			return tb - ta
-		})
+					conversations.push({
+						request_id: rid,
+						request_details: request,
+						other_uid: other_uid || 'unknown',
+						unread_count,
+						last_message,
+						all_messages: msgs,
+					})
+				}
 
-		on_update(conversations)
-	}
+				// 5. Sort conversations so the one with the newest message is at the top
+				conversations.sort(
+					(a, b) =>
+						to_date(b.last_message.sent_at) -
+						to_date(a.last_message.sent_at)
+				)
 
-	const unsub_sent = onSnapshot(
-		q_sent,
-		(snap) => {
-			sent_msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-			merge_and_emit()
+				// Fire the callback to update the React UI
+				on_update(conversations)
+			} catch (err) {
+				console.error('Error processing worker conversations:', err)
+				if (on_error) {
+					on_error(err)
+				}
+			}
 		},
 		(err) => {
-			console.error('[conversations_service] sent query error:', err)
-			if (on_error) on_error(err)
+			console.error('Snapshot error:', err)
+			if (on_error) {
+				on_error(err)
+			}
 		}
 	)
-
-	const unsub_received = onSnapshot(
-		q_received,
-		(snap) => {
-			received_msgs = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-			merge_and_emit()
-		},
-		(err) => {
-			console.error('[conversations_service] received query error:', err)
-			if (on_error) on_error(err)
-		}
-	)
-
-	// Return a single unsubscribe that tears down both listeners
-	return () => {
-		unsub_sent()
-		unsub_received()
-	}
 }

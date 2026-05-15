@@ -323,7 +323,7 @@ export default function ResidentDashboard() {
 					{requests.length === 0 ? (
 						<div className="rd-no-requests">
 							<p>
-								You haven't submitted any service requests yet.
+								You have not submitted any service requests yet.
 							</p>
 							<Link to="/request" className="rd-no-requests-cta">
 								Submit your first request →

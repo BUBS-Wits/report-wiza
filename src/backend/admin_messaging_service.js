@@ -7,6 +7,7 @@ import {
 	doc,
 	getDoc,
 	updateDoc,
+	or,
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 
@@ -18,7 +19,9 @@ const request_cache = new Map()
 const user_cache = new Map()
 
 async function fetch_request(id) {
-	if (request_cache.has(id)) return request_cache.get(id)
+	if (request_cache.has(id)) {
+		return request_cache.get(id)
+	}
 	const snap = await getDoc(doc(db, 'service_requests', id))
 	const data = snap.exists() ? { id: snap.id, ...snap.data() } : null
 	request_cache.set(id, data)
@@ -26,8 +29,12 @@ async function fetch_request(id) {
 }
 
 async function fetch_user(uid) {
-	if (!uid) return null
-	if (user_cache.has(uid)) return user_cache.get(uid)
+	if (!uid) {
+		return null
+	}
+	if (user_cache.has(uid)) {
+		return user_cache.get(uid)
+	}
 	const snap = await getDoc(doc(db, 'users', uid))
 	const data = snap.exists() ? { uid: snap.id, ...snap.data() } : null
 	user_cache.set(uid, data)
@@ -40,8 +47,12 @@ async function fetch_user(uid) {
    but older docs may have Firestore Timestamps — handle both defensively.
 ───────────────────────────────────────────────────────────────────────────── */
 function to_date(sent_at) {
-	if (!sent_at) return null
-	if (typeof sent_at.toDate === 'function') return sent_at.toDate()
+	if (!sent_at) {
+		return null
+	}
+	if (typeof sent_at.toDate === 'function') {
+		return sent_at.toDate()
+	}
 	const d = new Date(sent_at)
 	return isNaN(d.getTime()) ? null : d
 }
@@ -87,8 +98,12 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 				const threads_map = new Map()
 				for (const msg of all_messages) {
 					const rid = msg.request_uid || msg.request_id
-					if (!rid) continue
-					if (!threads_map.has(rid)) threads_map.set(rid, [])
+					if (!rid) {
+						continue
+					}
+					if (!threads_map.has(rid)) {
+						threads_map.set(rid, [])
+					}
 					threads_map.get(rid).push(msg)
 				}
 
@@ -105,8 +120,12 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 					const last = sorted[sorted.length - 1]
 
 					sorted.forEach((m) => {
-						if (m.sender_uid) all_uids.add(m.sender_uid)
-						if (m.receiver_uid) all_uids.add(m.receiver_uid)
+						if (m.sender_uid) {
+							all_uids.add(m.sender_uid)
+						}
+						if (m.receiver_uid) {
+							all_uids.add(m.receiver_uid)
+						}
 					})
 
 					thread_entries.push({ rid, sorted, last })
@@ -123,11 +142,26 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 
 				for (const { rid, sorted, last } of thread_entries) {
 					const request = request_cache.get(rid)
-					// Skip threads whose request doc no longer exists
-					if (!request) continue
+					if (!request) {
+						continue
+					}
 
-					const worker_uid = request.assigned_worker_uid ?? null
 					const resident_uid = request.user_uid ?? null
+
+					// FIX: Infer the worker's UID directly from the chat participants!
+					// Since WardWatch uses an assignments collection, the worker isn't on the request doc.
+					// The worker is simply the participant who is NOT the resident.
+					let worker_uid = null
+					for (const m of sorted) {
+						if (m.sender_uid && m.sender_uid !== resident_uid) {
+							worker_uid = m.sender_uid
+							break
+						}
+						if (m.receiver_uid && m.receiver_uid !== resident_uid) {
+							worker_uid = m.receiver_uid
+							break
+						}
+					}
 
 					const worker = user_cache.get(worker_uid) ?? null
 					const resident = user_cache.get(resident_uid) ?? null
@@ -177,12 +211,16 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 				on_update(threads)
 			} catch (err) {
 				console.error('[admin_messaging_service] enrich error:', err)
-				if (on_error) on_error(err)
+				if (on_error) {
+					on_error(err)
+				}
 			}
 		},
 		(err) => {
 			console.error('[admin_messaging_service] snapshot error:', err)
-			if (on_error) on_error(err)
+			if (on_error) {
+				on_error(err)
+			}
 		}
 	)
 
@@ -215,7 +253,10 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 export function subscribe_to_thread_messages(request_uid, on_update, on_error) {
 	const q = query(
 		collection(db, 'messages'),
-		where('request_uid', '==', request_uid),
+		or(
+			where('request_uid', '==', request_uid),
+			where('request_id', '==', request_uid)
+		),
 		orderBy('sent_at', 'asc')
 	)
 
@@ -234,7 +275,9 @@ export function subscribe_to_thread_messages(request_uid, on_update, on_error) {
 				'[admin_messaging_service] messages snapshot error:',
 				err
 			)
-			if (on_error) on_error(err)
+			if (on_error) {
+				on_error(err)
+			}
 		}
 	)
 

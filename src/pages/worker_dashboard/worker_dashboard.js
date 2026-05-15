@@ -28,7 +28,9 @@ import { subscribe_to_worker_conversations } from '../../backend/worker_conversa
 import './worker_dashboard.css'
 
 const parse_date = (val) => {
-	if (!val) return '-'
+	if (!val) {
+		return '-'
+	}
 	try {
 		const d = val.toDate ? val.toDate() : new Date(val)
 		return isNaN(d.getTime()) ? '-' : d.toISOString().split('T')[0]
@@ -107,7 +109,9 @@ export default function WorkerDashboard() {
 	const [totalUnread, setTotalUnread] = useState(0)
 
 	useEffect(() => {
-		if (!worker?.uid) return
+		if (!worker?.uid) {
+			return
+		}
 
 		const unsub = subscribe_to_worker_conversations(
 			worker.uid,
@@ -206,15 +210,21 @@ export default function WorkerDashboard() {
 	}
 
 	const get_signed_url = async (id, image, expires) => {
-		if (expires !== null && !is_expired(expires)) return image
+		if (expires !== null && !is_expired(expires)) {
+			return image
+		}
 		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
-		if (!ret.ok) return image
+		if (!ret.ok) {
+			return image
+		}
 		const data = await ret.json()
 		return data.data
 	}
 
 	useEffect(() => {
-		if (!worker?.uid) return
+		if (!worker?.uid) {
+			return
+		}
 		let requests_unsub_list = null
 		const chunk = (arr, size) => {
 			return Array.from(
@@ -319,14 +329,20 @@ export default function WorkerDashboard() {
 
 	useEffect(() => {
 		const on_key = (e) => {
-			if (e.key === 'Escape') close_panel()
+			if (e.key === 'Escape') {
+				close_panel()
+			}
 		}
 		window.addEventListener('keydown', on_key)
 		return () => window.removeEventListener('keydown', on_key)
 	}, [])
 
-	if (loading) return <LoadingScreen />
-	if (error) return <ErrorScreen message={error} onRetry={error_handling} />
+	if (loading) {
+		return <LoadingScreen />
+	}
+	if (error) {
+		return <ErrorScreen message={error} onRetry={error_handling} />
+	}
 
 	const requests =
 		active_section === 'queue' ? claimed_requests : unclaimed_requests
@@ -581,7 +597,9 @@ function RequestDetailPanel({
 	}
 
 	const on_status_change = async (req_uid, new_status) => {
-		if (updating.current === true) return
+		if (updating.current === true) {
+			return
+		}
 		updating.current = true
 		try {
 			const ret = await update_request_status(req_uid, new_status)
@@ -604,7 +622,9 @@ function RequestDetailPanel({
 	}, [req.id])
 
 	const handle_submit = async () => {
-		if (!comment_text.trim()) return
+		if (!comment_text.trim()) {
+			return
+		}
 		set_is_submitting(true)
 		try {
 			await add_comment(req.id, worker.name, worker.uid, comment_text)
