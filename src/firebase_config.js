@@ -14,5 +14,5 @@ const firebase_config = {
 const app = initializeApp(firebase_config)
 
 const db_name = process.env.REACT_APP_FIREBASE_DB_NAME || '(default)'
-export const db = getFirestore(app, db_name)
+export const db = getFirestore(app)
 export const auth = getAuth(app)
