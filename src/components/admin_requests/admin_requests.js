@@ -152,21 +152,26 @@ function AdminRequests() {
 	// Reopen request
 	const handle_reopen = async (request_id) => {
 		set_updating_id(request_id)
-    try {
-        await reopen_request(request_id, auth.currentUser?.uid)
-        set_requests((prev) =>
-            prev.map((r) =>
-                r.id === request_id
-                    ? { ...r, status: 'open', assigned_worker_uid: null, worker_uid: null }
-                    : r
-            )
-        )
-        show_message('Request reopened successfully.')
-    } catch (err) {
-        show_message(err.message, true)
-    } finally {
-        set_updating_id(null)
-    }
+		try {
+			await reopen_request(request_id, auth.currentUser?.uid)
+			set_requests((prev) =>
+				prev.map((r) =>
+					r.id === request_id
+						? {
+								...r,
+								status: 'open',
+								assigned_worker_uid: null,
+								worker_uid: null,
+							}
+						: r
+				)
+			)
+			show_message('Request reopened successfully.')
+		} catch (err) {
+			show_message(err.message, true)
+		} finally {
+			set_updating_id(null)
+		}
 	}
 
 	// US027 — set priority
