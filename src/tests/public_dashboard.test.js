@@ -1,70 +1,58 @@
 /* global jest */
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
-// 🔥 Import the auth function so we can control its mock in beforeEach
 import { onAuthStateChanged } from 'firebase/auth'
 
-// Updated import paths with .js extensions
 import PublicDashboard from '../pages/public_dashboard/public_dashboard.js'
 import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js'
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Mocks — Set up before importing the modules under test
-───────────────────────────────────────────────────────────────────────────── */
-
-// Mock CSS files
 jest.mock('../pages/public_dashboard/public_dashboard.css', () => ({}))
 jest.mock('leaflet/dist/leaflet.css', () => ({}))
 
 const mockNavigate = jest.fn()
 
-// Mock react-router-dom
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
 	Link: ({ children, to }) => <a href={to}>{children}</a>,
 	useNavigate: () => mockNavigate,
 }))
 
-// Mock NavBar to prevent its internal useEffects from crashing Dashboard tests
 jest.mock('../components/nav_bar/nav_bar.js', () => {
 	return function DummyNavBar() {
 		return <div data-testid="navbar">Mock Navbar</div>
 	}
 })
 
-// Mock Firebase Config
 jest.mock('../firebase_config.js', () => ({
 	auth: {},
 	db: {},
 }))
 
-// Mock Firebase Auth
 jest.mock('firebase/auth', () => ({
 	getAuth: jest.fn(),
 	onAuthStateChanged: jest.fn(),
 	signOut: jest.fn(),
 }))
 
-// Mock Firestore (in case any child components use onSnapshot)
 jest.mock('firebase/firestore', () => ({
 	...jest.requireActual('firebase/firestore'),
 	getFirestore: jest.fn(),
-	onSnapshot: jest.fn(() => jest.fn()), // Return dummy unsubscribe function
+	onSnapshot: jest.fn(() => jest.fn()),
 	collection: jest.fn(),
 	query: jest.fn(),
 	where: jest.fn(),
 	orderBy: jest.fn(),
 	limit: jest.fn(),
+	doc: jest.fn(),
+	getDoc: jest.fn(),
 }))
 
-// Mock the backend service
 jest.mock('../backend/public_dashboard_service.js', () => ({
 	fetchPublicDashboardData: jest.fn(),
 }))
 
-// Mock RequestCard to simplify the DOM and isolate dashboard logic
 jest.mock('../components/request_card/request_card.js', () => {
 	return function DummyRequestCard({ request }) {
 		return (
@@ -75,7 +63,6 @@ jest.mock('../components/request_card/request_card.js', () => {
 	}
 })
 
-// Mock Leaflet core to prevent JSDOM canvas/DOM crashes
 jest.mock('leaflet', () => {
 	const LMock = {
 		Icon: class {
@@ -90,7 +77,6 @@ jest.mock('leaflet', () => {
 	return LMock
 })
 
-// Mock esri-leaflet
 jest.mock('esri-leaflet', () => ({
 	featureLayer: jest.fn(() => ({
 		bindPopup: jest.fn().mockReturnThis(),
@@ -100,7 +86,6 @@ jest.mock('esri-leaflet', () => ({
 	})),
 }))
 
-// Mock React-Leaflet components
 jest.mock('react-leaflet', () => ({
 	MapContainer: ({ children }) => (
 		<div data-testid="map-container">{children}</div>
@@ -115,10 +100,6 @@ jest.mock('react-leaflet', () => ({
 	}),
 }))
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Shared Fixtures
-───────────────────────────────────────────────────────────────────────────── */
-
 const mockDashboardData = {
 	active: [
 		{
@@ -128,6 +109,8 @@ const mockDashboardData = {
 			latitude: -26.2,
 			longitude: 28.0,
 			ward: 'Ward 10',
+			municipality: 'Metro A',
+			description: 'Large pothole near school',
 		},
 		{
 			id: 'req_2',
@@ -136,6 +119,8 @@ const mockDashboardData = {
 			latitude: -26.3,
 			longitude: 28.1,
 			ward: 'Ward 11',
+			municipality: 'Metro B',
+			description: 'Water leaking from pipe',
 		},
 	],
 	resolved: [
@@ -146,6 +131,8 @@ const mockDashboardData = {
 			latitude: -26.4,
 			longitude: 28.2,
 			ward: 'Ward 10',
+			municipality: 'Metro A',
+			description: 'Streetlight repaired',
 		},
 	],
 	stats: {
@@ -155,25 +142,31 @@ const mockDashboardData = {
 	},
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Test Suite
-───────────────────────────────────────────────────────────────────────────── */
+const renderLoadedDashboard = async (data = mockDashboardData) => {
+	fetchPublicDashboardData.mockResolvedValue(data)
+
+	render(<PublicDashboard />)
+
+	await waitFor(() => {
+		expect(
+			screen.queryByText('Loading service requests…')
+		).not.toBeInTheDocument()
+	})
+}
 
 describe('PublicDashboard Component', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 
-		// 🔥 THE MAGIC FIX: Force the mock to return a dummy unsubscribe function before EVERY test
 		onAuthStateChanged.mockImplementation((auth, callback) => {
 			if (typeof callback === 'function') {
-				callback(null) // Simulate no user logged in
+				callback(null)
 			}
-			return jest.fn() // Prevent 'unsub is not a function' on unmount
+			return jest.fn()
 		})
 	})
 
 	test('renders the loading state initially', () => {
-		// Return a promise that doesn't resolve immediately to keep it in loading state
 		fetchPublicDashboardData.mockReturnValue(new Promise(() => {}))
 
 		render(<PublicDashboard />)
@@ -184,7 +177,6 @@ describe('PublicDashboard Component', () => {
 	})
 
 	test('renders the error state if data fetching fails', async () => {
-		// Temporarily silence console.error so our test output stays clean
 		const consoleSpy = jest
 			.spyOn(console, 'error')
 			.mockImplementation(() => {})
@@ -193,7 +185,6 @@ describe('PublicDashboard Component', () => {
 
 		render(<PublicDashboard />)
 
-		// Wait for the error message to appear after the promise rejects
 		await waitFor(() => {
 			expect(
 				screen.getByText(
@@ -206,73 +197,131 @@ describe('PublicDashboard Component', () => {
 	})
 
 	test('renders empty states when there are no active or resolved requests', async () => {
-		fetchPublicDashboardData.mockResolvedValue({
+		await renderLoadedDashboard({
 			active: [],
 			resolved: [],
 			stats: { open_count: 0, resolved_count: 0, wards_affected: 0 },
 		})
 
-		render(<PublicDashboard />)
-
-		await waitFor(() => {
-			expect(
-				screen.queryByText('Loading service requests…')
-			).not.toBeInTheDocument()
-		})
-
-		// Check for empty state messages
 		expect(
-			screen.getByText('No active requests at this time.')
+			screen.getByText('No active requests match the selected filters.')
 		).toBeInTheDocument()
 		expect(
-			screen.getByText('No resolved requests to show.')
+			screen.getByText('No resolved requests match the selected filters.')
 		).toBeInTheDocument()
 
-		// Check that stats are zero
 		const statValues = screen.getAllByText('0')
-		expect(statValues.length).toBe(3) // Open, Resolved, Wards
+		expect(statValues.length).toBe(3)
 	})
 
 	test('renders populated data and correctly maps child components', async () => {
-		fetchPublicDashboardData.mockResolvedValue(mockDashboardData)
+		await renderLoadedDashboard()
 
-		render(<PublicDashboard />)
-
-		await waitFor(() => {
-			expect(
-				screen.queryByText('Loading service requests…')
-			).not.toBeInTheDocument()
-		})
-
-		// 1. Verify Header and Layout
 		expect(
 			screen.getByText('Community Service Dashboard')
 		).toBeInTheDocument()
 
-		// 2. Verify Stats Panel
 		const twos = screen.getAllByText('2')
 		expect(twos.length).toBe(2)
-		expect(screen.getByText('1')).toBeInTheDocument() // resolved_count
+		expect(screen.getByText('1')).toBeInTheDocument()
 
-		// 3. Verify Active Requests rendering
 		expect(screen.getByTestId('request-card-req_1')).toHaveTextContent(
 			'Pothole'
 		)
 		expect(screen.getByTestId('request-card-req_2')).toHaveTextContent(
 			'Water Leak'
 		)
-
-		// 4. Verify Resolved Requests rendering
 		expect(screen.getByTestId('request-card-req_3')).toHaveTextContent(
 			'Streetlight'
 		)
 
-		// 5. Verify Map Elements
 		expect(screen.getByTestId('map-container')).toBeInTheDocument()
 		expect(screen.getByTestId('tile-layer')).toBeInTheDocument()
 
-		// 3 markers should be rendered (2 active + 1 resolved)
 		const markers = screen.getAllByTestId('marker')
 		expect(markers.length).toBe(3)
+	})
+
+	test('renders filter controls for category, ward, and status', async () => {
+		await renderLoadedDashboard()
+
+		expect(screen.getByText('Filter Dashboard')).toBeInTheDocument()
+		expect(screen.getByLabelText('Category')).toBeInTheDocument()
+		expect(screen.getByLabelText('Ward')).toBeInTheDocument()
+		expect(screen.getByLabelText('Status')).toBeInTheDocument()
+		expect(screen.getByText('Showing 3 of 3 requests.')).toBeInTheDocument()
+	})
+
+	test('filters the public dashboard by category', async () => {
+		await renderLoadedDashboard()
+
+		fireEvent.change(screen.getByLabelText('Category'), {
+			target: { value: 'Pothole' },
+		})
+
+		expect(screen.getByTestId('request-card-req_1')).toBeInTheDocument()
+		expect(
+			screen.queryByTestId('request-card-req_2')
+		).not.toBeInTheDocument()
+		expect(
+			screen.queryByTestId('request-card-req_3')
+		).not.toBeInTheDocument()
+		expect(screen.getByText('Showing 1 of 3 requests.')).toBeInTheDocument()
+		expect(screen.getAllByTestId('marker').length).toBe(1)
+	})
+
+	test('filters the public dashboard by ward', async () => {
+		await renderLoadedDashboard()
+
+		fireEvent.change(screen.getByLabelText('Ward'), {
+			target: { value: 'Ward 10' },
+		})
+
+		expect(screen.getByTestId('request-card-req_1')).toBeInTheDocument()
+		expect(
+			screen.queryByTestId('request-card-req_2')
+		).not.toBeInTheDocument()
+		expect(screen.getByTestId('request-card-req_3')).toBeInTheDocument()
+		expect(screen.getByText('Showing 2 of 3 requests.')).toBeInTheDocument()
+		expect(screen.getAllByTestId('marker').length).toBe(2)
+	})
+
+	test('filters the public dashboard by status', async () => {
+		await renderLoadedDashboard()
+
+		fireEvent.change(screen.getByLabelText('Status'), {
+			target: { value: 'RESOLVED' },
+		})
+
+		expect(
+			screen.queryByTestId('request-card-req_1')
+		).not.toBeInTheDocument()
+		expect(
+			screen.queryByTestId('request-card-req_2')
+		).not.toBeInTheDocument()
+		expect(screen.getByTestId('request-card-req_3')).toBeInTheDocument()
+		expect(screen.getByText('Showing 1 of 3 requests.')).toBeInTheDocument()
+		expect(screen.getAllByTestId('marker').length).toBe(1)
+	})
+
+	test('clears active filters and restores all public requests', async () => {
+		await renderLoadedDashboard()
+
+		fireEvent.change(screen.getByLabelText('Category'), {
+			target: { value: 'Pothole' },
+		})
+
+		expect(
+			screen.queryByTestId('request-card-req_2')
+		).not.toBeInTheDocument()
+		expect(screen.getByText('Clear filters')).toBeInTheDocument()
+
+		fireEvent.click(screen.getByText('Clear filters'))
+
+		expect(screen.getByTestId('request-card-req_1')).toBeInTheDocument()
+		expect(screen.getByTestId('request-card-req_2')).toBeInTheDocument()
+		expect(screen.getByTestId('request-card-req_3')).toBeInTheDocument()
+		expect(screen.getByText('Showing 3 of 3 requests.')).toBeInTheDocument()
+		expect(screen.getAllByTestId('marker').length).toBe(3)
 	})
 })
