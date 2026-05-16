@@ -324,4 +324,86 @@ describe('PublicDashboard Component', () => {
 		expect(screen.getByText('Showing 3 of 3 requests.')).toBeInTheDocument()
 		expect(screen.getAllByTestId('marker').length).toBe(3)
 	})
+
+	test('displays readable status filter labels for different public request statuses', async () => {
+		await renderLoadedDashboard({
+			active: [
+				{
+					id: 'req_open',
+					category: 'Road',
+					status: 'open',
+					latitude: -26.1,
+					longitude: 28.1,
+					ward: 'Ward 1',
+					municipality: 'Metro A',
+					description: 'Open road issue',
+				},
+				{
+					id: 'req_ack',
+					category: 'Water',
+					status: 'acknowledged',
+					latitude: -26.2,
+					longitude: 28.2,
+					ward: 'Ward 2',
+					municipality: 'Metro A',
+					description: 'Acknowledged water issue',
+				},
+				{
+					id: 'req_progress',
+					category: 'Electricity',
+					status: 'in_progress',
+					latitude: -26.3,
+					longitude: 28.3,
+					ward: 'Ward 3',
+					municipality: 'Metro B',
+					description: 'In progress electricity issue',
+				},
+				{
+					id: 'req_custom',
+					category: 'Other',
+					status: 'custom_status',
+					latitude: -26.4,
+					longitude: 28.4,
+					ward: 'Ward 4',
+					municipality: 'Metro C',
+					description: 'Custom status issue',
+				},
+			],
+			resolved: [
+				{
+					id: 'req_closed',
+					category: 'Waste',
+					status: 'closed',
+					latitude: -26.5,
+					longitude: 28.5,
+					ward: 'Ward 5',
+					municipality: 'Metro D',
+					description: 'Closed waste issue',
+				},
+			],
+			stats: {
+				open_count: 4,
+				resolved_count: 1,
+				wards_affected: 5,
+			},
+		})
+
+		expect(
+			screen.getByRole('option', { name: 'Submitted' })
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('option', { name: 'Assigned' })
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('option', { name: 'In Progress' })
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('option', { name: 'Closed' })
+		).toBeInTheDocument()
+		expect(
+			screen.getByRole('option', { name: 'custom_status' })
+		).toBeInTheDocument()
+
+		expect(screen.getAllByTestId('marker').length).toBe(5)
+	})
 })
