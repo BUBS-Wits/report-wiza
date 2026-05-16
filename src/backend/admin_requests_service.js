@@ -65,6 +65,8 @@ export const reopen_request = async (request_id, admin_uid) => {
 			status: 'open',
 			closed_by: null,
 			closed_at: null,
+			assigned_worker_uid: null,
+			worker_uid: null,
 			updated_at: serverTimestamp(),
 		})
 
