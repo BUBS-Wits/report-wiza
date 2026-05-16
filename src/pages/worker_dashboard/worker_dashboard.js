@@ -138,6 +138,11 @@ export default function WorkerDashboard() {
 		try {
 			const snap = await verify_worker_and_get_profile(uid)
 			const profile = snap.data()
+			if (profile.name) {
+				profile.display_name = profile.name
+			} else {
+				profile.name = profile.display_name
+			}
 			set_worker({ uid, ...profile })
 			set_active_section('queue')
 		} catch (err) {
