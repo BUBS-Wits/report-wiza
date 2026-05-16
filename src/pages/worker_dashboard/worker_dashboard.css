@@ -856,3 +856,29 @@ button.wd-req-row {
 		gap: 4px;
 	}
 }
+
+/* ── Star Rating (Read-only) ── */
+
+.rd-stars-readonly {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.rd-star-readonly {
+	font-size: 1.2rem;
+	color: var(--rd-border);
+	line-height: 1;
+}
+
+.rd-star-readonly--active {
+	color: var(--rd-accent);
+}
+
+.rd-star-label {
+	font-family: var(--rd-font-body);
+	font-size: 0.8rem;
+	color: var(--rd-accent);
+	font-weight: 500;
+	margin-left: 6px;
+}
