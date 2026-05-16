@@ -1,7 +1,7 @@
 // src/components/sidebar/sidebar.js
 import React, { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import './sidebar.css'
+import './admin_sidebar.css'
 
 const nav_items = [
 	{
@@ -20,11 +20,12 @@ const nav_items = [
 				ready: true,
 			},
 			{
-				id: 'messaging',
-				label: 'Messaging',
+				id: 'messaging_review',
+				label: 'Messaging Review',
 				path: '/admin/messaging',
 				ready: true,
 			},
+
 			{
 				id: 'residents',
 				label: 'Residents',

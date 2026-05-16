@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import CategoryReport from '../pages/category_report/category_report.js'
+import CategoryReport from '../components/admin_category_report/admin_category_report.js'
 
 // ---------------------------------------------------------------------------
 // Module Mocks
@@ -23,7 +23,7 @@ jest.mock('../firebase_config.js', () => ({
 	auth: {},
 }))
 
-jest.mock('../components/sidebar/sidebar.js', () => {
+jest.mock('../components/admin_sidebar/admin_sidebar.js', () => {
 	return function MockSidebar() {
 		return <div data-testid="mock-sidebar">Sidebar</div>
 	}
