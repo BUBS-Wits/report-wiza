@@ -19,6 +19,9 @@ jest.mock('firebase/firestore', () => ({
 	getDocs: jest.fn(),
 	doc: jest.fn(),
 	getDoc: jest.fn(),
+	addDoc: jest.fn(),
+	orderBy: jest.fn(),
+	serverTimestamp: jest.fn(),
 }))
 
 jest.mock('../firebase_config.js', () => ({
@@ -269,6 +272,121 @@ describe('Worker Dashboard Service', () => {
 				'in',
 				expect.any(Array)
 			)
+		})
+	})
+	/* ── add_comment ─────────────────────────────────────────────────────────── */
+
+	describe('add_comment', () => {
+		const {
+			addDoc,
+			serverTimestamp,
+			collection,
+		} = require('firebase/firestore')
+
+		test('calls addDoc with correct fields', async () => {
+			const mock_add_doc = jest
+				.fn()
+				.mockResolvedValue({ id: 'comment-123' })
+			addDoc.mockImplementation(mock_add_doc)
+			serverTimestamp.mockReturnValue('mock-timestamp')
+
+			const {
+				add_comment,
+			} = require('../backend/worker_analytics_service.js')
+
+			await add_comment(
+				'req-001',
+				'Jane Smith',
+				'worker-uid-1',
+				'Road is flooded'
+			)
+
+			expect(mock_add_doc).toHaveBeenCalledWith(
+				undefined,
+				expect.objectContaining({
+					text: 'Road is flooded',
+					worker_uid: 'worker-uid-1',
+					worker_name: 'Jane Smith',
+				})
+			)
+		})
+
+		test('trims whitespace from comment text before saving', async () => {
+			const mock_add_doc = jest
+				.fn()
+				.mockResolvedValue({ id: 'comment-456' })
+			addDoc.mockImplementation(mock_add_doc)
+
+			const {
+				add_comment,
+			} = require('../backend/worker_analytics_service.js')
+
+			await add_comment(
+				'req-001',
+				'Jane Smith',
+				'worker-uid-1',
+				'  spaces around  '
+			)
+
+			expect(mock_add_doc).toHaveBeenCalledWith(
+				undefined,
+				expect.objectContaining({
+					text: 'spaces around',
+				})
+			)
+		})
+	})
+
+	/* ── fetch_comment ───────────────────────────────────────────────────────── */
+
+	describe('fetch_comment', () => {
+		test('returns mapped array of comments from Firestore', async () => {
+			const { getDocs } = require('firebase/firestore')
+			getDocs.mockResolvedValueOnce({
+				docs: [
+					{
+						id: 'comment-001',
+						data: () => ({
+							text: 'Work is delayed',
+							worker_name: 'Jane Smith',
+							created_at: 'timestamp-1',
+						}),
+					},
+					{
+						id: 'comment-002',
+						data: () => ({
+							text: 'Parts ordered',
+							worker_name: 'John Doe',
+							created_at: 'timestamp-2',
+						}),
+					},
+				],
+			})
+
+			const {
+				fetch_comment,
+			} = require('../backend/worker_analytics_service.js')
+			const result = await fetch_comment('req-001')
+
+			expect(result).toHaveLength(2)
+			expect(result[0]).toEqual({
+				id: 'comment-001',
+				text: 'Work is delayed',
+				worker_name: 'Jane Smith',
+				created_at: 'timestamp-1',
+			})
+		})
+
+		test('returns empty array when no comments exist', async () => {
+			const { getDocs } = require('firebase/firestore')
+			getDocs.mockResolvedValueOnce({ docs: [] })
+
+			const {
+				fetch_comment,
+			} = require('../backend/worker_analytics_service.js')
+			const result = await fetch_comment('req-001')
+
+			expect(result).toEqual([])
 		})
 	})
 })

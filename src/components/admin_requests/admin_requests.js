@@ -7,6 +7,7 @@ import {
 	fetch_stale_requests,
 	assign_stale_request,
 	fetch_workers_for_assign,
+	assign_request,
 } from '../../backend/admin_requests_service.js'
 import { auth } from '../../firebase_config.js'
 import './admin_requests.css'
@@ -21,6 +22,78 @@ const PRIORITY_CLASS = {
 	Critical: 'priority_critical',
 }
 
+/* ── Worker assignment modal — US026 ─────────────────────────────────────── */
+
+function WorkerModal({ workers, on_select, on_close }) {
+	const [search, set_search] = useState('')
+
+	const filtered = workers.filter((w) => {
+		const name = (w.display_name ?? w.email ?? '').toLowerCase()
+		return name.includes(search.toLowerCase())
+	})
+
+	return (
+		<div className="ar_modal_overlay" onClick={on_close}>
+			<div
+				className="ar_worker_modal"
+				onClick={(e) => e.stopPropagation()}
+			>
+				<div className="ar_worker_modal_header">
+					<h2 className="ar_worker_modal_title">Assign worker</h2>
+					<button
+						className="ar_worker_modal_close"
+						onClick={on_close}
+						aria-label="Close"
+					>
+						✕
+					</button>
+				</div>
+
+				<input
+					className="ar_worker_search"
+					type="text"
+					placeholder="Search by name or email…"
+					value={search}
+					onChange={(e) => set_search(e.target.value)}
+					autoFocus
+				/>
+
+				<ul className="ar_worker_list">
+					{filtered.length === 0 ? (
+						<li className="ar_worker_list_empty">
+							No workers found
+						</li>
+					) : (
+						filtered.map((w) => (
+							<li
+								key={w.id}
+								className="ar_worker_list_item"
+								onClick={() => on_select(w.id)}
+							>
+								<div className="ar_worker_avatar">
+									{(w.display_name ??
+										w.email ??
+										'?')[0].toUpperCase()}
+								</div>
+								<div className="ar_worker_info">
+									<span className="ar_worker_name">
+										{w.display_name ?? 'Unnamed worker'}
+									</span>
+									<span className="ar_worker_email">
+										{w.email}
+									</span>
+								</div>
+							</li>
+						))
+					)}
+				</ul>
+			</div>
+		</div>
+	)
+}
+
+/* ── Main component ───────────────────────────────────────────────────────── */
+
 function AdminRequests() {
 	const [requests, set_requests] = useState([])
 	const [stale_requests, set_stale_requests] = useState([])
@@ -34,6 +107,7 @@ function AdminRequests() {
 	const [message, set_message] = useState(null)
 	const [active_tab, set_active_tab] = useState('all')
 	const [status_filter, set_status_filter] = useState('all')
+	const [assign_modal_req, set_assign_modal_req] = useState(null)
 
 	const load = async () => {
 		set_loading(true)
@@ -51,7 +125,6 @@ function AdminRequests() {
 			set_loading(false)
 		}
 
-		// Load stale requests separately so index error doesn't break the page
 		try {
 			const stale = await fetch_stale_requests()
 			set_stale_requests(stale)
@@ -66,6 +139,15 @@ function AdminRequests() {
 	useEffect(() => {
 		load()
 	}, [])
+
+	// Helper — find worker name from uid
+	const get_worker_name = (uid) => {
+		if (!uid) {
+			return null
+		}
+		const worker = workers.find((w) => w.id === uid)
+		return worker ? (worker.display_name ?? worker.email) : 'Unknown worker'
+	}
 
 	// Reopen request
 	const handle_reopen = async (request_id) => {
@@ -96,6 +178,31 @@ function AdminRequests() {
 			show_message('Priority updated successfully.')
 		} catch (err) {
 			show_message(err.message, true)
+		} finally {
+			set_updating_id(null)
+		}
+	}
+
+	// US026 — assign request to worker
+	const handle_assign_ticket = async (worker_uid) => {
+		if (!assign_modal_req) {
+			return
+		}
+		const request_id = assign_modal_req
+		set_assign_modal_req(null)
+		set_updating_id(request_id)
+		try {
+			await assign_request(request_id, worker_uid)
+			set_requests((prev) =>
+				prev.map((r) =>
+					r.id === request_id
+						? { ...r, assigned_worker_uid: worker_uid }
+						: r
+				)
+			)
+			show_message('Request assigned successfully.')
+		} catch (error) {
+			show_message(error.message, true)
 		} finally {
 			set_updating_id(null)
 		}
@@ -192,7 +299,7 @@ function AdminRequests() {
 				</button>
 			</div>
 
-			{/* ── All requests table — US027 + US028 ── */}
+			{/* ── All requests table — US026 + US027 + US028 ── */}
 			{active_tab === 'all' && (
 				<div className="ar_card">
 					{/* Status filter */}
@@ -225,8 +332,10 @@ function AdminRequests() {
 						<span>ID</span>
 						<span>Category</span>
 						<span>Description</span>
+						<span className="ar_col_center">Assigned Worker</span>
 						<span>Status</span>
 						<span>Priority</span>
+						<span className="ar_col_center">Assign</span>
 						<span>Actions</span>
 					</div>
 					{requests.filter(
@@ -253,6 +362,20 @@ function AdminRequests() {
 									<span className="ar_desc">
 										{req.description}
 									</span>
+
+									{/* Assigned Worker */}
+									<span className="ar_assigned_worker">
+										{req.assigned_worker_uid ? (
+											get_worker_name(
+												req.assigned_worker_uid
+											)
+										) : (
+											<em className="ar_unassigned">
+												Unassigned
+											</em>
+										)}
+									</span>
+
 									<span
 										className={`ar_status ar_status_${req.status}`}
 									>
@@ -281,34 +404,52 @@ function AdminRequests() {
 										))}
 									</select>
 
-									{/* US028 — Close button */}
-									{req.status !== 'closed' &&
-										req.status !== 'resolved' && (
+									{/* US026 — Assign column */}
+									<div className="ar_col_center">
+										<button
+											className="ar_assign_btn"
+											onClick={() =>
+												set_assign_modal_req(req.id)
+											}
+											disabled={
+												updating_id === req.id ||
+												req.status === 'closed'
+											}
+										>
+											Assign Worker
+										</button>
+									</div>
+
+									{/* Actions — Close and Reopen */}
+									<div className="ar_actions_col">
+										{req.status !== 'closed' &&
+											req.status !== 'resolved' && (
+												<button
+													className="ar_close_btn"
+													onClick={() =>
+														set_close_modal(req.id)
+													}
+													disabled={
+														updating_id === req.id
+													}
+												>
+													Close
+												</button>
+											)}
+										{req.status === 'closed' && (
 											<button
-												className="ar_close_btn"
+												className="ar_reopen_btn"
 												onClick={() =>
-													set_close_modal(req.id)
+													handle_reopen(req.id)
 												}
 												disabled={
 													updating_id === req.id
 												}
 											>
-												Close
+												Reopen
 											</button>
 										)}
-
-									{/* Reopen button */}
-									{req.status === 'closed' && (
-										<button
-											className="ar_reopen_btn"
-											onClick={() =>
-												handle_reopen(req.id)
-											}
-											disabled={updating_id === req.id}
-										>
-											Reopen
-										</button>
-									)}
+									</div>
 								</div>
 							))
 					)}
@@ -322,7 +463,6 @@ function AdminRequests() {
 						These requests have had no status update for 3 or more
 						days.
 					</p>
-					{/* ADDED: Specific class for the 5-column grid layout */}
 					<div className="ar_table_header ar_table_header_stale">
 						<span>ID</span>
 						<span>Category</span>
@@ -334,7 +474,6 @@ function AdminRequests() {
 						<div className="ar_empty">No stale requests.</div>
 					) : (
 						stale_requests.map((req) => (
-							// ADDED: Specific class for the 5-column grid layout
 							<div className="ar_row ar_row_stale" key={req.id}>
 								<span className="ar_id">
 									{req.id.slice(0, 8)}
@@ -368,7 +507,7 @@ function AdminRequests() {
 									</option>
 									{workers.map((w) => (
 										<option key={w.id} value={w.id}>
-											{w.display_name ?? w.email}
+											{w.name ?? w.email}
 										</option>
 									))}
 								</select>
@@ -377,7 +516,18 @@ function AdminRequests() {
 					)}
 				</div>
 			)}
+
 			{active_tab === 'categories' && <AdminCategories />}
+
+			{/* ── Worker assignment modal — US026 ── */}
+			{assign_modal_req && (
+				<WorkerModal
+					workers={workers}
+					on_select={handle_assign_ticket}
+					on_close={() => set_assign_modal_req(null)}
+				/>
+			)}
+
 			{/* ── Close modal — US028 ── */}
 			{close_modal && (
 				<div className="ar_modal_overlay">
