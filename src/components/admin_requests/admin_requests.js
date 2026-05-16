@@ -3,6 +3,7 @@ import {
 	fetch_admin_requests,
 	set_request_priority,
 	close_request,
+	reopen_request,
 	fetch_stale_requests,
 	assign_stale_request,
 	fetch_workers_for_assign,
@@ -105,6 +106,7 @@ function AdminRequests() {
 	const [close_error, set_close_error] = useState('')
 	const [message, set_message] = useState(null)
 	const [active_tab, set_active_tab] = useState('all')
+	const [status_filter, set_status_filter] = useState('all')
 	const [assign_modal_req, set_assign_modal_req] = useState(null)
 
 	const load = async () => {
@@ -145,6 +147,31 @@ function AdminRequests() {
 		}
 		const worker = workers.find((w) => w.id === uid)
 		return worker ? (worker.display_name ?? worker.email) : 'Unknown worker'
+	}
+
+	// Reopen request
+	const handle_reopen = async (request_id) => {
+		set_updating_id(request_id)
+		try {
+			await reopen_request(request_id, auth.currentUser?.uid)
+			set_requests((prev) =>
+				prev.map((r) =>
+					r.id === request_id
+						? {
+								...r,
+								status: 'open',
+								assigned_worker_uid: null,
+								worker_uid: null,
+							}
+						: r
+				)
+			)
+			show_message('Request reopened successfully.')
+		} catch (err) {
+			show_message(err.message, true)
+		} finally {
+			set_updating_id(null)
+		}
 	}
 
 	// US027 — set priority
@@ -282,6 +309,32 @@ function AdminRequests() {
 			{/* ── All requests table — US026 + US027 + US028 ── */}
 			{active_tab === 'all' && (
 				<div className="ar_card">
+					{/* Status filter */}
+					<div className="ar_filter_row">
+						{[
+							'all',
+							'open',
+							'acknowledged',
+							'in_progress',
+							'resolved',
+							'closed',
+						].map((f) => (
+							<button
+								key={f}
+								className={`ar_filter_btn ${status_filter === f ? 'ar_filter_btn_active' : ''}`}
+								onClick={() => set_status_filter(f)}
+							>
+								{f === 'all'
+									? 'All'
+									: f === 'acknowledged'
+										? 'Assigned'
+										: f === 'in_progress'
+											? 'In Progress'
+											: f.charAt(0).toUpperCase() +
+												f.slice(1)}
+							</button>
+						))}
+					</div>
 					<div className="ar_table_header">
 						<span>ID</span>
 						<span>Category</span>
@@ -292,93 +345,120 @@ function AdminRequests() {
 						<span className="ar_col_center">Assign</span>
 						<span>Actions</span>
 					</div>
-					{requests.length === 0 ? (
+					{requests.filter(
+						(r) =>
+							status_filter === 'all' ||
+							r.status === status_filter
+					).length === 0 ? (
 						<div className="ar_empty">No requests found.</div>
 					) : (
-						requests.map((req) => (
-							<div className="ar_row" key={req.id}>
-								<span className="ar_id">
-									{req.id.slice(0, 8)}
-								</span>
-								<span className="ar_cat">{req.category}</span>
-								<span className="ar_desc">
-									{req.description}
-								</span>
+						requests
+							.filter(
+								(r) =>
+									status_filter === 'all' ||
+									r.status === status_filter
+							)
+							.map((req) => (
+								<div className="ar_row" key={req.id}>
+									<span className="ar_id">
+										{req.id.slice(0, 8)}
+									</span>
+									<span className="ar_cat">
+										{req.category}
+									</span>
+									<span className="ar_desc">
+										{req.description}
+									</span>
 
-								{/* Assigned Worker — name only, centred */}
-								<span className="ar_assigned_worker">
-									{req.assigned_worker_uid ? (
-										get_worker_name(req.assigned_worker_uid)
-									) : (
-										<em className="ar_unassigned">
-											Unassigned
-										</em>
-									)}
-								</span>
+									{/* Assigned Worker */}
+									<span className="ar_assigned_worker">
+										{req.assigned_worker_uid ? (
+											get_worker_name(
+												req.assigned_worker_uid
+											)
+										) : (
+											<em className="ar_unassigned">
+												Unassigned
+											</em>
+										)}
+									</span>
 
-								<span
-									className={`ar_status ar_status_${req.status}`}
-								>
-									{req.status}
-								</span>
+									<span
+										className={`ar_status ar_status_${req.status}`}
+									>
+										{req.status}
+									</span>
 
-								{/* US027 — Priority dropdown */}
-								<select
-									className={`ar_priority_select ${PRIORITY_CLASS[req.priority] ?? ''}`}
-									value={req.priority ?? 'Medium'}
-									onChange={(e) =>
-										handle_priority_change(
-											req.id,
-											e.target.value
-										)
-									}
-									disabled={
-										updating_id === req.id ||
-										req.status === 'closed'
-									}
-								>
-									{PRIORITIES.map((p) => (
-										<option key={p} value={p}>
-											{p}
-										</option>
-									))}
-								</select>
-
-								{/* US026 — Assign column */}
-								<div className="ar_col_center">
-									<button
-										className="ar_assign_btn"
-										onClick={() =>
-											set_assign_modal_req(req.id)
+									{/* US027 — Priority dropdown */}
+									<select
+										className={`ar_priority_select ${PRIORITY_CLASS[req.priority] ?? ''}`}
+										value={req.priority ?? 'Medium'}
+										onChange={(e) =>
+											handle_priority_change(
+												req.id,
+												e.target.value
+											)
 										}
 										disabled={
 											updating_id === req.id ||
 											req.status === 'closed'
 										}
 									>
-										Assign Worker
-									</button>
-								</div>
+										{PRIORITIES.map((p) => (
+											<option key={p} value={p}>
+												{p}
+											</option>
+										))}
+									</select>
 
-								{/* Actions Column — US028 Close only */}
-								<div className="ar_actions_col">
-									{req.status !== 'closed' &&
-										req.status !== 'resolved' && (
+									{/* US026 — Assign column */}
+									<div className="ar_col_center">
+										<button
+											className="ar_assign_btn"
+											onClick={() =>
+												set_assign_modal_req(req.id)
+											}
+											disabled={
+												updating_id === req.id ||
+												req.status === 'closed'
+											}
+										>
+											Assign Worker
+										</button>
+									</div>
+
+									{/* Actions — Close and Reopen */}
+									<div className="ar_actions_col">
+										{req.status !== 'closed' &&
+											req.status !== 'resolved' && (
+												<button
+													className="ar_close_btn"
+													onClick={() =>
+														set_close_modal(req.id)
+													}
+													disabled={
+														updating_id === req.id
+													}
+												>
+													Close
+												</button>
+											)}
+										{req.status === 'closed' && (
 											<button
-												className="ar_close_btn"
+												className="ar_reopen_btn"
 												onClick={() =>
-													set_close_modal(req.id)
+													handle_reopen(req.id)
 												}
 												disabled={
 													updating_id === req.id
 												}
 											>
-												Close
+												Reopen
 											</button>
 										)}
+									</div>
 								</div>
-							</div>
-						))
+							))
 					)}
 				</div>
 			)}
