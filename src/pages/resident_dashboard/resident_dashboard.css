@@ -652,7 +652,7 @@
 	padding: 16px 24px 20px;
 	display: flex;
 	flex-direction: column;
-	min-height: 0;
+	min-height: 400px;
 	overflow: hidden;
 }
 
@@ -842,6 +842,36 @@
 
 .wd-retry-btn:hover {
 	background: rgba(245, 158, 11, 0.16);
+}
+.wd-button-group {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	justify-content: center;
+	margin-top: 8px;
+}
+
+.wd-home-btn {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	padding: 8px 20px;
+	border: 1px solid #4b5563;
+	border-radius: 6px;
+	background: transparent;
+	color: #4b5563;
+	cursor: pointer;
+	font-family: 'DM Sans', sans-serif;
+	transition:
+		background 0.15s,
+		color 0.15s;
+}
+
+.wd-home-btn:hover {
+	background: rgba(75, 85, 99, 0.1);
+	border-color: #6b7280;
+	color: #1f2937;
 }
 
 /* ── Priority pill — add to resident_dashboard.css ── */

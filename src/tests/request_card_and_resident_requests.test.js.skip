@@ -56,7 +56,6 @@ jest.mock('../components/request_card/like_button/like_button.js', () => {
 	}
 })
 
-jest.mock('../pages/resident/resident_requests.css', () => ({}))
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Imports — after mocks

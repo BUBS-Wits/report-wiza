@@ -16,14 +16,21 @@ import {
 	compute_worker_stats,
 } from '../../backend/worker_analytics_service.js'
 import { update_request_status } from '../../backend/worker_firebase.js'
+import {
+	fetch_comment,
+	add_comment,
+} from '../../backend/worker_analytics_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import WorkerMessages from '../worker_messages/worker_messages.js'
+import { subscribe_to_worker_conversations } from '../../backend/worker_conversations_service.js'
 import './worker_dashboard.css'
 
 const parse_date = (val) => {
-	if (!val) {return '-'}
+	if (!val) {
+		return '-'
+	}
 	try {
 		const d = val.toDate ? val.toDate() : new Date(val)
 		return isNaN(d.getTime()) ? '-' : d.toISOString().split('T')[0]
@@ -75,12 +82,32 @@ export default function WorkerDashboard() {
 	const [error, set_error] = useState(null)
 	const [active_filter, set_filter] = useState('All')
 	const [active_section, set_active_section] = useState('queue')
-	const [selected_req, set_selected_req] = useState(null) // drives the panel
-	const [panel_visible, set_panel_visible] = useState(false) // drives CSS transition
+	const [selected_req, set_selected_req] = useState(null)
+	const [panel_visible, set_panel_visible] = useState(false)
 	const [show_busy_tip, set_show_busy_tip] = useState(false)
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
 	const busy_ref = useRef(false)
+	const [totalUnread, setTotalUnread] = useState(0)
+
+	useEffect(() => {
+		if (!worker?.uid) {
+			return
+		}
+
+		const unsub = subscribe_to_worker_conversations(
+			worker.uid,
+			(convs) => {
+				const unreadSum = convs.reduce(
+					(sum, c) => sum + (c.unread_count || 0),
+					0
+				)
+				setTotalUnread(unreadSum)
+			},
+			(err) => console.error('Failed to fetch unread messages:', err)
+		)
+		return () => unsub()
+	}, [worker?.uid])
 
 	const popup_busy = (text) => {
 		set_show_busy_tip(true)
@@ -88,44 +115,23 @@ export default function WorkerDashboard() {
 		setTimeout(() => set_show_busy_tip(false), 2000)
 	}
 
-	/* ── Load dashboard data ──────────────────────────────────────────── */
-
-	const get_claimed_requests = async () => {
-		const token = await auth.currentUser.getIdToken()
-		const ret = await fetch('/api/get-claimed-requests', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-		})
-		if (!ret.ok) {
-			console.error('Failed: ', await ret.json())
-			return []
-		}
-		const tmp = await ret.json()
-		const data = tmp.data
-		console.log('claimed: ', data)
-		return data
+	const is_expired = (expires_at) => {
+		const expiry = expires_at
+		const now = new Date()
+		const buffer_ms = 5 * 60 * 1000
+		return expiry.getTime() - now.getTime() < buffer_ms
 	}
 
-	const get_unclaimed_requests = async () => {
-		const token = await auth.currentUser.getIdToken()
-		const ret = await fetch('/api/get-unclaimed-requests', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-		})
-		if (!ret.ok) {
-			console.error('Failed: ', await ret.json())
-			return []
+	const get_signed_url = async (id, image, expires) => {
+		if (expires !== null && !is_expired(expires)) {
+			return image
 		}
-		const tmp = await ret.json()
-		const data = tmp.data
-		console.log('unclaimed: ', data)
-		return data
+		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
+		if (!ret.ok) {
+			return image
+		}
+		const data = await ret.json()
+		return data.data
 	}
 
 	/* ── Panel helpers ────────────────────────────────────────────────── */
@@ -173,6 +179,7 @@ export default function WorkerDashboard() {
 		set_active_section('available')
 		close_panel()
 	}
+
 	const set_messages_section = () => {
 		if (busy_ref.current) {
 			popup_busy('Already Loading Dashboard Info...')
@@ -181,8 +188,6 @@ export default function WorkerDashboard() {
 		set_active_section('messages')
 		close_panel()
 	}
-
-	/* ── Auth ─────────────────────────────────────────────────────────── */
 
 	useEffect(() => {
 		const unsub = onAuthStateChanged(auth, async (user) => {
@@ -204,7 +209,8 @@ export default function WorkerDashboard() {
 		return () => unsub()
 	}, [])
 
-	/* Listen for any new additions to the assignments collection directed */
+	/* ── Real-time listeners ──────────────────────────────────────────── */
+
 	useEffect(() => {
 		if (!worker?.uid) {
 			return
@@ -229,9 +235,8 @@ export default function WorkerDashboard() {
 			const claimed_request_uids = assignments_snapshot.docs.map(
 				(doc) => doc.data().request_uid
 			)
-
 			const all_claimed_requests = new Map()
-			const all_unclaimed_requests = new Map()
+
 			if (claimed_request_uids.length === 0) {
 				set_claimed_requests([])
 			} else {
@@ -253,7 +258,6 @@ export default function WorkerDashboard() {
 							) {
 								all_claimed_requests.set(id, { id, ...data })
 							}
-
 							if (change.type === 'removed') {
 								all_claimed_requests.delete(id)
 							}
@@ -261,7 +265,6 @@ export default function WorkerDashboard() {
 						const tmp = [...all_claimed_requests.values()]
 						set_claimed_requests(tmp)
 						set_stats(compute_worker_stats(tmp))
-						console.log('claimed: ', tmp)
 					})
 				})
 			}
@@ -276,7 +279,6 @@ export default function WorkerDashboard() {
 						...doc.data(),
 					}))
 					set_unclaimed_requests(data)
-					console.log('unclaimed: ', data)
 				}
 			)
 
@@ -285,8 +287,6 @@ export default function WorkerDashboard() {
 			} else {
 				requests_unsub_list = [unclaimed_unsub]
 			}
-
-			console.log('Listeners set...')
 		}
 		const assigment_unsub = onSnapshot(
 			assignments_query,
@@ -300,8 +300,6 @@ export default function WorkerDashboard() {
 		}
 	}, [worker?.uid])
 
-	/* ── Close panel on Escape ────────────────────────────────────────── */
-
 	useEffect(() => {
 		const on_key = (e) => {
 			if (e.key === 'Escape') {
@@ -312,12 +310,9 @@ export default function WorkerDashboard() {
 		return () => window.removeEventListener('keydown', on_key)
 	}, [])
 
-	/* ── Guards ───────────────────────────────────────────────────────── */
-
 	if (loading) {
 		return <LoadingScreen />
 	}
-
 	if (error) {
 		return <ErrorScreen message={error} onRetry={() => null} />
 	}
@@ -325,8 +320,6 @@ export default function WorkerDashboard() {
 	if (!worker || !stats) {
 		return null
 	}
-
-	/* ── Derived values ───────────────────────────────────────────────── */
 
 	const requests =
 		active_section === 'queue' ? claimed_requests : unclaimed_requests
@@ -341,16 +334,13 @@ export default function WorkerDashboard() {
 			.length
 
 	const awaiting_action = stats.pending + stats.acknowledged
-
 	const resolved_pct =
 		stats.total > 0
 			? `${Math.round((stats.resolved / stats.total) * 100)}% of assigned`
 			: '—'
-
 	const avg_display =
 		stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
 
-	/* ── Render ───────────────────────────────────────────────────────── */
 	return (
 		<div className="wd-page">
 			<Worker_nav_bar
@@ -371,7 +361,24 @@ export default function WorkerDashboard() {
 					messages_onclick: set_messages_section,
 				}}
 				active_section={active_section}
+				unread_messages={totalUnread}
 			/>
+
+			{worker?.canMessage === false && (
+				<div
+					className="wd-global-ban-banner"
+					style={{
+						backgroundColor: '#fee2e2',
+						color: '#991b1b',
+						padding: '12px',
+						textAlign: 'center',
+						fontWeight: 'bold',
+					}}
+				>
+					🚨 Your messaging privileges have been temporarily suspended
+					by an administrator.
+				</div>
+			)}
 
 			<BusyToolTip show_busy_tip={show_busy_tip} busy_tip={busy_tip} />
 
@@ -389,7 +396,6 @@ export default function WorkerDashboard() {
 						/>
 					) : (
 						<>
-							{/* ── Performance summary ─────────────────────────────── */}
 							<section className="wd-section">
 								<h2 className="wd-section-title">
 									Performance summary
@@ -439,7 +445,6 @@ export default function WorkerDashboard() {
 								</div>
 							</section>
 
-							{/* ── Request queue ───────────────────────────────────── */}
 							<section className="wd-section">
 								<div className="wd-queue-top-row">
 									<h2
@@ -495,7 +500,6 @@ export default function WorkerDashboard() {
 					)}
 				</main>
 
-				{/* ── Slide-in detail + message panel ─────────────────────── */}
 				{selected_req && (
 					<aside
 						className={`wd-detail-panel${panel_visible ? ' wd-detail-panel--visible' : ''}`}
@@ -512,7 +516,6 @@ export default function WorkerDashboard() {
 				)}
 			</div>
 
-			{/* ── Mobile backdrop ─────────────────────────────────────────── */}
 			{selected_req && (
 				<div
 					className={`wd-backdrop${panel_visible ? ' wd-backdrop--visible' : ''}`}
@@ -587,9 +590,33 @@ function RequestDetailPanel({
 		}
 	}
 
+	const [comments, set_comments] = useState([])
+	const [comment_text, set_comment_text] = useState('')
+	const [is_submitting, set_is_submitting] = useState(false)
+
+	useEffect(() => {
+		fetch_comment(req.id).then(set_comments).catch(console.error)
+	}, [req.id])
+
+	const handle_submit = async () => {
+		if (!comment_text.trim()) {
+			return
+		}
+		set_is_submitting(true)
+		try {
+			await add_comment(req.id, worker.name, worker.uid, comment_text)
+			set_comment_text('')
+			const updated = await fetch_comment(req.id)
+			set_comments(updated)
+		} catch (err) {
+			console.error('Failed to post comment:', err)
+		} finally {
+			set_is_submitting(false)
+		}
+	}
+
 	return (
 		<div className="wd-panel-inner">
-			{/* Header */}
 			<div className="wd-panel-header">
 				<div className="wd-panel-header-left">
 					<span className="wd-panel-req-id">{req.id}</span>
@@ -615,7 +642,6 @@ function RequestDetailPanel({
 				</button>
 			</div>
 
-			{/* Metadata */}
 			<dl className="wd-panel-meta">
 				<div className="wd-panel-meta-row">
 					<dt className="wd-panel-meta-label">Category</dt>
@@ -714,12 +740,10 @@ function RequestDetailPanel({
 						</div>
 					)}
 
-					{/* Section label */}
 					<div className="wd-panel-divider">
 						<span>Conversation with resident</span>
 					</div>
 
-					{/* MessageThread */}
 					<div className="wd-panel-thread">
 						{req.user_uid ? (
 							<MessageThread
@@ -729,6 +753,10 @@ function RequestDetailPanel({
 								current_role="worker"
 								other_uid={req.user_uid}
 								other_name={resident_name}
+								messaging_enabled={
+									req.messaging_enabled !== false &&
+									worker.canMessage !== false
+								}
 							/>
 						) : (
 							<p className="wd-panel-no-resident">
@@ -737,6 +765,54 @@ function RequestDetailPanel({
 							</p>
 						)}
 					</div>
+
+					<div className="wd-panel-divider">
+						<span>Public comments</span>
+					</div>
+
+					<div className="wd-comments-list">
+						{comments.length === 0 ? (
+							<p className="wd-comments-empty">
+								No comments yet.
+							</p>
+						) : (
+							comments.map((c) => (
+								<div key={c.id} className="wd-comment">
+									<div className="wd-comment-meta">
+										<span className="wd-comment-author">
+											{c.worker_name}
+										</span>
+										<span className="wd-comment-date">
+											{c.created_at?.toDate
+												? c.created_at
+														.toDate()
+														.toLocaleDateString()
+												: '—'}
+										</span>
+									</div>
+									<p className="wd-comment-text">{c.text}</p>
+								</div>
+							))
+						)}
+					</div>
+
+					<div className="wd-comment-form">
+						<textarea
+							className="wd-comment-input"
+							rows={3}
+							placeholder="Leave a public comment about this request..."
+							value={comment_text}
+							onChange={(e) => set_comment_text(e.target.value)}
+							disabled={is_submitting}
+						/>
+						<button
+							className="wd-comment-submit"
+							onClick={handle_submit}
+							disabled={is_submitting || !comment_text.trim()}
+						>
+							{is_submitting ? 'Posting…' : 'Post comment'}
+						</button>
+					</div>
 				</>
 			) : (
 				<ClaimBtn request_uid={req.id} post_claim={post_claim} />
@@ -744,8 +820,6 @@ function RequestDetailPanel({
 		</div>
 	)
 }
-
-/* ── Utility ─────────────────────────────────────────────────────────────── */
 
 function get_initials(name = '') {
 	return name
@@ -756,8 +830,6 @@ function get_initials(name = '') {
 		.join('')
 }
 
-/* ── Sub-components ──────────────────────────────────────────────────────── */
-
 function StatCard({ label, value, sub, value_modifier }) {
 	const cls = [
 		'wd-stat-value',
@@ -765,7 +837,6 @@ function StatCard({ label, value, sub, value_modifier }) {
 	]
 		.filter(Boolean)
 		.join(' ')
-
 	return (
 		<div className="wd-stat-card">
 			<div className="wd-stat-label">{label}</div>

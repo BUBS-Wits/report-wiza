@@ -6,6 +6,9 @@ import {
 	where,
 	orderBy,
 	collection,
+	or,
+	doc,
+	getDoc,
 } from 'firebase/firestore'
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -17,7 +20,10 @@ jest.mock('firebase/firestore', () => ({
 	query: jest.fn(),
 	where: jest.fn(),
 	orderBy: jest.fn(),
+	or: jest.fn(),
 	onSnapshot: jest.fn(),
+	doc: jest.fn(), // We will define this safely in beforeEach!
+	getDoc: jest.fn(),
 }))
 
 jest.mock('../firebase_config.js', () => ({
@@ -29,9 +35,7 @@ jest.mock('../firebase_config.js', () => ({
 ───────────────────────────────────────────────────────────────────────────── */
 
 // Helper to create mock Firestore Timestamps
-const mockTimestamp = (ms) => ({
-	toMillis: () => ms,
-})
+const mockTimestamp = (ms) => new Date(ms).toISOString()
 
 // Helper to create mock Firestore Snapshots
 const createMockSnap = (messages) => ({
@@ -44,24 +48,30 @@ const createMockSnap = (messages) => ({
 describe('Worker Conversations Service', () => {
 	let mockOnUpdate
 	let mockOnError
-	let mockUnsubSent
-	let mockUnsubReceived
+	let mockUnsub
 
 	beforeEach(() => {
 		jest.clearAllMocks()
 		mockOnUpdate = jest.fn()
 		mockOnError = jest.fn()
+		mockUnsub = jest.fn()
 
-		mockUnsubSent = jest.fn()
-		mockUnsubReceived = jest.fn()
+		onSnapshot.mockReturnValue(mockUnsub)
 
-		// Default mock behavior for onSnapshot
-		onSnapshot
-			.mockReturnValueOnce(mockUnsubSent) // First call (sent messages)
-			.mockReturnValueOnce(mockUnsubReceived) // Second call (received messages)
+		// 👇 FIX: Explicitly assign the doc mock here to prevent Jest hoisting bugs
+		doc.mockImplementation((db, coll, id) => ({ id }))
+
+		// 👇 FIX: Guarantee getDoc always resolves a valid mock request
+		getDoc.mockImplementation(async (docRef) => {
+			return {
+				exists: () => true,
+				id: docRef ? docRef.id : 'dummy_id',
+				data: () => ({ category: 'Water', status: 'open' }),
+			}
+		})
 	})
 
-	test('sets up two queries and returns a combined unsubscribe function', () => {
+	test('sets up a single OR query and returns an unsubscribe function', () => {
 		const unsub = subscribe_to_worker_conversations(
 			'worker_123',
 			mockOnUpdate,
@@ -71,78 +81,67 @@ describe('Worker Conversations Service', () => {
 		// Verify queries were built correctly
 		expect(where).toHaveBeenCalledWith('sender_uid', '==', 'worker_123')
 		expect(where).toHaveBeenCalledWith('receiver_uid', '==', 'worker_123')
+		expect(or).toHaveBeenCalled()
 		expect(orderBy).toHaveBeenCalledWith('sent_at', 'asc')
-		expect(onSnapshot).toHaveBeenCalledTimes(2)
+		expect(onSnapshot).toHaveBeenCalledTimes(1)
 
-		// Verify teardown function unmounts both listeners
 		unsub()
-		expect(mockUnsubSent).toHaveBeenCalledTimes(1)
-		expect(mockUnsubReceived).toHaveBeenCalledTimes(1)
+		expect(mockUnsub).toHaveBeenCalledTimes(1)
 	})
 
-	test('merges sent and received messages, groups by request, and calculates unread count', () => {
+	test('groups messages by request and calculates unread count', async () => {
 		subscribe_to_worker_conversations(
 			'worker_123',
 			mockOnUpdate,
 			mockOnError
 		)
 
-		// Extract the callbacks passed to onSnapshot
-		const sentCallback = onSnapshot.mock.calls[0][1]
-		const receivedCallback = onSnapshot.mock.calls[1][1]
+		const snapshotCallback = onSnapshot.mock.calls[0][1]
 
-		// Simulate Worker sending 1 message in Request A
-		sentCallback(
-			createMockSnap([
-				{
-					id: 'msg_1',
-					request_id: 'req_A',
-					sender_uid: 'worker_123',
-					receiver_uid: 'resident_1',
-					text: 'Hello',
-					sent_at: mockTimestamp(1000),
-					read: true,
-				},
-			])
-		)
+		const fakeSnap = createMockSnap([
+			{
+				id: 'msg_1',
+				request_id: 'req_A',
+				sender_uid: 'worker_123',
+				receiver_uid: 'resident_1',
+				text: 'Hello',
+				sent_at: mockTimestamp(1000),
+				read: true,
+			},
+			{
+				id: 'msg_2',
+				request_id: 'req_A',
+				sender_uid: 'resident_1',
+				receiver_uid: 'worker_123',
+				text: 'Hi back',
+				sent_at: mockTimestamp(2000),
+				read: true,
+			},
+			{
+				id: 'msg_3',
+				request_id: 'req_A',
+				sender_uid: 'resident_1',
+				receiver_uid: 'worker_123',
+				text: 'Are you there?',
+				sent_at: mockTimestamp(3000),
+				read: false,
+			},
+			{
+				id: 'msg_4',
+				request_id: 'req_B',
+				sender_uid: 'resident_2',
+				receiver_uid: 'worker_123',
+				text: 'Help',
+				sent_at: mockTimestamp(4000),
+				read: false,
+			},
+		])
 
-		// Simulate Worker receiving 2 messages in Request A (1 unread), and 1 in Request B (unread)
-		receivedCallback(
-			createMockSnap([
-				{
-					id: 'msg_2',
-					request_id: 'req_A',
-					sender_uid: 'resident_1',
-					receiver_uid: 'worker_123',
-					text: 'Hi back',
-					sent_at: mockTimestamp(2000),
-					read: true,
-				},
-				{
-					id: 'msg_3',
-					request_id: 'req_A',
-					sender_uid: 'resident_1',
-					receiver_uid: 'worker_123',
-					text: 'Are you there?',
-					sent_at: mockTimestamp(3000),
-					read: false,
-				},
-				{
-					id: 'msg_4',
-					request_id: 'req_B',
-					sender_uid: 'resident_2',
-					receiver_uid: 'worker_123',
-					text: 'Help',
-					sent_at: mockTimestamp(4000),
-					read: false,
-				},
-			])
-		)
+		// Await the snapshot processing
+		await snapshotCallback(fakeSnap)
 
-		// Check the final output sent to the onUpdate callback
 		expect(mockOnUpdate).toHaveBeenCalled()
 
-		// Grab the most recent argument passed to onUpdate
 		const conversations =
 			mockOnUpdate.mock.calls[mockOnUpdate.mock.calls.length - 1][0]
 
@@ -150,29 +149,27 @@ describe('Worker Conversations Service', () => {
 
 		// Request B (Newer, so it should be first in the array)
 		expect(conversations[0].request_id).toBe('req_B')
-		expect(conversations[0].other_uid).toBe('resident_2') // Derived correctly
+		expect(conversations[0].other_uid).toBe('resident_2')
 		expect(conversations[0].unread_count).toBe(1)
 		expect(conversations[0].last_message.text).toBe('Help')
 
 		// Request A
 		expect(conversations[1].request_id).toBe('req_A')
-		expect(conversations[1].other_uid).toBe('resident_1') // Derived correctly
-		expect(conversations[1].unread_count).toBe(1) // Only msg_3 is unread & received by worker
+		expect(conversations[1].other_uid).toBe('resident_1')
+		expect(conversations[1].unread_count).toBe(1)
 		expect(conversations[1].last_message.text).toBe('Are you there?')
 		expect(conversations[1].all_messages.length).toBe(3)
 	})
 
-	test('deduplicates messages if they somehow appear in both snapshots', () => {
+	test('deduplicates messages if they somehow appear twice', async () => {
 		subscribe_to_worker_conversations(
 			'worker_123',
 			mockOnUpdate,
 			mockOnError
 		)
 
-		const sentCallback = onSnapshot.mock.calls[0][1]
-		const receivedCallback = onSnapshot.mock.calls[1][1]
+		const snapshotCallback = onSnapshot.mock.calls[0][1]
 
-		// Same message object artificially showing up in both
 		const dupMessage = {
 			id: 'msg_X',
 			request_id: 'req_Z',
@@ -181,18 +178,16 @@ describe('Worker Conversations Service', () => {
 			sent_at: mockTimestamp(100),
 		}
 
-		sentCallback(createMockSnap([dupMessage]))
-		receivedCallback(createMockSnap([dupMessage]))
+		await snapshotCallback(createMockSnap([dupMessage, dupMessage]))
 
 		const conversations =
 			mockOnUpdate.mock.calls[mockOnUpdate.mock.calls.length - 1][0]
 
 		expect(conversations.length).toBe(1)
-		expect(conversations[0].all_messages.length).toBe(1) // Deduplicated by Map
+		expect(conversations[0].all_messages.length).toBe(1)
 	})
 
 	test('handles and emits snapshot errors cleanly', () => {
-		// Temporarily spy on console.error to keep test output clean
 		const consoleSpy = jest
 			.spyOn(console, 'error')
 			.mockImplementation(() => {})
@@ -203,21 +198,14 @@ describe('Worker Conversations Service', () => {
 			mockOnError
 		)
 
-		// Extract the error callbacks passed to onSnapshot
-		const sentErrorCallback = onSnapshot.mock.calls[0][2]
-		const receivedErrorCallback = onSnapshot.mock.calls[1][2]
+		const errorCallback = onSnapshot.mock.calls[0][2]
+		const mockError = new Error('Permission denied')
 
-		const mockError1 = new Error('Permission denied')
-		const mockError2 = new Error('Quota exceeded')
+		errorCallback(mockError)
 
-		// Trigger errors
-		sentErrorCallback(mockError1)
-		receivedErrorCallback(mockError2)
-
-		expect(mockOnError).toHaveBeenCalledTimes(2)
-		expect(mockOnError).toHaveBeenCalledWith(mockError1)
-		expect(mockOnError).toHaveBeenCalledWith(mockError2)
-		expect(consoleSpy).toHaveBeenCalledTimes(2)
+		expect(mockOnError).toHaveBeenCalledTimes(1)
+		expect(mockOnError).toHaveBeenCalledWith(mockError)
+		expect(consoleSpy).toHaveBeenCalledTimes(1)
 
 		consoleSpy.mockRestore()
 	})
