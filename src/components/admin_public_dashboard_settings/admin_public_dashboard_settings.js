@@ -68,6 +68,14 @@ function AdminPublicDashboardSettings() {
 		)
 	}
 
+	if (error && !fields) {
+		return (
+			<div className="apds_card">
+				<div className="apds_message apds_error">{error}</div>
+			</div>
+		)
+	}
+
 	if (!fields) {
 		return null
 	}

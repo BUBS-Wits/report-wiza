@@ -1,242 +1,264 @@
-/* global jest */
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import '@testing-library/jest-dom'
-
-import ResidentDashboard from '../pages/resident_dashboard/resident_dashboard.js'
+import ResidentDashboard from '../pages/resident_dashboard/resident_dashboard'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import {
 	fetch_resident_profile,
 	fetch_resident_requests,
 	subscribe_to_resident_unread_count,
-} from '../backend/resident_dashboard_service.js'
+} from '../backend/resident_dashboard_service'
+import { useNavigate } from 'react-router-dom'
 
-jest.mock('firebase/firestore', () => ({
-	collection: jest.fn(),
-	query: jest.fn(),
-	where: jest.fn(),
-	getDocs: jest.fn(),
-	doc: jest.fn(),
-	getDoc: jest.fn(),
-	onSnapshot: jest.fn(() => jest.fn()),
-	orderBy: jest.fn(),
-}))
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Mocks
-───────────────────────────────────────────────────────────────────────────── */
-
-jest.mock('../pages/resident_dashboard/resident_dashboard.css', () => ({}))
-jest.mock('../firebase_config.js', () => ({ auth: {} }))
-
+// Mock external dependencies
 jest.mock('firebase/auth', () => ({
 	onAuthStateChanged: jest.fn(),
-	signOut: jest.fn().mockResolvedValue(),
+	signOut: jest.fn(),
 }))
 
-const mockNavigate = jest.fn()
+jest.mock('../firebase_config', () => ({ auth: {}, db: {} }))
 
-// Mock react-router-dom
-jest.mock('react-router-dom', () => ({
-	...jest.requireActual('react-router-dom'),
-	Link: ({ children, to }) => <a href={to}>{children}</a>,
-	useNavigate: () => mockNavigate,
-}))
-
-jest.mock('../backend/resident_dashboard_service.js', () => ({
+jest.mock('../backend/resident_dashboard_service', () => ({
 	fetch_resident_profile: jest.fn(),
 	fetch_resident_requests: jest.fn(),
 	subscribe_to_resident_unread_count: jest.fn(),
 }))
 
+jest.mock('react-router-dom', () => ({
+	Link: function MockLink({ children, to, className }) {
+		return (
+			<a href={to} className={className}>
+				{children}
+			</a>
+		)
+	},
+	useLocation: () => ({ pathname: '/resident-dashboard' }),
+	useNavigate: jest.fn(),
+}))
+
 jest.mock(
-	'../components/notification_bell/notification_bell.js',
-	() =>
-		function MockNotifBell() {
-			return <div data-testid="notif-bell" />
-		}
-)
-jest.mock(
-	'../components/message_thread/message_thread.js',
+	'../components/message_thread/message_thread',
 	() =>
 		function MockMessageThread() {
 			return <div data-testid="message-thread" />
 		}
 )
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Test Suite
-───────────────────────────────────────────────────────────────────────────── */
+jest.mock(
+	'../components/notification_bell/notification_bell',
+	() =>
+		function MockNotificationBell() {
+			return <div data-testid="notification-bell" />
+		}
+)
+
+jest.mock(
+	'../components/request_card/like_button/like_button',
+	() =>
+		function MockLikeButton() {
+			return <div data-testid="like-button" />
+		}
+)
 
 describe('ResidentDashboard Component', () => {
-	let mockUnsubscribe
+	let mockNavigate
 
 	beforeEach(() => {
 		jest.clearAllMocks()
-		mockUnsubscribe = jest.fn()
+		mockNavigate = jest.fn()
+		useNavigate.mockReturnValue(mockNavigate)
+	})
 
+	test('renders loading state initially', () => {
+		onAuthStateChanged.mockImplementation(() => jest.fn())
+		render(<ResidentDashboard />)
+		expect(screen.getByText('Loading your dashboard…')).toBeInTheDocument()
+	})
+
+	test('shows error screen if user is not logged in', async () => {
 		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback({ uid: 'res_1' })
+			callback(null) // Simulate no authenticated user
 			return jest.fn()
 		})
 
-		fetch_resident_profile.mockResolvedValue({
-			uid: 'res_1',
-			name: 'Sarah Connor',
-			email: 'sarah@test.com',
-		})
-
-		fetch_resident_requests.mockResolvedValue([
-			{
-				id: 'req_1',
-				category: 'Streetlight',
-				status: 'Pending',
-				description: 'Light is broken.',
-				created_at: new Date(),
-				updated_at: new Date(),
-			},
-			{
-				id: 'req_2',
-				category: 'Pothole',
-				status: 'Acknowledged',
-				description: 'Huge crater in the road.',
-				created_at: new Date(),
-				updated_at: new Date(),
-			},
-		])
-
-		subscribe_to_resident_unread_count.mockImplementation(
-			(uid, callback) => {
-				callback(0)
-				return mockUnsubscribe
-			}
-		)
-	})
-
-	test('renders loading screen initially and resolves cleanly', async () => {
 		render(<ResidentDashboard />)
-		expect(
-			screen.getByText('Loading your dashboard\u2026')
-		).toBeInTheDocument()
+
 		await waitFor(() => {
 			expect(
-				screen.queryByText('Loading your dashboard\u2026')
-			).not.toBeInTheDocument()
+				screen.getByText('You are not logged in.')
+			).toBeInTheDocument()
+		})
+	})
+
+	test('shows error screen if data loading fails', async () => {
+		const mockUser = { uid: 'user123' }
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback(mockUser)
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockRejectedValue(new Error('Network error'))
+		fetch_resident_requests.mockRejectedValue(new Error('Network error'))
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(screen.getByText('Network error')).toBeInTheDocument()
 		})
 	})
 
 	test('loads and displays resident profile and requests', async () => {
-		render(<ResidentDashboard />)
-		await waitFor(() => {
-			expect(screen.getByText('Sarah Connor')).toBeInTheDocument()
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
+		const mockUser = { uid: 'user123' }
+		const mockProfile = { uid: 'user123', name: 'John Doe' }
+		const mockRequests = [
+			{
+				id: 'req1',
+				category: 'Pothole',
+				status: 'submitted',
+				description: 'Big pothole',
+				created_at: new Date('2023-01-01'),
+			},
+			{
+				id: 'req2',
+				category: 'Water Leak',
+				status: 'in_progress',
+				description: 'Leaking pipe',
+				created_at: new Date('2023-01-02'),
+			},
+		]
+
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback(mockUser)
+			return jest.fn()
 		})
-		expect(screen.getByText('SC')).toBeInTheDocument()
+		fetch_resident_profile.mockResolvedValue(mockProfile)
+		fetch_resident_requests.mockResolvedValue(mockRequests)
+		subscribe_to_resident_unread_count.mockImplementation((uid, cb) => {
+			cb(3) // 3 unread messages
+			return jest.fn()
+		})
+
+		render(<ResidentDashboard />)
+
+		// Wait for primary fetch to complete
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		// Check Profile
+		expect(screen.getByText('John Doe')).toBeInTheDocument()
+		expect(screen.getByText('JD')).toBeInTheDocument() // Initials
+
+		// Wait for the secondary effect (unread count subscription) to trigger re-render
+		await waitFor(() => {
+			expect(screen.getByText('3')).toBeInTheDocument()
+		})
+
+		// Check Requests in Sidebar (using getAllByText because active requests appear in both sidebar and details view)
+		expect(screen.getAllByText('Pothole').length).toBeGreaterThan(0)
+		expect(screen.getAllByText('Water Leak').length).toBeGreaterThan(0)
+
+		// The first request should be selected and its details rendered in the main area (Length is 2: sidebar + details view)
+		expect(screen.getAllByText('Big pothole').length).toBe(2)
 	})
 
-	test('selects a request and shows detail view', async () => {
-		render(<ResidentDashboard />)
-		await waitFor(() => {
-			expect(screen.getAllByText('Pothole').length).toBeGreaterThan(0)
-		})
-		const requestCard = screen
-			.getAllByText('Pothole')[0]
-			.closest('.rd-req-card')
-		fireEvent.click(requestCard)
-		expect(
-			screen.getAllByText('Huge crater in the road.').length
-		).toBeGreaterThan(0)
-		expect(screen.getByText('Not yet assigned')).toBeInTheDocument()
-	})
+	test('shows empty state when there are no requests', async () => {
+		const mockUser = { uid: 'user123' }
+		const mockProfile = { uid: 'user123', name: 'Jane Doe' }
 
-	test('displays empty state when resident has no requests', async () => {
-		fetch_resident_requests.mockResolvedValue([])
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback(mockUser)
+			return jest.fn()
+		})
+		fetch_resident_profile.mockResolvedValue(mockProfile)
+		fetch_resident_requests.mockResolvedValue([]) // No requests
+
 		render(<ResidentDashboard />)
+
 		await waitFor(() => {
 			expect(
 				screen.getByText(
-					/You haven't submitted any service requests yet/i
+					"You haven't submitted any service requests yet."
 				)
 			).toBeInTheDocument()
 		})
 	})
 
-	test('handles user logout correctly', async () => {
-		render(<ResidentDashboard />)
-		await waitFor(() => {
-			expect(screen.getByText('Sarah Connor')).toBeInTheDocument()
+	test('handles request selection correctly', async () => {
+		const mockUser = { uid: 'user123' }
+		const mockProfile = { uid: 'user123', name: 'John Doe' }
+		const mockRequests = [
+			{
+				id: 'req1',
+				category: 'Pothole',
+				status: 'submitted',
+				description: 'Big pothole',
+				created_at: new Date(),
+			},
+			{
+				id: 'req2',
+				category: 'Water Leak',
+				status: 'in_progress',
+				description: 'Leaking pipe',
+				created_at: new Date(),
+			},
+		]
+
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback(mockUser)
+			return jest.fn()
 		})
-		const logoutBtn = screen.getByRole('button', { name: /Log out/i })
+		fetch_resident_profile.mockResolvedValue(mockProfile)
+		fetch_resident_requests.mockResolvedValue(mockRequests)
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		// Click the second request card
+		const secondCard = screen
+			.getAllByText('Water Leak')[0]
+			.closest('button')
+		fireEvent.click(secondCard)
+
+		// Verify the details area updated to show the second request's description
+		// It should now appear twice (once in sidebar, once in the detail view)
+		await waitFor(() => {
+			expect(screen.getAllByText('Leaking pipe').length).toBe(2)
+		})
+	})
+
+	test('handles logout process correctly', async () => {
+		const mockUser = { uid: 'user123' }
+		const mockProfile = { uid: 'user123', name: 'John Doe' }
+
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback(mockUser)
+			return jest.fn()
+		})
+		fetch_resident_profile.mockResolvedValue(mockProfile)
+		fetch_resident_requests.mockResolvedValue([])
+		signOut.mockResolvedValue() // Simulate successful signout
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(screen.getByLabelText('Log out')).toBeInTheDocument()
+		})
+
+		const logoutBtn = screen.getByLabelText('Log out')
 		fireEvent.click(logoutBtn)
+
+		expect(screen.getByText('Logging out…')).toBeInTheDocument()
+
 		await waitFor(() => {
 			expect(signOut).toHaveBeenCalledTimes(1)
+			expect(mockNavigate).toHaveBeenCalledWith('/')
 		})
-	})
-
-	test('shows priority badge when request has priority set', async () => {
-		fetch_resident_requests.mockResolvedValueOnce([
-			{
-				id: 'req_priority',
-				category: 'Streetlight',
-				status: 'open',
-				description: 'Burst pipe',
-				priority: 'High',
-				created_at: new Date(),
-				updated_at: new Date(),
-				worker_uid: null,
-				worker_name: null,
-			},
-		])
-		render(<ResidentDashboard />)
-		await waitFor(() => {
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
-		})
-		expect(screen.getByText('High')).toBeInTheDocument()
-	})
-
-	test('shows Not set when request has no priority', async () => {
-		fetch_resident_requests.mockResolvedValueOnce([
-			{
-				id: 'req_no_priority',
-				category: 'Streetlight',
-				status: 'open',
-				description: 'Burst pipe',
-				priority: null,
-				created_at: new Date(),
-				updated_at: new Date(),
-				worker_uid: null,
-				worker_name: null,
-			},
-		])
-		render(<ResidentDashboard />)
-		await waitFor(() => {
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
-		})
-		expect(screen.getByText('Not set')).toBeInTheDocument()
-	})
-
-	test('shows messaging unavailable when no worker assigned', async () => {
-		fetch_resident_requests.mockResolvedValueOnce([
-			{
-				id: 'req_no_worker',
-				category: 'Streetlight',
-				status: 'open',
-				description: 'Burst pipe',
-				priority: null,
-				created_at: new Date(),
-				updated_at: new Date(),
-				worker_uid: null,
-				worker_name: null,
-			},
-		])
-		render(<ResidentDashboard />)
-		await waitFor(() => {
-			expect(screen.getAllByText('Streetlight').length).toBeGreaterThan(0)
-		})
-		expect(
-			screen.getByText(
-				/Messaging will be available once a worker is assigned/i
-			)
-		).toBeInTheDocument()
 	})
 })

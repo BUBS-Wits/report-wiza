@@ -16,10 +16,15 @@ import {
 	compute_worker_stats,
 } from '../../backend/worker_analytics_service.js'
 import { update_request_status } from '../../backend/worker_firebase.js'
+import {
+	fetch_comment,
+	add_comment,
+} from '../../backend/worker_analytics_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import WorkerMessages from '../worker_messages/worker_messages.js'
+import { subscribe_to_worker_conversations } from '../../backend/worker_conversations_service.js'
 import './worker_dashboard.css'
 
 const parse_date = (val) => {
@@ -101,7 +106,33 @@ export default function WorkerDashboard() {
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
 	const busy_ref = useRef(false)
+	// Add state for the unread count
+	const [totalUnread, setTotalUnread] = useState(0)
 
+	// Listen to conversations in the background to update the nav badge
+	useEffect(() => {
+		if (!worker?.uid) {
+			return
+		} // Wait until the worker is loaded
+
+		const unsub = subscribe_to_worker_conversations(
+			worker.uid,
+			(convs) => {
+				// Tally up the unread_count from all active conversations
+				const unreadSum = convs.reduce(
+					(sum, c) => sum + (c.unread_count || 0),
+					0
+				)
+				setTotalUnread(unreadSum)
+			},
+			(err) => {
+				console.error('Failed to fetch unread messages:', err)
+			}
+		)
+
+		// Cleanup listener when component unmounts
+		return () => unsub()
+	}, [worker?.uid])
 	const popup_busy = (text) => {
 		set_show_busy_tip(true)
 		set_busy_tip(text)
@@ -382,6 +413,7 @@ export default function WorkerDashboard() {
 					messages_onclick: set_messages_section,
 				}}
 				active_section={active_section}
+				unread_messages={totalUnread}
 			/>
 
 			<BusyToolTip show_busy_tip={show_busy_tip} busy_tip={busy_tip} />
@@ -594,6 +626,31 @@ function RequestDetailPanel({
 		}
 	}
 
+	const [comments, set_comments] = useState([])
+	const [comment_text, set_comment_text] = useState('')
+	const [is_submitting, set_is_submitting] = useState(false)
+
+	useEffect(() => {
+		fetch_comment(req.id).then(set_comments).catch(console.error)
+	}, [req.id])
+
+	const handle_submit = async () => {
+		if (!comment_text.trim()) {
+			return
+		}
+		set_is_submitting(true)
+		try {
+			await add_comment(req.id, worker.name, worker.uid, comment_text)
+			set_comment_text('')
+			const updated = await fetch_comment(req.id)
+			set_comments(updated)
+		} catch (err) {
+			console.error('Failed to post comment:', err)
+		} finally {
+			set_is_submitting(false)
+		}
+	}
+
 	return (
 		<div className="wd-panel-inner">
 			{/* Header */}
@@ -733,6 +790,55 @@ function RequestDetailPanel({
 								disabled for this request.
 							</p>
 						)}
+					</div>
+
+					{/* Public comments */}
+					<div className="wd-panel-divider">
+						<span>Public comments</span>
+					</div>
+
+					<div className="wd-comments-list">
+						{comments.length === 0 ? (
+							<p className="wd-comments-empty">
+								No comments yet.
+							</p>
+						) : (
+							comments.map((c) => (
+								<div key={c.id} className="wd-comment">
+									<div className="wd-comment-meta">
+										<span className="wd-comment-author">
+											{c.worker_name}
+										</span>
+										<span className="wd-comment-date">
+											{c.created_at?.toDate
+												? c.created_at
+														.toDate()
+														.toLocaleDateString()
+												: '—'}
+										</span>
+									</div>
+									<p className="wd-comment-text">{c.text}</p>
+								</div>
+							))
+						)}
+					</div>
+
+					<div className="wd-comment-form">
+						<textarea
+							className="wd-comment-input"
+							rows={3}
+							placeholder="Leave a public comment about this request..."
+							value={comment_text}
+							onChange={(e) => set_comment_text(e.target.value)}
+							disabled={is_submitting}
+						/>
+						<button
+							className="wd-comment-submit"
+							onClick={handle_submit}
+							disabled={is_submitting || !comment_text.trim()}
+						>
+							{is_submitting ? 'Posting…' : 'Post comment'}
+						</button>
 					</div>
 				</>
 			) : (

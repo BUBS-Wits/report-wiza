@@ -97,6 +97,16 @@ jest.mock('../components/admin_requests/admin_requests.js', () => {
 	return MockAdminRequests
 })
 
+jest.mock(
+	'../components/admin_public_dashboard_settings/admin_public_dashboard_settings.js',
+	() => {
+		function MockAdminPublicDashboardSettings() {
+			return <div>Public dashboard field visibility</div>
+		}
+		return MockAdminPublicDashboardSettings
+	}
+)
+
 // ---------------------------------------------------------------------------
 // Test Suite
 // ---------------------------------------------------------------------------
@@ -280,13 +290,14 @@ describe('AdminDashboard', () => {
 		})
 
 		describe('When the Settings section is clicked', () => {
-			it('Then it should render the settings placeholder', async () => {
+			it('Then it should render the public dashboard settings component', async () => {
 				render(<AdminDashboard />)
 				await wait_for_initial_load()
 
 				fireEvent.click(screen.getByText('Settings'))
+
 				expect(
-					screen.getByText('Settings section — coming soon')
+					screen.getByText('Public dashboard field visibility')
 				).toBeInTheDocument()
 			})
 		})

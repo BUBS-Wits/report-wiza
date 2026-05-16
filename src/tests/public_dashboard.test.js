@@ -2,6 +2,7 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { fetch_public_dashboard_visibility } from '../backend/public_dashboard_settings_service.js'
 
 // 🔥 Import the auth function so we can control its mock in beforeEach
 import { onAuthStateChanged } from 'firebase/auth'
@@ -51,12 +52,14 @@ jest.mock('firebase/auth', () => ({
 jest.mock('firebase/firestore', () => ({
 	...jest.requireActual('firebase/firestore'),
 	getFirestore: jest.fn(),
-	onSnapshot: jest.fn(() => jest.fn()), // Return dummy unsubscribe function
+	onSnapshot: jest.fn(() => jest.fn()),
 	collection: jest.fn(),
 	query: jest.fn(),
 	where: jest.fn(),
 	orderBy: jest.fn(),
 	limit: jest.fn(),
+	doc: jest.fn(),
+	getDoc: jest.fn(),
 }))
 
 // Mock the backend service
@@ -66,10 +69,13 @@ jest.mock('../backend/public_dashboard_service.js', () => ({
 
 // Mock RequestCard to simplify the DOM and isolate dashboard logic
 jest.mock('../components/request_card/request_card.js', () => {
-	return function DummyRequestCard({ request }) {
+	return function DummyRequestCard({ request, visibleFields }) {
 		return (
 			<div data-testid={`request-card-${request.id}`}>
-				{request.category}
+				<span>{request.category}</span>
+				{visibleFields?.description !== false && (
+					<span>{request.description}</span>
+				)}
 			</div>
 		)
 	}
@@ -115,6 +121,10 @@ jest.mock('react-leaflet', () => ({
 	}),
 }))
 
+jest.mock('../backend/public_dashboard_settings_service.js', () => ({
+	fetch_public_dashboard_visibility: jest.fn(),
+}))
+
 /* ─────────────────────────────────────────────────────────────────────────────
    Shared Fixtures
 ───────────────────────────────────────────────────────────────────────────── */
@@ -124,6 +134,7 @@ const mockDashboardData = {
 		{
 			id: 'req_1',
 			category: 'Pothole',
+			description: 'Large pothole near school',
 			status: 'IN_PROGRESS',
 			latitude: -26.2,
 			longitude: 28.0,
@@ -132,6 +143,7 @@ const mockDashboardData = {
 		{
 			id: 'req_2',
 			category: 'Water Leak',
+			description: 'Pipe leaking outside house',
 			status: 'UNASSIGNED',
 			latitude: -26.3,
 			longitude: 28.1,
@@ -142,6 +154,7 @@ const mockDashboardData = {
 		{
 			id: 'req_3',
 			category: 'Streetlight',
+			description: 'Streetlight repaired',
 			status: 'RESOLVED',
 			latitude: -26.4,
 			longitude: 28.2,
@@ -162,6 +175,15 @@ const mockDashboardData = {
 describe('PublicDashboard Component', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
+
+		fetch_public_dashboard_visibility.mockResolvedValue({
+			category: true,
+			status: true,
+			ward: true,
+			municipality: true,
+			description: true,
+			likes: true,
+		})
 
 		// 🔥 THE MAGIC FIX: Force the mock to return a dummy unsubscribe function before EVERY test
 		onAuthStateChanged.mockImplementation((auth, callback) => {
@@ -274,5 +296,41 @@ describe('PublicDashboard Component', () => {
 		// 3 markers should be rendered (2 active + 1 resolved)
 		const markers = screen.getAllByTestId('marker')
 		expect(markers.length).toBe(3)
+	})
+
+	test('loads public dashboard visibility settings and hides disabled fields', async () => {
+		fetchPublicDashboardData.mockResolvedValue(mockDashboardData)
+		fetch_public_dashboard_visibility.mockResolvedValue({
+			category: true,
+			status: true,
+			ward: true,
+			municipality: true,
+			description: false,
+			likes: true,
+		})
+
+		render(<PublicDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading service requests…')
+			).not.toBeInTheDocument()
+		})
+
+		expect(fetch_public_dashboard_visibility).toHaveBeenCalledTimes(1)
+
+		expect(screen.getByTestId('request-card-req_1')).toHaveTextContent(
+			'Pothole'
+		)
+
+		expect(
+			screen.queryByText('Large pothole near school')
+		).not.toBeInTheDocument()
+		expect(
+			screen.queryByText('Pipe leaking outside house')
+		).not.toBeInTheDocument()
+		expect(
+			screen.queryByText('Streetlight repaired')
+		).not.toBeInTheDocument()
 	})
 })

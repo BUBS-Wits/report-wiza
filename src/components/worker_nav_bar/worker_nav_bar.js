@@ -45,7 +45,7 @@ const NAV_ITEMS = [
 		key: 'messages',
 		label: 'Messages',
 		to: '#',
-		badge: 3,
+		badge: 0, // Removed hardcoded 3
 		icon: (
 			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
 				<path d="M2 2h12v9H9l-3 3v-3H2z" />
@@ -68,6 +68,7 @@ const NAV_ITEMS = [
 function Worker_nav_bar({
 	user = { initials: 'JD', name: 'Jane Doe', role: 'Field Worker' },
 	requests = { claimed: 0, unclaimed: 0 },
+	unread_messages = 0, // ADDED: New prop for dynamic message count
 	sections = {
 		queue_onclick: null,
 		available_onclick: null,
@@ -76,7 +77,6 @@ function Worker_nav_bar({
 	active_section = 'queue',
 }) {
 	const [scrolled, set_scrolled] = useState(false)
-	// ADDED: State to manage the mobile menu
 	const [mobile_menu_open, set_mobile_menu_open] = useState(false)
 	const location = useLocation()
 	const navigate = useNavigate()
@@ -103,6 +103,8 @@ function Worker_nav_bar({
 			return requests.unclaimed
 		} else if (item.key === 'queue') {
 			return requests.claimed
+		} else if (item.key === 'messages') {
+			return unread_messages // ADDED: Returns dynamic prop instead of array fallback
 		} else {
 			return item.badge
 		}
@@ -134,7 +136,6 @@ function Worker_nav_bar({
 			className={`wd_navbar ${scrolled ? 'wd_navbar_scrolled' : ''}`}
 			aria-label="Worker dashboard navigation"
 		>
-			{/* ADDED: Mobile Hamburger Button */}
 			<button
 				className="wd_mobile_menu_btn"
 				onClick={() => set_mobile_menu_open(!mobile_menu_open)}
@@ -168,7 +169,7 @@ function Worker_nav_bar({
 			{/* Divider */}
 			<span className="wd_nav_divider" aria-hidden="true" />
 
-			{/* Nav links - Added dynamic class for mobile sliding */}
+			{/* Nav links */}
 			<div
 				className={`wd_nav_links ${mobile_menu_open ? 'wd_nav_links_mobile_open' : ''}`}
 			>
