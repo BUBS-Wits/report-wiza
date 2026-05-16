@@ -743,6 +743,20 @@ function RequestDetailPanel({
 						</dd>
 					</div>
 				)}
+				{req.rating &&
+					typeof req.rating === 'number' &&
+					req.comment && (
+						<div className="wd-panel-meta-row wd-panel-meta-row--full">
+							<dt className="wd-panel-meta-label">Review</dt>
+							<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
+								{req.comment}
+							</dd>
+							<dt className="wd-panel-meta-label">Rating</dt>
+							<dd className="wd-panel-meta-value wd-panel-meta-desc">
+								<StarRating rating={req.rating} />
+							</dd>
+						</div>
+					)}
 			</dl>
 
 			<div className="wd-panel-image">
@@ -930,6 +944,24 @@ function ErrorScreen({ message, onRetry }) {
 			<button className="wd-retry-btn" onClick={onRetry}>
 				Try again
 			</button>
+		</div>
+	)
+}
+
+function StarRating({ rating, max = 5 }) {
+	return (
+		<div className="rd-stars-readonly">
+			{[...Array(max)].map((_, i) => (
+				<span
+					key={i}
+					className={`rd-star-readonly ${i < rating ? 'rd-star-readonly--active' : ''}`}
+				>
+					★
+				</span>
+			))}
+			<span className="rd-star-label">
+				{['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
+			</span>
 		</div>
 	)
 }

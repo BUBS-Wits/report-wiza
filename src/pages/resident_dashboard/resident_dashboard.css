@@ -599,6 +599,15 @@
 	border-right: none !important;
 }
 
+dt {
+	font-size: 10.5px;
+	font-weight: 600;
+	color: var(--rd-text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	margin-bottom: 4px;
+}
+
 .rd-detail-meta-item dt {
 	font-size: 10.5px;
 	font-weight: 600;
@@ -918,4 +927,39 @@
 	padding: 6px 10px;
 	border-radius: 4px;
 	margin-top: 4px;
+}
+
+.rd-review-comment {
+	color: #6b7280;
+	background: #f9fafb;
+	border-left: 3px solid #e5e7eb;
+	padding: 6px 10px;
+	border-radius: 4px;
+	margin-top: 4px;
+}
+
+/* ── Star Rating (Read-only) ── */
+
+.rd-stars-readonly {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.rd-star-readonly {
+	font-size: 1.2rem;
+	color: var(--rd-border);
+	line-height: 1;
+}
+
+.rd-star-readonly--active {
+	color: var(--rd-accent);
+}
+
+.rd-star-label {
+	font-family: var(--rd-font-body);
+	font-size: 0.8rem;
+	color: var(--rd-accent);
+	font-weight: 500;
+	margin-left: 6px;
 }

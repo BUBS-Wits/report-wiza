@@ -796,6 +796,8 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 				created_at: data.created_at,
 				updated_at: data.updated_at,
 				status: data.status,
+				comment: data.comment,
+				rating: data.rating,
 				category: data.category,
 				description: data.description,
 				image: data.image,
@@ -849,6 +851,8 @@ app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 				created_at: doc.created_at,
 				updated_at: doc.updated_at,
 				status: doc.status,
+				comment: doc.comment,
+				rating: doc.rating,
 				category: doc.category,
 				description: doc.description,
 				image: doc.image,
@@ -902,44 +906,46 @@ app.get('/api/get-signed-url', async (req, res) => {
 	}
 })
 
-app.get('/api/submit-review', authenticate, async (req, res) => {
+app.post('/api/submit-review', authenticate, async (req, res) => {
 	try {
 		const body = req.body
-		if (!body || !body.feedback || !body.request_uid) {
-			return respond.invalid_parameters(res)
-		}
-		const request_uid = body.request_uid
-		const feedback = body.feedback
 		if (
-			!request_uid ||
-			Object.keys(req.query).length !== 1 ||
-			!(await exists_db_document('service_requests', request_uid))
+			body === undefined ||
+			body.comment === undefined ||
+			body.rating === undefined ||
+			body.request_uid === undefined ||
+			!(await exists_db_document('service_requests', body.request_uid))
 		) {
 			return respond.invalid_parameters(res)
 		}
+		const request_uid = body.request_uid
+		const comment = body.comment
+		const rating = body.rating
 		const user_uid = req.user.uid
 		let iret = await get_db_documents('service_requests', [
-			['__name__', request_uid],
-			['user_uid', user_uid],
+			['__name__', '==', request_uid],
+			['user_uid', '==', user_uid],
 		])
 		if (!iret.ok) {
 			return res.status(400).json({ error: iret.value })
 		}
-		const data = iret.value
-		if (data === null) {
+		let data = iret.value
+		if (data === null || data.length <= 0) {
 			return res
 				.status(400)
 				.json({ error: 'Failed to get requested service request.' })
 		}
+		data = data[0]
 		if (data.status !== STATUS.CLOSED) {
-			return res
-				.status(400)
-				.json({
-					error: 'Request selected has not been closed as complete.',
-				})
+			return res.status(400).json({
+				error: 'Request selected has not been closed as complete.',
+				dd: data[0],
+			})
 		}
 		iret = await update_db_document('service_requests', data.id, [
-			['feedback', feedback],
+			['updated_at', new Date().toUTCString()],
+			['comment', comment],
+			['rating', rating],
 		])
 		if (!iret.ok) {
 			return res.status(400).json({ error: iret.value })

@@ -11,6 +11,7 @@ import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './resident_dashboard.css'
 import LikeButton from '../../components/request_card/like_button/like_button.js'
+import FeedbackForm from '../../components/feedback_form/feedback_form.js'
 import NotificationBell from '../../components/notification_bell/notification_bell.js'
 
 /* ── Status config ───────────────────────────────────────────────────────── */
@@ -409,6 +410,7 @@ function RequestDetail({ req, resident, on_back }) {
 	const priority_meta = PRIORITY_META[req.priority] ?? null
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
+	const [feedback_form, set_feedback_form] = useState(false)
 
 	const parseWktPoint = (locationStr) => {
 		if (!locationStr) {
@@ -427,6 +429,91 @@ function RequestDetail({ req, resident, on_back }) {
 		return null
 	}
 
+	const feedback_toggle = () => {
+		if (feedback_form) {
+			set_feedback_form(false)
+		} else {
+			set_feedback_form(true)
+		}
+	}
+
+	const get_signed_url_expiry = (signed_url) => {
+		const url = new URL(signed_url)
+		const amz_date = url.searchParams.get('X-Amz-Date') // "20260516T095040Z"
+		const amz_expires = url.searchParams.get('X-Amz-Expires') // "432000" (seconds)
+
+		// Parse X-Amz-Date (format: YYYYMMDDTHHmmssZ)
+		const [date_part, time_part] = amz_date.split('T')
+		const iso_date = `${date_part.slice(0, 4)}-${date_part.slice(4, 6)}-${date_part.slice(6, 8)}T${time_part.slice(0, 2)}:${time_part.slice(2, 4)}:${time_part.slice(4, 6)}Z`
+
+		const issued_at = new Date(iso_date)
+		const expires_at = new Date(
+			issued_at.getTime() + parseInt(amz_expires) * 1000
+		)
+
+		return expires_at
+	}
+
+	const is_expired = (expires_at) => {
+		const expiry = expires_at
+		const now = new Date()
+		const buffer_ms = 5 * 60 * 1000
+
+		return expiry.getTime() - now.getTime() < buffer_ms
+	}
+
+	const get_signed_url = async (id, image, expires) => {
+		if (expires !== null && !is_expired(expires)) {
+			return image
+		}
+		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
+		if (!ret.ok) {
+			return image
+		}
+		const data = await ret.json()
+		req.image = data.data
+		return req.image
+	}
+
+	const submit_review = async ({ rating, comment }) => {
+		const headers = { 'Content-Type': 'application/json' }
+		if (auth.currentUser) {
+			const token = await auth.currentUser.getIdToken()
+			headers['Authorization'] = `Bearer ${token}`
+		}
+		return fetch('/api/submit-review', {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({ request_uid: req.id, rating, comment }),
+		})
+			.then(async (res) => {
+				if (!res.ok) {
+					const error_text = await res.text()
+					try {
+						alert(JSON.parse(error_text).error)
+						console.error(
+							'Server Error (JSON):',
+							JSON.parse(error_text)
+						)
+					} catch {
+						console.error('Server Error (HTML/Text):', error_text)
+						alert('Server error. Please check console for details.')
+					}
+				}
+				alert('Review successfully submitted.')
+				feedback_toggle()
+			})
+			.catch((err) => {
+				alert(
+					'Error: ',
+					err.message
+						? err.message
+						: 'View console for additional details'
+				)
+				console.error(err)
+			})
+	}
+
 	let lat = null,
 		lng = null
 	if (req.location) {
@@ -435,6 +522,17 @@ function RequestDetail({ req, resident, on_back }) {
 			lat = coords.lat
 			lng = coords.lon
 		}
+	}
+
+	if (req.image) {
+		get_signed_url(
+			req.id,
+			req.image,
+			req.image_expires_at ? new Date(req.image_expires_at) : null
+		).then((image) => {
+			req.image = image
+			req.image_expires_at = get_signed_url_expiry(image)
+		})
 	}
 
 	console.log('Worker name from Firestore:', req.worker_name)
@@ -515,102 +613,138 @@ function RequestDetail({ req, resident, on_back }) {
 						requestId={req.id}
 						initialLikeCount={req.like_count || 0}
 					/>
+					{req.status && (
+						<button
+							className="wd-home-btn"
+							onClick={feedback_toggle}
+						>
+							Review
+						</button>
+					)}
 				</div>
 			</div>
 
-			<dl className="rd-detail-meta">
-				<div className="rd-detail-meta-item">
-					<dt>Ward</dt>
-					<dd>{req.sa_ward || '—'}</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Priority</dt>
-					<dd>
-						{priority_meta ? (
-							<span
-								className={`rd-priority-pill ${priority_meta.cls}`}
-							>
-								{priority_meta.label}
-							</span>
-						) : (
-							<span className="rd-priority-none">Not set</span>
-						)}
-					</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Submitted</dt>
-					<dd>{format_date(req.created_at)}</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Last updated</dt>
-					<dd>{format_date(req.updated_at)}</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Assigned worker</dt>
-					<dd>
-						{req.worker_name ?? (
-							<span className="rd-unassigned">
-								Not yet assigned
-							</span>
-						)}
-					</dd>
-				</div>
-
-				<div className="rd-detail-meta-item">
-					<dt>Location</dt>
-					<dd>
-						{lat && lng ? (
-							<a
-								href={`https://www.google.com/maps?q=${lat},${lng}`}
-								target="_blank"
-								rel="noopener noreferrer"
-								style={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									gap: '4px',
-								}}
-							>
-								📍 {lat.toFixed(6)}, {lng.toFixed(6)}
-							</a>
-						) : (
-							'—'
-						)}
-					</dd>
-				</div>
-
-				<div className="rd-detail-meta-item rd-detail-meta-item--full">
-					<dt>Description</dt>
-					<dd>{req.description}</dd>
-				</div>
-
-				{req.image && (
-					<div className="rd-detail-meta-item rd-detail-meta-item--full">
-						<dt>Photo</dt>
+			{!feedback_form && (
+				<dl className="rd-detail-meta">
+					<div className="rd-detail-meta-item">
+						<dt>Ward</dt>
+						<dd>{req.sa_ward || '—'}</dd>
+					</div>
+					<div className="rd-detail-meta-item">
+						<dt>Priority</dt>
 						<dd>
-							<img
-								src={req.image}
-								alt="Request"
-								style={{
-									maxWidth: '100%',
-									maxHeight: '200px',
-									borderRadius: '8px',
-								}}
-							/>
+							{priority_meta ? (
+								<span
+									className={`rd-priority-pill ${priority_meta.cls}`}
+								>
+									{priority_meta.label}
+								</span>
+							) : (
+								<span className="rd-priority-none">
+									Not set
+								</span>
+							)}
 						</dd>
 					</div>
-				)}
+					<div className="rd-detail-meta-item">
+						<dt>Submitted</dt>
+						<dd>{format_date(req.created_at)}</dd>
+					</div>
+					<div className="rd-detail-meta-item">
+						<dt>Last updated</dt>
+						<dd>{format_date(req.updated_at)}</dd>
+					</div>
+					<div className="rd-detail-meta-item">
+						<dt>Assigned worker</dt>
+						<dd>
+							{req.worker_name ?? (
+								<span className="rd-unassigned">
+									Not yet assigned
+								</span>
+							)}
+						</dd>
+					</div>
 
-				{req.status === 'closed' && (
-					<div className="rd-detail-meta-item rd-detail-meta-item--full">
-						<dt>Close reason</dt>
-						<dd className="rd-close-reason">
-							{close_reason_loading
-								? 'Loading…'
-								: (close_reason ?? '—')}
+					<div className="rd-detail-meta-item">
+						<dt>Location</dt>
+						<dd>
+							{lat && lng ? (
+								<a
+									href={`https://www.google.com/maps?q=${lat},${lng}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									style={{
+										display: 'inline-flex',
+										alignItems: 'center',
+										gap: '4px',
+									}}
+								>
+									📍 {lat.toFixed(6)}, {lng.toFixed(6)}
+								</a>
+							) : (
+								'—'
+							)}
 						</dd>
 					</div>
-				)}
-			</dl>
+
+					<div className="rd-detail-meta-item rd-detail-meta-item--full">
+						<dt>Description</dt>
+						<dd>{req.description}</dd>
+					</div>
+
+					{req.image && (
+						<div className="rd-detail-meta-item rd-detail-meta-item--full">
+							<dt>Photo</dt>
+							<dd>
+								<img
+									src={req.image}
+									alt="Request"
+									style={{
+										maxWidth: '100%',
+										maxHeight: '200px',
+										borderRadius: '8px',
+									}}
+								/>
+							</dd>
+						</div>
+					)}
+
+					{req.status === 'closed' && (
+						<div className="rd-detail-meta-item rd-detail-meta-item--full">
+							<dt>Close reason</dt>
+							<dd className="rd-close-reason">
+								{close_reason_loading
+									? 'Loading…'
+									: (close_reason ?? '—')}
+							</dd>
+						</div>
+					)}
+
+					{req.rating &&
+						typeof req.rating === 'number' &&
+						req.comment && (
+							<div className="rd-detail-meta-item rd-detail-meta-item--full">
+								<dt>Review</dt>
+								<StarRating rating={req.rating} />
+								<dd
+									className="rd-review-comment"
+									style={{
+										marginTop: '12px',
+									}}
+								>
+									{req.comment}
+								</dd>
+							</div>
+						)}
+				</dl>
+			)}
+
+			{feedback_form && (
+				<FeedbackForm
+					onCancel={feedback_toggle}
+					onSubmit={submit_review}
+				/>
+			)}
 
 			<div className="rd-section-divider">
 				<span>Messages</span>
@@ -647,6 +781,24 @@ function RequestDetail({ req, resident, on_back }) {
 					</div>
 				)}
 			</div>
+		</div>
+	)
+}
+
+function StarRating({ rating, max = 5 }) {
+	return (
+		<div className="rd-stars-readonly">
+			{[...Array(max)].map((_, i) => (
+				<span
+					key={i}
+					className={`rd-star-readonly ${i < rating ? 'rd-star-readonly--active' : ''}`}
+				>
+					★
+				</span>
+			))}
+			<span className="rd-star-label">
+				{['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
+			</span>
 		</div>
 	)
 }
