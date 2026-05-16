@@ -365,9 +365,11 @@ function AdminRequests() {
 
 									{/* Assigned Worker */}
 									<span className="ar_assigned_worker">
-										{req.assigned_worker_uid ? (
+										{req.assigned_worker_uid ||
+										req.worker_uid ? (
 											get_worker_name(
-												req.assigned_worker_uid
+												req.assigned_worker_uid ??
+													req.worker_uid
 											)
 										) : (
 											<em className="ar_unassigned">
