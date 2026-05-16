@@ -38,9 +38,8 @@ function Login() {
 				const resolved = all.filter(
 					(r) => r.status === 'resolved'
 				).length
-				const wards = new Set(
-					all.map((r) => r.sa_ward).filter(Boolean)
-				).size
+				const wards = new Set(all.map((r) => r.sa_ward).filter(Boolean))
+					.size
 				set_stats({
 					resolved: resolved.toLocaleString(),
 					wards: wards.toString(),

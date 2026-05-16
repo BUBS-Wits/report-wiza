@@ -60,35 +60,35 @@ export const close_request = async (request_id, admin_uid, comment) => {
 
 // ── Reopen request ────────────────────────────────────────────────────────
 export const reopen_request = async (request_id, admin_uid) => {
-    try {
-        await updateDoc(doc(db, 'service_requests', request_id), {
-            status: 'open',
-            closed_by: null,
-            closed_at: null,
-            updated_at: serverTimestamp(),
-        })
+	try {
+		await updateDoc(doc(db, 'service_requests', request_id), {
+			status: 'open',
+			closed_by: null,
+			closed_at: null,
+			updated_at: serverTimestamp(),
+		})
 
-        // Delete assignment so worker can claim again
-        try {
-            await deleteDoc(doc(db, 'assignments', request_id))
-        } catch {
-            // Assignment may not exist — that's fine
-        }
+		// Delete assignment so worker can claim again
+		try {
+			await deleteDoc(doc(db, 'assignments', request_id))
+		} catch {
+			// Assignment may not exist — that's fine
+		}
 
-        await addDoc(
-            collection(db, 'service_requests', request_id, 'comments'),
-            {
-                text: 'Request reopened by admin.',
-                author_uid: admin_uid,
-                type: 'reopen_reason',
-                created_at: serverTimestamp(),
-            }
-        )
-        return { success: true }
-    } catch (error) {
-        console.error('Error reopening request:', error)
-        throw new Error('Could not reopen request. Try again.')
-    }
+		await addDoc(
+			collection(db, 'service_requests', request_id, 'comments'),
+			{
+				text: 'Request reopened by admin.',
+				author_uid: admin_uid,
+				type: 'reopen_reason',
+				created_at: serverTimestamp(),
+			}
+		)
+		return { success: true }
+	} catch (error) {
+		console.error('Error reopening request:', error)
+		throw new Error('Could not reopen request. Try again.')
+	}
 }
 
 // ── US029 — Manage categories ─────────────────────────────────────────────

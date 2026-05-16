@@ -197,24 +197,29 @@ function AdminRequests() {
 				<div className="ar_card">
 					{/* Status filter */}
 					<div className="ar_filter_row">
-						{['all', 'open', 'acknowledged', 'in_progress', 'resolved', 'closed'].map(
-							(f) => (
-								<button
-									key={f}
-									className={`ar_filter_btn ${status_filter === f ? 'ar_filter_btn_active' : ''}`}
-									onClick={() => set_status_filter(f)}
-								>
-									{f === 'all'
-										? 'All'
-										: f === 'acknowledged'
-											? 'Assigned'
-											: f === 'in_progress'
-												? 'In Progress'
-												: f.charAt(0).toUpperCase() +
-													f.slice(1)}
-								</button>
-							)
-						)}
+						{[
+							'all',
+							'open',
+							'acknowledged',
+							'in_progress',
+							'resolved',
+							'closed',
+						].map((f) => (
+							<button
+								key={f}
+								className={`ar_filter_btn ${status_filter === f ? 'ar_filter_btn_active' : ''}`}
+								onClick={() => set_status_filter(f)}
+							>
+								{f === 'all'
+									? 'All'
+									: f === 'acknowledged'
+										? 'Assigned'
+										: f === 'in_progress'
+											? 'In Progress'
+											: f.charAt(0).toUpperCase() +
+												f.slice(1)}
+							</button>
+						))}
 					</div>
 					<div className="ar_table_header">
 						<span>ID</span>
