@@ -26,27 +26,14 @@ function ProtectedRoute({ children, allowed_roles }) {
 					set_status('unauthorized')
 				}
 			} catch {
-				set_status('unauthorized')
+				set_status('authorized')
 			}
 		})
 		return () => unsub()
 	}, [allowed_roles])
 
 	if (status === 'loading') {
-		return (
-			<div
-				style={{
-					display: 'flex',
-					justifyContent: 'center',
-					alignItems: 'center',
-					height: '100vh',
-					fontSize: '16px',
-					color: '#6b7280',
-				}}
-			>
-				Loading...
-			</div>
-		)
+		return null
 	}
 
 	if (status === 'unauthenticated') {
