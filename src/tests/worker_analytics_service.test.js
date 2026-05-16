@@ -160,7 +160,7 @@ describe('Worker Dashboard Service', () => {
 				exists: () => true,
 				data: () => ({
 					role: 'worker',
-					name: 'Bob Builder',
+					display_name: 'Bob Builder',
 					email: 'bob@test.com',
 				}),
 			})
@@ -179,7 +179,7 @@ describe('Worker Dashboard Service', () => {
 			// 1. Mock worker profile
 			getDoc.mockResolvedValueOnce({
 				exists: () => true,
-				data: () => ({ role: 'worker', name: 'John Doe' }),
+				data: () => ({ role: 'worker', display_name: 'John Doe' }),
 			})
 
 			// 2. Mock assignments collection response
