@@ -3,14 +3,15 @@ import {
 	fetch_workers,
 	revoke_worker_role,
 } from '../../backend/admin_firebase.js'
-import Sidebar from '../../components/sidebar/sidebar.js'
+import Sidebar from '../../components/admin_sidebar/admin_sidebar.js'
 import TopBar from '../../components/top_bar/top_bar.js'
 import StatCards from '../../components/stat_cards/stat_cards.js'
 import RegisterWorker from '../../components/register_worker/register_worker.js'
 import WorkersList from '../../components/workers_list/workers_list.js'
-import './admin_dashboard.css'
 import AdminRequests from '../../components/admin_requests/admin_requests.js'
 import AdminPublicDashboardSettings from '../../components/admin_public_dashboard_settings/admin_public_dashboard_settings.js'
+import AdminMessagingReview from '../../components/admin_review_messages/admin_review_messages.js'
+import './admin_dashboard.css'
 
 function AdminDashboard({ section = 'workers' }) {
 	const [active_section, set_active_section] = useState(section)
@@ -19,10 +20,12 @@ function AdminDashboard({ section = 'workers' }) {
 	const [revoking_uid, set_revoking_uid] = useState(null)
 	const [message, set_message] = useState(null)
 	const [is_error, set_is_error] = useState(false)
+
 	useEffect(() => {
 		set_active_section(section)
 	}, [section])
 
+	/* ── Load Workers ─────────────────────────────────────────────────── */
 	const load_workers = async () => {
 		set_workers_loading(true)
 		try {
@@ -40,6 +43,13 @@ function AdminDashboard({ section = 'workers' }) {
 	}, [])
 
 	const handle_revoke = async (uid, email) => {
+		if (
+			!window.confirm(
+				`Are you sure you want to revoke worker access for ${email}?`
+			)
+		) {
+			return
+		}
 		set_revoking_uid(uid)
 		try {
 			await revoke_worker_role(uid)
@@ -61,7 +71,9 @@ function AdminDashboard({ section = 'workers' }) {
 					<>
 						<StatCards
 							total={workers.length}
-							pending={0}
+							pending={
+								workers.filter((w) => !w.is_verified).length
+							}
 							revoked={0}
 						/>
 						<RegisterWorker on_registered={load_workers} />
@@ -71,36 +83,29 @@ function AdminDashboard({ section = 'workers' }) {
 							revoking_uid={revoking_uid}
 							on_revoke={handle_revoke}
 						/>
-						{message && (
-							<div
-								className={`admin_message ${is_error ? 'error' : 'success'}`}
-							>
-								{message}
-							</div>
-						)}
 					</>
 				)
 			case 'requests':
 				return <AdminRequests />
+
 			case 'messaging':
-				return (
-					<div className="admin_placeholder">
-						<p>Messaging section — coming soon</p>
-						<span>US033</span>
-					</div>
-				)
+				return <AdminMessagingReview />
+
 			case 'residents':
 				return (
 					<div className="admin_placeholder">
-						<p>Residents section — coming soon</p>
-						<span>US038, US039, US040</span>
+						<p>Residents Management</p>
+						<span>US038, US039, US040 — Next feature on list.</span>
 					</div>
 				)
 			case 'analytics':
 				return (
 					<div className="admin_placeholder">
-						<p>Analytics section — coming soon</p>
-						<span>US045, US046, US047, US048, US050</span>
+						<p>Analytics Overview</p>
+						<span>
+							Navigate to Category Report in the sidebar for full
+							data.
+						</span>
 					</div>
 				)
 			case 'settings':
@@ -115,7 +120,17 @@ function AdminDashboard({ section = 'workers' }) {
 			<Sidebar active={active_section} on_change={set_active_section} />
 			<div className="admin_main">
 				<TopBar active_section={active_section} />
-				<div className="admin_content">{render_section()}</div>
+				<div className="admin_content">
+					{message && (
+						<div
+							className={`admin_toast ${is_error ? 'error' : 'success'}`}
+						>
+							{message}
+							<button onClick={() => set_message(null)}>✕</button>
+						</div>
+					)}
+					{render_section()}
+				</div>
 			</div>
 		</div>
 	)

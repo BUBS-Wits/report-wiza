@@ -106,46 +106,43 @@ export default function WorkerDashboard() {
 	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
 	const navigate = useNavigate()
 	const busy_ref = useRef(false)
-	// Add state for the unread count
 	const [totalUnread, setTotalUnread] = useState(0)
 
-	// Listen to conversations in the background to update the nav badge
 	useEffect(() => {
 		if (!worker?.uid) {
 			return
-		} // Wait until the worker is loaded
+		}
 
 		const unsub = subscribe_to_worker_conversations(
 			worker.uid,
 			(convs) => {
-				// Tally up the unread_count from all active conversations
 				const unreadSum = convs.reduce(
 					(sum, c) => sum + (c.unread_count || 0),
 					0
 				)
 				setTotalUnread(unreadSum)
 			},
-			(err) => {
-				console.error('Failed to fetch unread messages:', err)
-			}
+			(err) => console.error('Failed to fetch unread messages:', err)
 		)
-
-		// Cleanup listener when component unmounts
 		return () => unsub()
 	}, [worker?.uid])
+
 	const popup_busy = (text) => {
 		set_show_busy_tip(true)
 		set_busy_tip(text)
 		setTimeout(() => set_show_busy_tip(false), 2000)
 	}
 
-	/* ── Load dashboard data ──────────────────────────────────────────── */
-
 	const load_dashboard = useCallback(async (uid) => {
 		set_error(null)
 		try {
 			const snap = await verify_worker_and_get_profile(uid)
 			const profile = snap.data()
+			if (profile.name) {
+				profile.display_name = profile.name
+			} else {
+				profile.name = profile.display_name
+			}
 			set_worker({ uid, ...profile })
 			set_active_section('queue')
 		} catch (err) {
@@ -155,7 +152,6 @@ export default function WorkerDashboard() {
 			set_loading(false)
 		}
 	}, [])
-	/* ── Panel helpers ────────────────────────────────────────────────── */
 
 	const open_panel = useCallback((req) => {
 		set_selected_req(req)
@@ -198,8 +194,6 @@ export default function WorkerDashboard() {
 		close_panel()
 	}
 
-	/* ── Auth ─────────────────────────────────────────────────────────── */
-
 	useEffect(() => {
 		const unsub = onAuthStateChanged(auth, async (user) => {
 			if (!user) {
@@ -217,7 +211,6 @@ export default function WorkerDashboard() {
 		const expiry = expires_at
 		const now = new Date()
 		const buffer_ms = 5 * 60 * 1000
-
 		return expiry.getTime() - now.getTime() < buffer_ms
 	}
 
@@ -233,7 +226,6 @@ export default function WorkerDashboard() {
 		return data.data
 	}
 
-	/* Listen for any new additions to the assignments collection directed */
 	useEffect(() => {
 		if (!worker?.uid) {
 			return
@@ -258,9 +250,8 @@ export default function WorkerDashboard() {
 			const claimed_request_uids = assignments_snapshot.docs.map(
 				(doc) => doc.data().request_uid
 			)
-
 			const all_claimed_requests = new Map()
-			const all_unclaimed_requests = new Map()
+
 			if (claimed_request_uids.length === 0) {
 				set_claimed_requests([])
 			} else {
@@ -290,7 +281,6 @@ export default function WorkerDashboard() {
 								)
 								all_claimed_requests.set(id, { id, ...data })
 							}
-
 							if (change.type === 'removed') {
 								all_claimed_requests.delete(id)
 							}
@@ -298,7 +288,6 @@ export default function WorkerDashboard() {
 						const tmp = [...all_claimed_requests.values()]
 						set_claimed_requests(tmp)
 						set_stats(compute_worker_stats(tmp))
-						console.log('claimed: ', tmp)
 					})
 				})
 			}
@@ -322,7 +311,6 @@ export default function WorkerDashboard() {
 						)
 					}
 					set_unclaimed_requests(data)
-					console.log('unclaimed: ', data)
 				}
 			)
 
@@ -331,8 +319,6 @@ export default function WorkerDashboard() {
 			} else {
 				requests_unsub_list = [unclaimed_unsub]
 			}
-
-			console.log('Listeners set...')
 		}
 		const assigment_unsub = onSnapshot(
 			assignments_query,
@@ -346,8 +332,6 @@ export default function WorkerDashboard() {
 		}
 	}, [worker?.uid])
 
-	/* ── Close panel on Escape ────────────────────────────────────────── */
-
 	useEffect(() => {
 		const on_key = (e) => {
 			if (e.key === 'Escape') {
@@ -358,17 +342,12 @@ export default function WorkerDashboard() {
 		return () => window.removeEventListener('keydown', on_key)
 	}, [])
 
-	/* ── Guards ───────────────────────────────────────────────────────── */
-
 	if (loading) {
 		return <LoadingScreen />
 	}
-
 	if (error) {
 		return <ErrorScreen message={error} onRetry={error_handling} />
 	}
-
-	/* ── Derived values ───────────────────────────────────────────────── */
 
 	const requests =
 		active_section === 'queue' ? claimed_requests : unclaimed_requests
@@ -383,16 +362,13 @@ export default function WorkerDashboard() {
 			.length
 
 	const awaiting_action = stats.pending + stats.acknowledged
-
 	const resolved_pct =
 		stats.total > 0
 			? `${Math.round((stats.resolved / stats.total) * 100)}% of assigned`
 			: '—'
-
 	const avg_display =
 		stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
 
-	/* ── Render ───────────────────────────────────────────────────────── */
 	return (
 		<div className="wd-page">
 			<Worker_nav_bar
@@ -415,6 +391,23 @@ export default function WorkerDashboard() {
 				active_section={active_section}
 				unread_messages={totalUnread}
 			/>
+
+			{/* 👇 NEW: Worker Global Ban Banner */}
+			{worker?.canMessage === false && (
+				<div
+					className="wd-global-ban-banner"
+					style={{
+						backgroundColor: '#fee2e2',
+						color: '#991b1b',
+						padding: '12px',
+						textAlign: 'center',
+						fontWeight: 'bold',
+					}}
+				>
+					🚨 Your messaging privileges have been temporarily suspended
+					by an administrator.
+				</div>
+			)}
 
 			<BusyToolTip show_busy_tip={show_busy_tip} busy_tip={busy_tip} />
 
@@ -555,7 +548,6 @@ export default function WorkerDashboard() {
 				)}
 			</div>
 
-			{/* ── Mobile backdrop ─────────────────────────────────────────── */}
 			{selected_req && (
 				<div
 					className={`wd-backdrop${panel_visible ? ' wd-backdrop--visible' : ''}`}
@@ -653,7 +645,6 @@ function RequestDetailPanel({
 
 	return (
 		<div className="wd-panel-inner">
-			{/* Header */}
 			<div className="wd-panel-header">
 				<div className="wd-panel-header-left">
 					<span className="wd-panel-req-id">{req.id}</span>
@@ -679,7 +670,6 @@ function RequestDetailPanel({
 				</button>
 			</div>
 
-			{/* Metadata */}
 			<dl className="wd-panel-meta">
 				<div className="wd-panel-meta-row">
 					<dt className="wd-panel-meta-label">Category</dt>
@@ -743,15 +733,29 @@ function RequestDetailPanel({
 						</dd>
 					</div>
 				)}
+				{req.status === STATUS.CLOSED &&
+					req.rating &&
+					typeof req.rating === 'number' &&
+					req.comment && (
+						<div className="wd-panel-meta-row wd-panel-meta-row--full">
+							<dt className="wd-panel-meta-label">Review</dt>
+							<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
+								{req.comment}
+							</dd>
+							<dt className="wd-panel-meta-label">Rating</dt>
+							<dd className="wd-panel-meta-value wd-panel-meta-desc">
+								<StarRating rating={req.rating} />
+							</dd>
+						</div>
+					)}
 			</dl>
 
 			<div className="wd-panel-image">
 				<img src={req.image} alt="Report image" />
 			</div>
 
-			{active_section === 'queue' ? (
+			{active_section === 'queue' && req.status !== STATUS.CLOSED ? (
 				<>
-					{/* Status update */}
 					<div className="wd-panel-divider">
 						<span>Update Status</span>
 					</div>
@@ -768,12 +772,10 @@ function RequestDetailPanel({
 						))}
 					</div>
 
-					{/* Section label */}
 					<div className="wd-panel-divider">
 						<span>Conversation with resident</span>
 					</div>
 
-					{/* MessageThread */}
 					<div className="wd-panel-thread">
 						{req.user_uid ? (
 							<MessageThread
@@ -783,6 +785,11 @@ function RequestDetailPanel({
 								current_role="worker"
 								other_uid={req.user_uid}
 								other_name={resident_name}
+								/* 👇 FIXED: Safe props check for both thread lock and global worker ban */
+								messaging_enabled={
+									req.messaging_enabled !== false &&
+									worker.canMessage !== false
+								}
 							/>
 						) : (
 							<p className="wd-panel-no-resident">
@@ -792,36 +799,7 @@ function RequestDetailPanel({
 						)}
 					</div>
 
-					{/* Public comments */}
-					<div className="wd-panel-divider">
-						<span>Public comments</span>
-					</div>
-
-					<div className="wd-comments-list">
-						{comments.length === 0 ? (
-							<p className="wd-comments-empty">
-								No comments yet.
-							</p>
-						) : (
-							comments.map((c) => (
-								<div key={c.id} className="wd-comment">
-									<div className="wd-comment-meta">
-										<span className="wd-comment-author">
-											{c.worker_name}
-										</span>
-										<span className="wd-comment-date">
-											{c.created_at?.toDate
-												? c.created_at
-														.toDate()
-														.toLocaleDateString()
-												: '—'}
-										</span>
-									</div>
-									<p className="wd-comment-text">{c.text}</p>
-								</div>
-							))
-						)}
-					</div>
+					<PublicComments comments={comments} />
 
 					<div className="wd-comment-form">
 						<textarea
@@ -841,14 +819,16 @@ function RequestDetailPanel({
 						</button>
 					</div>
 				</>
-			) : (
+			) : active_section !== 'queue' ? (
 				<ClaimBtn request_uid={req.id} post_claim={post_claim} />
+			) : (
+				<PublicComments comments={comments} />
 			)}
 		</div>
 	)
 }
 
-/* ── Utility ─────────────────────────────────────────────────────────────── */
+// ... Utility and Sub-components (StatCard, RequestRow, EmptyQueue, LoadingScreen, ErrorScreen, BusyToolTip) remain unchanged
 
 function get_initials(name = '') {
 	return name
@@ -859,8 +839,6 @@ function get_initials(name = '') {
 		.join('')
 }
 
-/* ── Sub-components ──────────────────────────────────────────────────────── */
-
 function StatCard({ label, value, sub, value_modifier }) {
 	const cls = [
 		'wd-stat-value',
@@ -868,7 +846,6 @@ function StatCard({ label, value, sub, value_modifier }) {
 	]
 		.filter(Boolean)
 		.join(' ')
-
 	return (
 		<div className="wd-stat-card">
 			<div className="wd-stat-label">{label}</div>
@@ -880,7 +857,6 @@ function StatCard({ label, value, sub, value_modifier }) {
 
 function RequestRow({ req, is_selected, on_click }) {
 	const display_date = get_updated_display_date(req)
-
 	return (
 		<button
 			className={`wd-req-row${is_selected ? ' wd-req-row--selected' : ''}`}
@@ -930,6 +906,59 @@ function ErrorScreen({ message, onRetry }) {
 			<button className="wd-retry-btn" onClick={onRetry}>
 				Try again
 			</button>
+		</div>
+	)
+}
+
+function PublicComments({ comments }) {
+	return (
+		<>
+			{/* Public comments */}
+			<div className="wd-panel-divider">
+				<span>Public comments</span>
+			</div>
+
+			<div className="wd-comments-list">
+				{comments.length === 0 ? (
+					<p className="wd-comments-empty">No comments yet.</p>
+				) : (
+					comments.map((c) => (
+						<div key={c.id} className="wd-comment">
+							<div className="wd-comment-meta">
+								<span className="wd-comment-author">
+									{c.worker_name}
+								</span>
+								<span className="wd-comment-date">
+									{c.created_at?.toDate
+										? c.created_at
+												.toDate()
+												.toLocaleDateString()
+										: '—'}
+								</span>
+							</div>
+							<p className="wd-comment-text">{c.text}</p>
+						</div>
+					))
+				)}
+			</div>
+		</>
+	)
+}
+
+function StarRating({ rating, max = 5 }) {
+	return (
+		<div className="rd-stars-readonly">
+			{[...Array(max)].map((_, i) => (
+				<span
+					key={i}
+					className={`rd-star-readonly ${i < rating ? 'rd-star-readonly--active' : ''}`}
+				>
+					★
+				</span>
+			))}
+			<span className="rd-star-label">
+				{['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
+			</span>
 		</div>
 	)
 }
