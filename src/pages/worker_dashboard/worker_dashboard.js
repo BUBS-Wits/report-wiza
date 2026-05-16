@@ -743,7 +743,8 @@ function RequestDetailPanel({
 						</dd>
 					</div>
 				)}
-				{req.rating &&
+				{req.status === STATUS.CLOSED &&
+					req.rating &&
 					typeof req.rating === 'number' &&
 					req.comment && (
 						<div className="wd-panel-meta-row wd-panel-meta-row--full">
@@ -763,7 +764,7 @@ function RequestDetailPanel({
 				<img src={req.image} alt="Report image" />
 			</div>
 
-			{active_section === 'queue' ? (
+			{active_section === 'queue' && req.status !== STATUS.CLOSED ? (
 				<>
 					{/* Status update */}
 					<div className="wd-panel-divider">
@@ -806,36 +807,7 @@ function RequestDetailPanel({
 						)}
 					</div>
 
-					{/* Public comments */}
-					<div className="wd-panel-divider">
-						<span>Public comments</span>
-					</div>
-
-					<div className="wd-comments-list">
-						{comments.length === 0 ? (
-							<p className="wd-comments-empty">
-								No comments yet.
-							</p>
-						) : (
-							comments.map((c) => (
-								<div key={c.id} className="wd-comment">
-									<div className="wd-comment-meta">
-										<span className="wd-comment-author">
-											{c.worker_name}
-										</span>
-										<span className="wd-comment-date">
-											{c.created_at?.toDate
-												? c.created_at
-														.toDate()
-														.toLocaleDateString()
-												: '—'}
-										</span>
-									</div>
-									<p className="wd-comment-text">{c.text}</p>
-								</div>
-							))
-						)}
-					</div>
+					<PublicComments comments={comments} />
 
 					<div className="wd-comment-form">
 						<textarea
@@ -855,8 +827,10 @@ function RequestDetailPanel({
 						</button>
 					</div>
 				</>
-			) : (
+			) : active_section !== 'queue' ? (
 				<ClaimBtn request_uid={req.id} post_claim={post_claim} />
+			) : (
+				<PublicComments comments={comments} />
 			)}
 		</div>
 	)
@@ -945,6 +919,41 @@ function ErrorScreen({ message, onRetry }) {
 				Try again
 			</button>
 		</div>
+	)
+}
+
+function PublicComments({ comments }) {
+	return (
+		<>
+			{/* Public comments */}
+			<div className="wd-panel-divider">
+				<span>Public comments</span>
+			</div>
+
+			<div className="wd-comments-list">
+				{comments.length === 0 ? (
+					<p className="wd-comments-empty">No comments yet.</p>
+				) : (
+					comments.map((c) => (
+						<div key={c.id} className="wd-comment">
+							<div className="wd-comment-meta">
+								<span className="wd-comment-author">
+									{c.worker_name}
+								</span>
+								<span className="wd-comment-date">
+									{c.created_at?.toDate
+										? c.created_at
+												.toDate()
+												.toLocaleDateString()
+										: '—'}
+								</span>
+							</div>
+							<p className="wd-comment-text">{c.text}</p>
+						</div>
+					))
+				)}
+			</div>
+		</>
 	)
 }
 
