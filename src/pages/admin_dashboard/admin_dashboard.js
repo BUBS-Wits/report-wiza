@@ -9,6 +9,7 @@ import StatCards from '../../components/stat_cards/stat_cards.js'
 import RegisterWorker from '../../components/register_worker/register_worker.js'
 import WorkersList from '../../components/workers_list/workers_list.js'
 import AdminRequests from '../../components/admin_requests/admin_requests.js'
+import AdminPublicDashboardSettings from '../../components/admin_public_dashboard_settings/admin_public_dashboard_settings.js'
 import AdminMessagingReview from '../../components/admin_review_messages/admin_review_messages.js'
 import './admin_dashboard.css'
 
@@ -108,12 +109,7 @@ function AdminDashboard({ section = 'workers' }) {
 					</div>
 				)
 			case 'settings':
-				return (
-					<div className="admin_placeholder">
-						<p>System Settings</p>
-						<span>US044</span>
-					</div>
-				)
+				return <AdminPublicDashboardSettings />
 			default:
 				return null
 		}

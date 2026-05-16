@@ -40,7 +40,6 @@ const normalise_request = (id, data) => {
 		description: data.description ?? '',
 		image: data.image ?? null,
 		like_count: data.like_count ?? 0,
-		user_uid: data.user_uid ?? null,
 		created_at: data.created_at ?? null,
 		updated_at: data.updated_at ?? null,
 		latitude: coords.latitude,
