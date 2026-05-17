@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import './admin_worker_performance.css'
-import { fetch_aggregate_worker_performance } from '../services/worker_performance_service.js'
+import { fetch_aggregate_worker_performance } from '../../backend/admin_worker_performance_service.js'
 
 /* ── helpers ── */
 
