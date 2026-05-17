@@ -76,9 +76,9 @@ describe('Public Dashboard Service', () => {
 		const result = await fetchPublicDashboardData()
 
 		expect(result.active.length).toBe(2)
-		expect(result.active.map(r => r.id)).toEqual(
+		expect(result.active.map((r) => r.id)).toEqual(
 			expect.arrayContaining(['req_good_loc', 'req_bad_loc'])
-		);
+		)
 		expect(result.stats.open_count).toBe(2)
 	})
 

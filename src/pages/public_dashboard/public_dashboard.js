@@ -330,33 +330,33 @@ function PublicDashboard() {
 									<Popup>
 										<div>
 											{visibleFields.category && (
-											<>
-												<strong>
-													{request.category}
-												</strong>
+												<>
+													<strong>
+														{request.category}
+													</strong>
 													<br />
 												</>
-										)}
-										{visibleFields.status && (
-											<>
-												Status: {request.status}
+											)}
+											{visibleFields.status && (
+												<>
+													Status: {request.status}
 													<br />
 												</>
-										)}
-										{visibleFields.ward && (
-											<>
-												{request.ward}
+											)}
+											{visibleFields.ward && (
+												<>
+													{request.ward}
 													<br />
 												</>
-										)}
-										{visibleFields.municipality && (
-											<>
-												{request.municipality}
+											)}
+											{visibleFields.municipality && (
+												<>
+													{request.municipality}
 													<br />
 												</>
-										)}
-										{visibleFields.description &&
-											request.description}
+											)}
+											{visibleFields.description &&
+												request.description}
 										</div>
 									</Popup>
 								</Marker>

@@ -461,14 +461,18 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 		req.status !== STATUS.CLOSED
 
 	const parseWktPoint = (locationStr) => {
-		if (!locationStr) return null
+		if (!locationStr) {
+			return null
+		}
 		const match = locationStr.match(
 			/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i
 		)
 		if (match) {
 			const lon = parseFloat(match[1])
 			const lat = parseFloat(match[2])
-			if (!isNaN(lat) && !isNaN(lon)) return { lat, lon }
+			if (!isNaN(lat) && !isNaN(lon)) {
+				return { lat, lon }
+			}
 		}
 		return null
 	}
@@ -490,9 +494,13 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 	}
 
 	const get_signed_url = async (id, image, expires) => {
-		if (expires !== null && !is_expired(expires)) return image
+		if (expires !== null && !is_expired(expires)) {
+			return image
+		}
 		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
-		if (!ret.ok) return image
+		if (!ret.ok) {
+			return image
+		}
 		const data = await ret.json()
 		req.image = data.data
 		return req.image
@@ -560,13 +568,19 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 				import('../../firebase_config.js').then(({ db }) => {
 					getDocs(
 						query(
-							collection(db, 'service_requests', req.id, 'comments'),
+							collection(
+								db,
+								'service_requests',
+								req.id,
+								'comments'
+							),
 							where('type', '==', 'close_reason')
 						)
 					)
 						.then((snap) => {
-							if (!snap.empty)
+							if (!snap.empty) {
 								set_close_reason(snap.docs[0].data().text)
+							}
 						})
 						.catch(() => set_close_reason(null))
 						.finally(() => set_close_reason_loading(false))
@@ -594,8 +608,18 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						onClick={on_back}
 						aria-label="Back to requests"
 					>
-						<svg viewBox="0 0 16 16" fill="none" style={{ width: '18px', height: '18px' }}>
-							<path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+						<svg
+							viewBox="0 0 16 16"
+							fill="none"
+							style={{ width: '18px', height: '18px' }}
+						>
+							<path
+								d="M10 3L5 8l5 5"
+								stroke="currentColor"
+								strokeWidth="1.75"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
 						</svg>
 					</button>
 					<div className="rd-detail-title-group">
@@ -603,13 +627,27 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						<span className="rd-detail-id">{req.id}</span>
 					</div>
 				</div>
-				<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-					<span className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}>
+				<div
+					style={{
+						display: 'flex',
+						alignItems: 'center',
+						gap: '12px',
+					}}
+				>
+					<span
+						className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}
+					>
 						{meta.label}
 					</span>
-					<LikeButton requestId={req.id} initialLikeCount={req.like_count || 0} />
+					<LikeButton
+						requestId={req.id}
+						initialLikeCount={req.like_count || 0}
+					/>
 					{req.status && (
-						<button className="wd-home-btn" onClick={feedback_toggle}>
+						<button
+							className="wd-home-btn"
+							onClick={feedback_toggle}
+						>
 							Review
 						</button>
 					)}
@@ -626,11 +664,15 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						<dt>Priority</dt>
 						<dd>
 							{priority_meta ? (
-								<span className={`rd-priority-pill ${priority_meta.cls}`}>
+								<span
+									className={`rd-priority-pill ${priority_meta.cls}`}
+								>
 									{priority_meta.label}
 								</span>
 							) : (
-								<span className="rd-priority-none">Not set</span>
+								<span className="rd-priority-none">
+									Not set
+								</span>
 							)}
 						</dd>
 					</div>
@@ -646,7 +688,9 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						<dt>Assigned worker</dt>
 						<dd>
 							{req.worker_name ?? (
-								<span className="rd-unassigned">Not yet assigned</span>
+								<span className="rd-unassigned">
+									Not yet assigned
+								</span>
 							)}
 						</dd>
 					</div>
@@ -658,7 +702,11 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 									href={`https://www.google.com/maps?q=${lat},${lng}`}
 									target="_blank"
 									rel="noopener noreferrer"
-									style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+									style={{
+										display: 'inline-flex',
+										alignItems: 'center',
+										gap: '4px',
+									}}
 								>
 									📍 {lat.toFixed(6)}, {lng.toFixed(6)}
 								</a>
@@ -707,7 +755,10 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 							<div className="rd-detail-meta-item rd-detail-meta-item--full">
 								<dt>Review</dt>
 								<StarRating rating={req.rating} />
-								<dd className="rd-review-comment" style={{ marginTop: '12px' }}>
+								<dd
+									className="rd-review-comment"
+									style={{ marginTop: '12px' }}
+								>
 									{req.comment}
 								</dd>
 							</div>
@@ -748,11 +799,21 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 				) : (
 					<div className="rd-no-worker">
 						<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" stroke="currentColor" strokeWidth="1.5"/>
-							<path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+							<path
+								d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"
+								stroke="currentColor"
+								strokeWidth="1.5"
+							/>
+							<path
+								d="M12 8v4M12 16h.01"
+								stroke="currentColor"
+								strokeWidth="1.5"
+								strokeLinecap="round"
+							/>
 						</svg>
 						<p>
-							Messaging will be available once a worker is assigned to this request.
+							Messaging will be available once a worker is
+							assigned to this request.
 						</p>
 					</div>
 				)}
