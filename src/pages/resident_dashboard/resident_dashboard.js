@@ -510,7 +510,7 @@ function RequestDetail({ req, resident, on_back }) {
 				if (!res.ok) {
 					const error_text = await res.text()
 					try {
-						alert(JSON.parse(error_text).error)
+						alert('View console for details')
 						console.error(
 							'Server Error (JSON):',
 							JSON.parse(error_text)
