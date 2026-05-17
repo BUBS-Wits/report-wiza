@@ -192,7 +192,7 @@ export function get_location() {
 				alert('Failed to get current location')
 				reject(err)
 			},
-			{ timeout: 1 * 1000 * 1000, enableHighAccuracy: true }
+			{ timeout: 10 * 1000, enableHighAccuracy: true }
 		)
 	})
 }
