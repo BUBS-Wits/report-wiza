@@ -937,11 +937,9 @@ app.post('/api/cancel-request', authenticate, async (req, res) => {
 
 		// Verify no worker assigned
 		if (data.worker_uid) {
-			return res
-				.status(400)
-				.json({
-					error: 'Cannot cancel a request that has been assigned to a worker.',
-				})
+			return res.status(400).json({
+				error: 'Cannot cancel a request that has been assigned to a worker.',
+			})
 		}
 
 		// Delete the document
