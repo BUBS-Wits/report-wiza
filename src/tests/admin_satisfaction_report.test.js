@@ -2,7 +2,7 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
-import AdminSatisfactionReport from '../pages/admin_satisfaction_report/admin_satisfaction_report.js'
+import AdminSatisfactionReport from '../components/admin_satisfaction_report/admin_satisfaction_report.js'
 import {
 	fetch_rated_requests,
 	fetch_assignments,
@@ -22,6 +22,23 @@ jest.mock('../backend/admin_firebase.js', () => ({
 jest.mock('../firebase_config.js', () => ({
 	db: {},
 }))
+
+jest.mock('react-router-dom', () => ({
+	MemoryRouter: ({ children }) => <div>{children}</div>,
+	NavLink: ({ to, children }) => <a href={to}>{children}</a>,
+	useLocation: () => ({ pathname: '/' }),
+}))
+
+jest.mock('../components/admin_sidebar/admin_sidebar.js', () => {
+	const MockSidebar = () => <div data-testid="sidebar" />
+	MockSidebar.displayName = 'MockSidebar'
+	return MockSidebar
+})
+jest.mock('../components/top_bar/top_bar.js', () => {
+	const MockTopBar = () => <div data-testid="top-bar" />
+	MockTopBar.displayName = 'MockTopBar'
+	return MockTopBar
+})
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Helper Data
