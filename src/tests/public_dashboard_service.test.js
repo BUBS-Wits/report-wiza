@@ -1,11 +1,5 @@
 import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js'
-import {
-	collection,
-	getDocs,
-	query,
-	orderBy,
-	limit,
-} from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { parseLocation } from '../utils/parse_location.js'
 
 jest.mock('firebase/firestore', () => ({
