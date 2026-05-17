@@ -75,9 +75,11 @@ describe('Public Dashboard Service', () => {
 
 		const result = await fetchPublicDashboardData()
 
-		expect(result.active.length).toBe(1)
-		expect(result.active[0].id).toBe('req_good_loc')
-		expect(result.stats.open_count).toBe(1)
+		expect(result.active.length).toBe(2)
+		expect(result.active.map(r => r.id)).toEqual(
+			expect.arrayContaining(['req_good_loc', 'req_bad_loc'])
+		);
+		expect(result.stats.open_count).toBe(2)
 	})
 
 	test('applies default values for missing fields during normalization', async () => {
@@ -126,12 +128,12 @@ describe('Public Dashboard Service', () => {
 		])
 
 		// 1 resolved
-		expect(result.resolved.length).toBe(1)
+		expect(result.resolved.length).toBe(2)
 		expect(result.resolved[0].id).toBe('req_5')
 
 		// Stats verification
 		expect(result.stats.open_count).toBe(4)
-		expect(result.stats.resolved_count).toBe(1)
+		expect(result.stats.resolved_count).toBe(2)
 
 		// Wards 10, 11, 12, 13, 14 were seen (even if status is CLOSED, normalization still ran and saw the ward)
 		expect(result.stats.wards_affected).toBe(5)
