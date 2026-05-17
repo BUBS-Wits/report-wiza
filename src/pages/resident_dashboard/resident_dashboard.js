@@ -633,7 +633,7 @@ function RequestDetail({ req, resident, on_back }) {
 						requestId={req.id}
 						initialLikeCount={req.like_count || 0}
 					/>
-					{req.status == STATUS.CLOSED && (
+					{req.status === STATUS.CLOSED && (
 						<button
 							className="wd-home-btn"
 							onClick={feedback_toggle}

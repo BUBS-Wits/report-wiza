@@ -166,23 +166,6 @@ export function get_voting_district_info(longitude, latitude) {
 }
 
 export function get_location() {
-	/*
-	return fetch(`https://ipapi.co/json/`)
-		.then(async (res) => {
-			const data = await res.json()
-			if (!data.longitude || !data.latitude || !res.ok) {
-				console.error(
-					'Failed to get longitude and latitude from response body'
-				)
-				return null
-			}
-			return [data.longitude, data.latitude]
-		})
-		.catch((err) => {
-			console.error(err)
-			return null
-		})
-  */
 	return new Promise((resolve, reject) => {
 		navigator.geolocation.getCurrentPosition(
 			(position) => {
