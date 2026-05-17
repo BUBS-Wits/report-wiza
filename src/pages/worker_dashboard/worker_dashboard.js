@@ -840,34 +840,39 @@ function StatCard({ label, value, sub, value_modifier }) {
 }
 
 function RequestRow({ req, is_selected, on_click }) {
-	const display_date =
-		parse_date(req.updated_at) !== '-'
-			? parse_date(req.updated_at)
-			: parse_date(req.created_at)
+    const display_date =
+        parse_date(req.updated_at) !== '-'
+            ? parse_date(req.updated_at)
+            : parse_date(req.created_at)
 
-	return (
-		<button
-			className={`wd-req-row${is_selected ? ' wd-req-row--selected' : ''}`}
-			onClick={on_click}
-			aria-pressed={is_selected}
-			aria-label={`Open request ${req.id} — ${req.category}, ${STATUS_DISPLAY[req.status]}`}
-		>
-			<span className="wd-req-id">{req.id}</span>
-			<span className="wd-req-cat">{req.category}</span>
-			<span className="wd-req-desc">{req.description}</span>
-			<span
-				className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
-			>
-				{STATUS_DISPLAY[req.status]}
-			</span>
-			<span className="wd-req-meta">
-				{req.sa_ward} · {display_date}
-			</span>
-			<span className="wd-req-chevron" aria-hidden="true">
-				›
-			</span>
-		</button>
-	)
+    return (
+        <button
+            className={`wd-req-row${is_selected ? ' wd-req-row--selected' : ''}`}
+            onClick={on_click}
+            aria-pressed={is_selected}
+            aria-label={`Open request ${req.id} — ${req.category}, ${STATUS_DISPLAY[req.status]}`}
+        >
+            <div className="wd-row-accent" />
+            <div className="wd-row-body">
+                <div className="wd-row-top-left">
+                    <span className="wd-req-cat">{req.category}</span>
+                    <span className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}>
+                        {STATUS_DISPLAY[req.status]}
+                    </span>
+                </div>
+                <div className="wd-row-meta-cell">
+                    <span className="wd-req-ward-chip">{req.sa_ward}</span>
+                    <span className="wd-req-date">{display_date}</span>
+                </div>
+                <div className="wd-row-chevron-cell">
+                    <span className="wd-req-chevron" aria-hidden="true">›</span>
+                </div>
+                <div className="wd-row-desc-cell">
+                    <span className="wd-req-desc">{req.description}</span>
+                </div>
+            </div>
+        </button>
+    )
 }
 
 function EmptyQueue({ filter }) {
