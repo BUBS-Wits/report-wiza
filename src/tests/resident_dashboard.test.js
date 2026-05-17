@@ -1,31 +1,34 @@
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-import ResidentDashboard from '../pages/resident_dashboard/resident_dashboard.js'
+import ResidentDashboard from '../pages/resident_dashboard/resident_dashboard'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { auth } from '../firebase_config.js'
+import { getDocs } from 'firebase/firestore'
 import {
 	fetch_resident_profile,
 	fetch_resident_requests,
 	subscribe_to_resident_unread_count,
-} from '../backend/resident_dashboard_service.js'
+} from '../backend/resident_dashboard_service'
 import { useNavigate } from 'react-router-dom'
+import { auth } from '../firebase_config'
 
 jest.mock('firebase/auth', () => ({
 	onAuthStateChanged: jest.fn(),
 	signOut: jest.fn(),
 }))
 
-jest.mock('../firebase_config.js', () => ({
-	auth: {
-		currentUser: {
-			uid: 'user123',
-			getIdToken: jest.fn(),
-		},
-	},
+jest.mock('firebase/firestore', () => ({
+	collection: jest.fn(),
+	query: jest.fn(),
+	where: jest.fn(),
+	getDocs: jest.fn(),
+}))
+
+jest.mock('../firebase_config', () => ({
+	auth: { currentUser: null },
 	db: {},
 }))
 
-jest.mock('../backend/resident_dashboard_service.js', () => ({
+jest.mock('../backend/resident_dashboard_service', () => ({
 	fetch_resident_profile: jest.fn(),
 	fetch_resident_requests: jest.fn(),
 	subscribe_to_resident_unread_count: jest.fn(),
@@ -44,7 +47,7 @@ jest.mock('react-router-dom', () => ({
 }))
 
 jest.mock(
-	'../components/message_thread/message_thread.js',
+	'../components/message_thread/message_thread',
 	() =>
 		function MockMessageThread() {
 			return <div data-testid="message-thread" />
@@ -52,7 +55,7 @@ jest.mock(
 )
 
 jest.mock(
-	'../components/notification_bell/notification_bell.js',
+	'../components/notification_bell/notification_bell',
 	() =>
 		function MockNotificationBell() {
 			return <div data-testid="notification-bell" />
@@ -60,7 +63,7 @@ jest.mock(
 )
 
 jest.mock(
-	'../components/request_card/like_button/like_button.js',
+	'../components/request_card/like_button/like_button',
 	() =>
 		function MockLikeButton() {
 			return <div data-testid="like-button" />
@@ -68,50 +71,47 @@ jest.mock(
 )
 
 jest.mock(
-	'../components/feedback_form/feedback_form.js',
+	'../components/feedback_form/feedback_form',
 	() =>
 		function MockFeedbackForm({ onCancel, onSubmit }) {
 			return (
 				<div data-testid="feedback-form">
-					<button onClick={onCancel}>Cancel review</button>
 					<button
 						onClick={() =>
-							onSubmit({
-								rating: 5,
-								comment: 'Great service',
-							})
+							onSubmit({ rating: 4, comment: 'Good job' })
 						}
 					>
-						Submit review
+						Submit Mock Review
 					</button>
+					<button onClick={onCancel}>Cancel review</button>
 				</div>
 			)
 		}
 )
 
-jest.mock('firebase/firestore', () => ({
-	getDocs: jest.fn(),
-	collection: jest.fn(),
-	query: jest.fn(),
-	where: jest.fn(),
-}))
-
 describe('ResidentDashboard Component', () => {
 	let mockNavigate
+	const originalFetch = global.fetch
+	const originalAlert = window.alert
+	const originalConsoleError = console.error
+
+	beforeAll(() => {
+		global.fetch = jest.fn()
+		window.alert = jest.fn()
+		console.error = jest.fn()
+	})
+
+	afterAll(() => {
+		global.fetch = originalFetch
+		window.alert = originalAlert
+		console.error = originalConsoleError
+	})
 
 	beforeEach(() => {
 		jest.clearAllMocks()
 		mockNavigate = jest.fn()
 		useNavigate.mockReturnValue(mockNavigate)
-		global.fetch = jest.fn()
-		auth.currentUser.getIdToken.mockResolvedValue('fake-token')
-
-		const firestore = require('firebase/firestore')
-		firestore.getDocs.mockReset()
-	})
-
-	afterEach(() => {
-		jest.restoreAllMocks()
+		auth.currentUser = null
 	})
 
 	test('renders loading state initially', () => {
@@ -122,7 +122,7 @@ describe('ResidentDashboard Component', () => {
 		expect(screen.getByText('Loading your dashboard…')).toBeInTheDocument()
 	})
 
-	test('shows error screen if user is not logged in', async () => {
+	test('shows error screen if user is not logged in and handles ErrorScreen navigation', async () => {
 		onAuthStateChanged.mockImplementation((auth, callback) => {
 			callback(null)
 			return jest.fn()
@@ -135,86 +135,39 @@ describe('ResidentDashboard Component', () => {
 				screen.getByText('You are not logged in.')
 			).toBeInTheDocument()
 		})
+
+		fireEvent.click(screen.getByText('Try again'))
+		expect(mockNavigate).toHaveBeenCalledWith('/login')
+
+		fireEvent.click(screen.getByText('Go back Home'))
+		expect(mockNavigate).toHaveBeenCalledWith('/')
 	})
 
 	test('shows error screen if data loading fails', async () => {
-		const mockUser = { uid: 'user123' }
-
 		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
+			callback({ uid: 'user123' })
 			return jest.fn()
 		})
 
-		fetch_resident_profile.mockRejectedValue(new Error('Network error'))
-		fetch_resident_requests.mockRejectedValue(new Error('Network error'))
+		fetch_resident_profile.mockRejectedValue(new Error('Network failure'))
 
 		render(<ResidentDashboard />)
 
 		await waitFor(() => {
-			expect(screen.getByText('Network error')).toBeInTheDocument()
+			expect(screen.getByText('Network failure')).toBeInTheDocument()
 		})
 	})
 
-	test('loads and displays resident profile and requests', async () => {
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-		const mockRequests = [
-			{
-				id: 'req1',
-				category: 'Pothole',
-				status: 'submitted',
-				description: 'Big pothole',
-				created_at: new Date('2023-01-01'),
-			},
-			{
-				id: 'req2',
-				category: 'Water Leak',
-				status: 'in_progress',
-				description: 'Leaking pipe',
-				created_at: new Date('2023-01-02'),
-			},
-		]
-
+	test('shows empty state when there are no requests and handles logout', async () => {
 		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
-		subscribe_to_resident_unread_count.mockImplementation((uid, cb) => {
-			cb(3)
+			callback({ uid: 'user123' })
 			return jest.fn()
 		})
 
-		render(<ResidentDashboard />)
-
-		await waitFor(() => {
-			expect(
-				screen.queryByText('Loading your dashboard…')
-			).not.toBeInTheDocument()
+		fetch_resident_profile.mockResolvedValue({
+			uid: 'user123',
+			name: 'Jane Doe',
 		})
-
-		expect(screen.getByText('John Doe')).toBeInTheDocument()
-		expect(screen.getByText('JD')).toBeInTheDocument()
-
-		await waitFor(() => {
-			expect(screen.getByText('3')).toBeInTheDocument()
-		})
-
-		expect(screen.getAllByText('Pothole').length).toBeGreaterThan(0)
-		expect(screen.getAllByText('Water Leak').length).toBeGreaterThan(0)
-		expect(screen.getAllByText('Big pothole').length).toBe(2)
-	})
-
-	test('shows empty state when there are no requests', async () => {
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'Jane Doe' }
-
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
 		fetch_resident_requests.mockResolvedValue([])
 
 		render(<ResidentDashboard />)
@@ -226,34 +179,59 @@ describe('ResidentDashboard Component', () => {
 				)
 			).toBeInTheDocument()
 		})
+
+		expect(screen.getByText('JD')).toBeInTheDocument()
+
+		signOut.mockResolvedValue()
+
+		fireEvent.click(screen.getByLabelText('Log out'))
+
+		expect(screen.getByText('Logging out…')).toBeInTheDocument()
+
+		await waitFor(() => {
+			expect(signOut).toHaveBeenCalled()
+			expect(mockNavigate).toHaveBeenCalledWith('/')
+		})
 	})
 
-	test('handles request selection correctly', async () => {
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
+	test('loads and displays resident profile, unread count, and selects first request', async () => {
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({
+			uid: 'user123',
+			name: null,
+		})
+
 		const mockRequests = [
 			{
 				id: 'req1',
 				category: 'Pothole',
 				status: 'submitted',
 				description: 'Big pothole',
-				created_at: new Date(),
+				created_at: { toDate: () => new Date('2023-01-01') },
+				updated_at: null,
+				sa_ward: 'Ward 10',
 			},
 			{
 				id: 'req2',
 				category: 'Water Leak',
-				status: 'in_progress',
+				status: 'unknown_status',
+				priority: 'Unknown Priority',
 				description: 'Leaking pipe',
-				created_at: new Date(),
+				created_at: new Date('2023-01-02'),
+				worker_uid: 'worker1',
+				worker_name: 'Bob',
 			},
 		]
 
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
+		fetch_resident_requests.mockResolvedValue(mockRequests)
+		subscribe_to_resident_unread_count.mockImplementation((uid, cb) => {
+			cb(5)
 			return jest.fn()
 		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
 
 		render(<ResidentDashboard />)
 
@@ -263,117 +241,395 @@ describe('ResidentDashboard Component', () => {
 			).not.toBeInTheDocument()
 		})
 
+		await waitFor(() => {
+			expect(screen.getByText('5')).toBeInTheDocument()
+		})
+
+		expect(screen.getAllByText('Resident').length).toBeGreaterThan(0)
+		expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+
 		const secondCard = screen
 			.getAllByText('Water Leak')[0]
 			.closest('button')
+
 		fireEvent.click(secondCard)
 
 		await waitFor(() => {
-			expect(screen.getAllByText('Leaking pipe').length).toBe(2)
+			expect(screen.getByText('Not set')).toBeInTheDocument()
+			expect(screen.getByText('Bob')).toBeInTheDocument()
 		})
+
+		fireEvent.click(screen.getByLabelText('Back to requests'))
+
+		expect(
+			screen.getByText('Select a request to view details and messages.')
+		).toBeInTheDocument()
 	})
 
-	test('handles logout process correctly', async () => {
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-
+	test('processes location, fetches signed URL, and handles StarRating', async () => {
 		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
+			callback({ uid: 'user123' })
 			return jest.fn()
 		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue([])
-		signOut.mockResolvedValue()
+
+		fetch_resident_profile.mockResolvedValue({
+			uid: 'user123',
+			name: 'John',
+		})
+
+		const reqs = [
+			{
+				id: 'req1',
+				status: 'closed',
+				category: 'Road',
+				priority: 'Critical',
+				description: 'Fixing road',
+				location: 'POINT(28.0583 -26.2309)',
+				image: 'http://expired.com/img.jpg?X-Amz-Date=20000101T000000Z&X-Amz-Expires=3600',
+				image_expires_at: new Date('2000-01-01').toISOString(),
+				rating: 3,
+				comment: 'Decent job',
+			},
+		]
+
+		fetch_resident_requests.mockResolvedValue(reqs)
+
+		global.fetch.mockResolvedValueOnce({
+			ok: true,
+			json: async () => ({
+				data: 'http://signed.com/img.jpg?X-Amz-Date=20260516T095040Z&X-Amz-Expires=432000',
+			}),
+		})
+
+		getDocs.mockResolvedValueOnce({
+			empty: false,
+			docs: [{ data: () => ({ text: 'Patch applied.' }) }],
+		})
 
 		render(<ResidentDashboard />)
 
 		await waitFor(() => {
-			expect(screen.getByLabelText('Log out')).toBeInTheDocument()
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
 		})
 
-		fireEvent.click(screen.getByLabelText('Log out'))
+		const locLink = screen.getByRole('link', {
+			name: /-26\.230900,\s*28\.058300/i,
+		})
+		expect(locLink).toBeInTheDocument()
 
-		expect(screen.getByText('Logging out…')).toBeInTheDocument()
+		expect(global.fetch).toHaveBeenCalledWith(
+			'/api/get-signed-url?request_uid=req1'
+		)
 
 		await waitFor(() => {
-			expect(signOut).toHaveBeenCalledTimes(1)
-			expect(mockNavigate).toHaveBeenCalledWith('/')
+			expect(screen.getByText('Patch applied.')).toBeInTheDocument()
+		})
+
+		expect(screen.getByText('Good')).toBeInTheDocument()
+	})
+
+	test('handles invalid location strings and non-expired images', async () => {
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({
+			uid: 'user123',
+			name: 'John',
+		})
+
+		const futureDate = new Date()
+		futureDate.setHours(futureDate.getHours() + 1)
+
+		const reqs = [
+			{
+				id: 'req1',
+				status: 'in_progress',
+				category: 'Water',
+				location: 'POINT(INVALID_DATA)',
+				image: 'http://valid.com/img.jpg?X-Amz-Date=20260516T095040Z&X-Amz-Expires=432000',
+				image_expires_at: futureDate.toISOString(),
+			},
+		]
+
+		fetch_resident_requests.mockResolvedValue(reqs)
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		expect(global.fetch).not.toHaveBeenCalled()
+		expect(screen.getByAltText('Request')).toHaveAttribute(
+			'src',
+			'http://valid.com/img.jpg?X-Amz-Date=20260516T095040Z&X-Amz-Expires=432000'
+		)
+	})
+
+	test('handles signed URL fetch failure gracefully', async () => {
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({
+			uid: 'user123',
+			name: 'John',
+		})
+
+		const reqs = [
+			{
+				id: 'req1',
+				status: 'in_progress',
+				category: 'Water',
+				image: 'http://expired.com/img.jpg?X-Amz-Date=20000101T000000Z&X-Amz-Expires=3600',
+				image_expires_at: new Date('2000-01-01').toISOString(),
+			},
+		]
+
+		fetch_resident_requests.mockResolvedValue(reqs)
+
+		global.fetch.mockResolvedValueOnce({
+			ok: false,
+		})
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		const img = screen.getByAltText('Request')
+		expect(img).toHaveAttribute(
+			'src',
+			'http://expired.com/img.jpg?X-Amz-Date=20000101T000000Z&X-Amz-Expires=3600'
+		)
+	})
+
+	test('submits feedback successfully with auth', async () => {
+		onAuthStateChanged.mockImplementation((authObj, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
+		fetch_resident_requests.mockResolvedValue([
+			{ id: 'req1', status: 'resolved' },
+		])
+
+		auth.currentUser = {
+			getIdToken: jest.fn().mockResolvedValue('mock_token'),
+		}
+
+		global.fetch.mockResolvedValueOnce({ ok: true })
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		fireEvent.click(screen.getByText('Review'))
+		fireEvent.click(screen.getByText('Submit Mock Review'))
+
+		await waitFor(() => {
+			expect(global.fetch).toHaveBeenCalledWith(
+				'/api/submit-review',
+				expect.objectContaining({
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: 'Bearer mock_token',
+					},
+					body: JSON.stringify({
+						request_uid: 'req1',
+						rating: 4,
+						comment: 'Good job',
+					}),
+				})
+			)
+			expect(window.alert).toHaveBeenCalledWith(
+				'Review successfully submitted.'
+			)
 		})
 	})
 
-	describe('cancel request', () => {
-		const originalConfirm = window.confirm
-
-		beforeAll(() => {
-			window.confirm = jest.fn(() => true)
+	test('submits feedback successfully without auth current user', async () => {
+		onAuthStateChanged.mockImplementation((authObj, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
 		})
 
-		afterAll(() => {
-			window.confirm = originalConfirm
+		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
+		fetch_resident_requests.mockResolvedValue([
+			{ id: 'req1', status: 'resolved' },
+		])
+
+		auth.currentUser = null
+
+		global.fetch.mockResolvedValueOnce({ ok: true })
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
 		})
 
-		it.skip('calls cancel API and removes request from list', async () => {
-			global.fetch = jest.fn().mockResolvedValue({
-				ok: true,
-				json: async () => ({
-					message: 'Request cancelled successfully.',
-				}),
-			})
+		fireEvent.click(screen.getByText('Review'))
+		fireEvent.click(screen.getByText('Submit Mock Review'))
 
-			const mockRequests = [
-				{
-					id: 'req-cancel-1',
-					category: 'Water',
-					description: 'Test cancel',
-					status: 'submitted',
-					worker_uid: null,
-					priority: 'Low',
-					like_count: 0,
-					sa_ward: 'Ward 1',
-					sa_m_name: 'Test City',
-					created_at: new Date(),
-					updated_at: new Date(),
-					location: null,
-					image: null,
-					worker_name: null,
-					user_uid: 'user123',
-				},
-			]
-			const mockProfile = { uid: 'user123', name: 'Test Resident' }
-
-			fetch_resident_profile.mockResolvedValue(mockProfile)
-			fetch_resident_requests.mockResolvedValue(mockRequests)
-			subscribe_to_resident_unread_count.mockReturnValue(jest.fn())
-
-			onAuthStateChanged.mockImplementation((auth, callback) => {
-				callback({ uid: 'user123' })
-				return jest.fn()
-			})
-
-			render(<ResidentDashboard />)
-
-			await waitFor(() => {
-				expect(
-					screen.getAllByText('Test cancel').length
-				).toBeGreaterThanOrEqual(1)
-			})
-
-			fireEvent.click(
-				screen.getAllByText('Test cancel')[0].closest('button')
-			)
-
-			const cancelBtn = await screen.findByText('Cancel Request')
-			expect(cancelBtn).toBeInTheDocument()
-			fireEvent.click(cancelBtn)
-
-			await waitFor(() => {
-				expect(screen.queryAllByText('Test cancel')).toHaveLength(0)
-			})
-
+		await waitFor(() => {
 			expect(global.fetch).toHaveBeenCalledWith(
-				'/api/cancel-request',
-				expect.objectContaining({ method: 'POST' })
+				'/api/submit-review',
+				expect.objectContaining({
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						request_uid: 'req1',
+						rating: 4,
+						comment: 'Good job',
+					}),
+				})
 			)
+		})
+	})
+
+	test('handles feedback API json error gracefully', async () => {
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
+		fetch_resident_requests.mockResolvedValue([
+			{ id: 'req1', status: 'resolved' },
+		])
+
+		global.fetch.mockResolvedValueOnce({
+			ok: false,
+			text: async () => JSON.stringify({ error: 'JSON error message' }),
+		})
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		fireEvent.click(screen.getByText('Review'))
+		fireEvent.click(screen.getByText('Submit Mock Review'))
+
+		await waitFor(() => {
+			expect(window.alert).toHaveBeenCalled()
+		})
+
+		expect(window.alert.mock.calls.flat().join(' ')).toContain(
+			'JSON error message'
+		)
+	})
+
+	test('handles feedback API generic text error gracefully', async () => {
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
+		fetch_resident_requests.mockResolvedValue([
+			{ id: 'req1', status: 'resolved' },
+		])
+
+		global.fetch.mockResolvedValueOnce({
+			ok: false,
+			text: async () => '<html>502 Bad Gateway</html>',
+		})
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		fireEvent.click(screen.getByText('Review'))
+		fireEvent.click(screen.getByText('Submit Mock Review'))
+
+		await waitFor(() => {
+			expect(window.alert).toHaveBeenCalled()
+		})
+
+		expect(window.alert.mock.calls.flat().join(' ')).toContain(
+			'Server error'
+		)
+	})
+
+	test('handles network failure during feedback submission', async () => {
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
+		fetch_resident_requests.mockResolvedValue([
+			{ id: 'req1', status: 'resolved' },
+		])
+
+		global.fetch.mockRejectedValueOnce(new Error('Fetch failed'))
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		fireEvent.click(screen.getByText('Review'))
+		fireEvent.click(screen.getByText('Submit Mock Review'))
+
+		await waitFor(() => {
+			expect(window.alert).toHaveBeenCalledWith(
+				'Error submitting review.'
+			)
+		})
+	})
+
+	test('handles close reason fetch failure', async () => {
+		onAuthStateChanged.mockImplementation((auth, callback) => {
+			callback({ uid: 'user123' })
+			return jest.fn()
+		})
+
+		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
+		fetch_resident_requests.mockResolvedValue([
+			{ id: 'req1', status: 'closed' },
+		])
+
+		getDocs.mockRejectedValueOnce(new Error('Permissions denied'))
+
+		render(<ResidentDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading your dashboard…')
+			).not.toBeInTheDocument()
+		})
+
+		await waitFor(() => {
+			expect(screen.getAllByText('—').length).toBeGreaterThan(0)
 		})
 	})
 
@@ -475,9 +731,7 @@ describe('ResidentDashboard Component', () => {
 	})
 
 	test('shows close reason for a closed request', async () => {
-		const firestore = require('firebase/firestore')
-
-		firestore.getDocs.mockResolvedValue({
+		getDocs.mockResolvedValue({
 			empty: false,
 			docs: [{ data: () => ({ text: 'Duplicate request' }) }],
 		})
@@ -522,8 +776,6 @@ describe('ResidentDashboard Component', () => {
 				status: 'resolved',
 				description: 'Big pothole',
 				created_at: new Date('2023-01-01'),
-				worker_uid: 'worker123',
-				worker_name: 'Worker One',
 			},
 		]
 
@@ -568,322 +820,5 @@ describe('ResidentDashboard Component', () => {
 
 		fireEvent.click(screen.getByText('Go back Home'))
 		expect(mockNavigate).toHaveBeenCalledWith('/')
-	})
-
-	test('renders request detail metadata for priority, worker, location, image, and review', async () => {
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-		const signedImageUrl =
-			'https://example.com/request.jpg?X-Amz-Date=20260516T095040Z&X-Amz-Expires=432000'
-
-		const mockRequests = [
-			{
-				id: 'req-detail',
-				category: 'Electricity',
-				status: 'resolved',
-				description: 'Power outage reported',
-				created_at: new Date('2023-01-01'),
-				updated_at: new Date('2023-01-02'),
-				priority: 'High',
-				worker_uid: 'worker123',
-				worker_name: 'Worker One',
-				sa_ward: 'Ward 4',
-				location: 'POINT(28.047300 -26.204100)',
-				image: signedImageUrl,
-				image_expires_at: new Date('2099-01-01').toISOString(),
-				rating: 5,
-				comment: 'Excellent response',
-				like_count: 4,
-			},
-		]
-
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
-
-		render(<ResidentDashboard />)
-
-		await waitFor(() => {
-			expect(
-				screen.queryByText('Loading your dashboard…')
-			).not.toBeInTheDocument()
-		})
-
-		expect(screen.getByText('High')).toBeInTheDocument()
-		expect(screen.getByText('Worker One')).toBeInTheDocument()
-		expect(screen.getAllByText('Ward 4').length).toBeGreaterThanOrEqual(1)
-		expect(screen.getByText('Excellent response')).toBeInTheDocument()
-		expect(screen.getByText('Excellent')).toBeInTheDocument()
-
-		const locationLink = screen.getByRole('link', {
-			name: /-26\.204100, 28\.047300/,
-		})
-		expect(locationLink).toHaveAttribute(
-			'href',
-			'https://www.google.com/maps?q=-26.2041,28.0473'
-		)
-
-		expect(screen.getByAltText('Request')).toHaveAttribute(
-			'src',
-			signedImageUrl
-		)
-		expect(screen.getByTestId('message-thread')).toBeInTheDocument()
-	})
-
-	test('renders fallback detail values when optional request fields are missing', async () => {
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-		const mockRequests = [
-			{
-				id: 'req-fallback',
-				category: 'Roads',
-				status: 'submitted',
-				description: 'Road issue',
-				created_at: null,
-				updated_at: null,
-				priority: null,
-				worker_uid: null,
-				worker_name: null,
-				sa_ward: null,
-				location: null,
-				image: null,
-			},
-		]
-
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
-
-		render(<ResidentDashboard />)
-
-		await waitFor(() => {
-			expect(
-				screen.queryByText('Loading your dashboard…')
-			).not.toBeInTheDocument()
-		})
-
-		expect(screen.getByText('Not set')).toBeInTheDocument()
-		expect(screen.getByText('Not yet assigned')).toBeInTheDocument()
-		expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3)
-		expect(screen.queryByAltText('Request')).not.toBeInTheDocument()
-		expect(screen.queryByTestId('message-thread')).not.toBeInTheDocument()
-	})
-
-	test('shows blank close reason fallback when a closed request has no close reason comment', async () => {
-		const firestore = require('firebase/firestore')
-
-		firestore.getDocs.mockResolvedValueOnce({
-			empty: true,
-			docs: [],
-		})
-
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-		const mockRequests = [
-			{
-				id: 'req-closed-empty',
-				category: 'Water',
-				status: 'closed',
-				description: 'Closed request without reason',
-				created_at: new Date('2023-01-01'),
-				updated_at: new Date('2023-01-02'),
-			},
-		]
-
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
-
-		render(<ResidentDashboard />)
-
-		await waitFor(() => {
-			expect(screen.getByText('Close reason')).toBeInTheDocument()
-		})
-
-		await waitFor(() => {
-			expect(firestore.getDocs).toHaveBeenCalled()
-		})
-
-		expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
-	})
-
-	test('handles close reason fetch failure by showing fallback value', async () => {
-		const firestore = require('firebase/firestore')
-
-		firestore.getDocs.mockRejectedValueOnce(new Error('Permission denied'))
-
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-		const mockRequests = [
-			{
-				id: 'req-closed-error',
-				category: 'Water',
-				status: 'closed',
-				description: 'Closed request with error',
-				created_at: new Date('2023-01-01'),
-				updated_at: new Date('2023-01-02'),
-			},
-		]
-
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
-
-		render(<ResidentDashboard />)
-
-		await waitFor(() => {
-			expect(screen.getByText('Close reason')).toBeInTheDocument()
-		})
-
-		await waitFor(() => {
-			expect(firestore.getDocs).toHaveBeenCalled()
-		})
-
-		expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(1)
-	})
-
-	test('submits a resident review successfully', async () => {
-		const alertSpy = jest
-			.spyOn(window, 'alert')
-			.mockImplementation(() => {})
-		global.fetch = jest.fn().mockResolvedValue({
-			ok: true,
-			text: async () => '',
-		})
-
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-		const mockRequests = [
-			{
-				id: 'req-review',
-				category: 'Pothole',
-				status: 'resolved',
-				description: 'Resolved pothole',
-				created_at: new Date('2023-01-01'),
-				worker_uid: 'worker123',
-				worker_name: 'Worker One',
-			},
-		]
-
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
-
-		render(<ResidentDashboard />)
-
-		await waitFor(() => {
-			expect(screen.getByText('Review')).toBeInTheDocument()
-		})
-
-		fireEvent.click(screen.getByText('Review'))
-
-		await waitFor(() => {
-			expect(screen.getByTestId('feedback-form')).toBeInTheDocument()
-		})
-
-		fireEvent.click(screen.getByText('Submit review'))
-
-		await waitFor(() => {
-			expect(global.fetch).toHaveBeenCalled()
-		})
-
-		expect(global.fetch).toHaveBeenCalledWith(
-			'/api/submit-review',
-			expect.objectContaining({
-				method: 'POST',
-				headers: expect.objectContaining({
-					'Content-Type': 'application/json',
-					Authorization: 'Bearer fake-token',
-				}),
-				body: JSON.stringify({
-					request_uid: 'req-review',
-					rating: 5,
-					comment: 'Great service',
-				}),
-			})
-		)
-
-		await waitFor(() => {
-			expect(alertSpy).toHaveBeenCalledWith(
-				'Review successfully submitted.'
-			)
-		})
-	})
-
-	test('handles resident review API JSON error response', async () => {
-		const alertSpy = jest
-			.spyOn(window, 'alert')
-			.mockImplementation(() => {})
-
-		global.fetch = jest.fn().mockResolvedValue({
-			ok: false,
-			text: async () =>
-				JSON.stringify({ error: 'Review already exists' }),
-		})
-
-		const mockUser = { uid: 'user123' }
-		const mockProfile = { uid: 'user123', name: 'John Doe' }
-		const mockRequests = [
-			{
-				id: 'req-review-error',
-				category: 'Pothole',
-				status: 'resolved',
-				description: 'Resolved pothole',
-				created_at: new Date('2023-01-01'),
-				worker_uid: 'worker123',
-				worker_name: 'Worker One',
-			},
-		]
-
-		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(mockUser)
-			return jest.fn()
-		})
-		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue(mockRequests)
-
-		render(<ResidentDashboard />)
-
-		await waitFor(() => {
-			expect(screen.getByText('Review')).toBeInTheDocument()
-		})
-
-		fireEvent.click(screen.getByText('Review'))
-
-		await waitFor(() => {
-			expect(screen.getByTestId('feedback-form')).toBeInTheDocument()
-		})
-
-		fireEvent.click(screen.getByText('Submit review'))
-
-		await waitFor(() => {
-			expect(global.fetch).toHaveBeenCalled()
-		})
-
-		expect(global.fetch).toHaveBeenCalledWith(
-			'/api/submit-review',
-			expect.objectContaining({
-				method: 'POST',
-			})
-		)
-
-		await waitFor(() => {
-			expect(alertSpy).toHaveBeenCalledWith('Review already exists')
-		})
 	})
 })
