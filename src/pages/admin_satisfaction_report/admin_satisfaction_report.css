@@ -1,0 +1,162 @@
+/* src/pages/admin_satisfaction_report/admin_satisfaction_report.css */
+
+.satisfaction_report_container {
+	padding: 2rem;
+	max-width: 900px;
+	margin: 0 auto;
+	font-family: 'DM Sans', sans-serif;
+}
+
+.satisfaction_report_title {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 2rem;
+	font-weight: 700;
+	color: #0f1f3d;
+	margin-bottom: 0.25rem;
+}
+
+.satisfaction_report_subtitle {
+	color: #64748b;
+	font-size: 0.95rem;
+	margin-bottom: 2rem;
+}
+
+.satisfaction_section {
+	margin-bottom: 2.5rem;
+}
+
+.satisfaction_section_title {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 1.3rem;
+	font-weight: 700;
+	color: #0f1f3d;
+	border-bottom: 2px solid #f59e0b;
+	padding-bottom: 0.4rem;
+	margin-bottom: 1rem;
+}
+
+.satisfaction_table {
+	width: 100%;
+	border-collapse: collapse;
+	background: #ffffff;
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.satisfaction_table thead {
+	background-color: #0f1f3d;
+	color: #ffffff;
+}
+
+.satisfaction_table th {
+	padding: 0.75rem 1rem;
+	text-align: left;
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 0.95rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+}
+
+.satisfaction_table td {
+	padding: 0.75rem 1rem;
+	font-size: 0.9rem;
+	color: #0f1f3d;
+	border-bottom: 1px solid #f1f5f9;
+	vertical-align: middle;
+}
+
+.satisfaction_table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.satisfaction_table tbody tr:hover {
+	background-color: #f8fafc;
+}
+
+.satisfaction_avg {
+	font-weight: 600;
+	color: #0f1f3d;
+}
+
+.satisfaction_max {
+	font-weight: 400;
+	color: #64748b;
+	font-size: 0.85rem;
+}
+
+.satisfaction_bar_col {
+	width: 180px;
+}
+
+.rating_bar_track {
+	width: 100%;
+	height: 10px;
+	background-color: #e2e8f0;
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.rating_bar_fill {
+	height: 100%;
+	border-radius: 999px;
+	transition: width 0.4s ease;
+}
+
+.satisfaction_loading,
+.satisfaction_error {
+	color: #64748b;
+	padding: 2rem 0;
+	text-align: center;
+}
+
+.satisfaction_error {
+	color: #dc2626;
+}
+
+.satisfaction_empty {
+	background: #f8fafc;
+	border: 1px dashed #cbd5e1;
+	border-radius: 8px;
+	padding: 2rem;
+	text-align: center;
+	color: #64748b;
+}
+
+.satisfaction_empty_inline {
+	color: #64748b;
+	font-size: 0.9rem;
+	padding: 0.5rem 0;
+}
+
+/* Summary Card */
+.satisfaction_summary_card {
+	display: flex;
+	gap: 1.5rem;
+	margin-bottom: 2rem;
+}
+
+.satisfaction_summary_item {
+	background: #ffffff;
+	border-radius: 8px;
+	padding: 1.25rem 2rem;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.25rem;
+	min-width: 140px;
+}
+
+.satisfaction_summary_value {
+	font-family: 'Barlow Condensed', sans-serif;
+	font-size: 2.2rem;
+	font-weight: 700;
+	color: #f59e0b;
+}
+
+.satisfaction_summary_label {
+	font-size: 0.8rem;
+	color: #64748b;
+	text-align: center;
+}

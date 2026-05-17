@@ -67,23 +67,6 @@ const PRIORITY_BADGE_CLASS = {
 	Critical: 'wd-priority--critical',
 }
 
-function get_updated_display_date(req) {
-	let updated_tmp = req.updated_at
-	if (req.updated_at && req.updated_at.toDate) {
-		updated_tmp = req.updated_at.toDate()
-	}
-	let created_tmp = req.created_at
-	if (req.created_at && req.created_at.toDate) {
-		created_tmp = req.created_at.toDate()
-	}
-	const display_date = updated_tmp
-		? new Date(updated_tmp).toISOString().split('T')[0]
-		: created_tmp
-			? new Date(created_tmp).toISOString().split('T')[0]
-			: '-'
-	return display_date
-}
-
 export default function WorkerDashboard() {
 	const [worker, set_worker] = useState(null)
 	const [claimed_requests, set_claimed_requests] = useState([])
@@ -97,9 +80,8 @@ export default function WorkerDashboard() {
 	})
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
-	const [error_handling, set_error_handling] = useState(null)
 	const [active_filter, set_filter] = useState('All')
-	const [active_section, set_active_section] = useState(null)
+	const [active_section, set_active_section] = useState('queue')
 	const [selected_req, set_selected_req] = useState(null)
 	const [panel_visible, set_panel_visible] = useState(false)
 	const [show_busy_tip, set_show_busy_tip] = useState(false)
@@ -133,20 +115,26 @@ export default function WorkerDashboard() {
 		setTimeout(() => set_show_busy_tip(false), 2000)
 	}
 
-	const load_dashboard = useCallback(async (uid) => {
-		set_error(null)
-		try {
-			const snap = await verify_worker_and_get_profile(uid)
-			const profile = snap.data()
-			set_worker({ uid, ...profile })
-			set_active_section('queue')
-		} catch (err) {
-			set_error(err.message || 'Failed to load dashboard.')
-			set_error_handling(() => () => navigate('/login'))
-		} finally {
-			set_loading(false)
+	const is_expired = (expires_at) => {
+		const expiry = expires_at
+		const now = new Date()
+		const buffer_ms = 5 * 60 * 1000
+		return expiry.getTime() - now.getTime() < buffer_ms
+	}
+
+	const get_signed_url = async (id, image, expires) => {
+		if (expires !== null && !is_expired(expires)) {
+			return image
 		}
-	}, [])
+		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
+		if (!ret.ok) {
+			return image
+		}
+		const data = await ret.json()
+		return data.data
+	}
+
+	/* ── Panel helpers ────────────────────────────────────────────────── */
 
 	const open_panel = useCallback((req) => {
 		set_selected_req(req)
@@ -175,16 +163,28 @@ export default function WorkerDashboard() {
 	)
 
 	const set_queue_requests = () => {
+		if (busy_ref.current) {
+			popup_busy('Already Loading Dashboard Info...')
+			return
+		}
 		set_active_section('queue')
 		close_panel()
 	}
 
 	const set_available_requests = () => {
+		if (busy_ref.current) {
+			popup_busy('Already Loading Dashboard Info...')
+			return
+		}
 		set_active_section('available')
 		close_panel()
 	}
 
 	const set_messages_section = () => {
+		if (busy_ref.current) {
+			popup_busy('Already Loading Dashboard Info...')
+			return
+		}
 		set_active_section('messages')
 		close_panel()
 	}
@@ -193,33 +193,23 @@ export default function WorkerDashboard() {
 		const unsub = onAuthStateChanged(auth, async (user) => {
 			if (!user) {
 				set_error('You are not logged in.')
-				set_error_handling(() => () => navigate('/login'))
 				set_loading(false)
 				return
 			}
-			load_dashboard(user.uid)
+			const snap = await verify_worker_and_get_profile(user.uid)
+			const data = snap.data()
+			set_worker({
+				uid: user.uid,
+				name: data.name ?? 'Municipal Worker',
+				email: data.email ?? '',
+				role: data.role,
+			})
+			set_loading(false)
 		})
 		return () => unsub()
 	}, [])
 
-	const is_expired = (expires_at) => {
-		const expiry = expires_at
-		const now = new Date()
-		const buffer_ms = 5 * 60 * 1000
-		return expiry.getTime() - now.getTime() < buffer_ms
-	}
-
-	const get_signed_url = async (id, image, expires) => {
-		if (expires !== null && !is_expired(expires)) {
-			return image
-		}
-		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
-		if (!ret.ok) {
-			return image
-		}
-		const data = await ret.json()
-		return data.data
-	}
+	/* ── Real-time listeners ──────────────────────────────────────────── */
 
 	useEffect(() => {
 		if (!worker?.uid) {
@@ -257,9 +247,8 @@ export default function WorkerDashboard() {
 						collection(db, 'service_requests'),
 						where('__name__', 'in', batch)
 					)
-					return onSnapshot(claimed_q, async (snapshot) => {
-						const doc_changes = snapshot.docChanges()
-						for (const change of doc_changes) {
+					return onSnapshot(claimed_q, (snapshot) => {
+						snapshot.docChanges().forEach((change) => {
 							const id = change.doc.id
 							const data = change.doc.data()
 
@@ -267,19 +256,12 @@ export default function WorkerDashboard() {
 								change.type === 'added' ||
 								change.type === 'modified'
 							) {
-								data.image = await get_signed_url(
-									id,
-									data.image,
-									data.image_expires_at
-										? new Date(data.image_expires_at)
-										: null
-								)
 								all_claimed_requests.set(id, { id, ...data })
 							}
 							if (change.type === 'removed') {
 								all_claimed_requests.delete(id)
 							}
-						}
+						})
 						const tmp = [...all_claimed_requests.values()]
 						set_claimed_requests(tmp)
 						set_stats(compute_worker_stats(tmp))
@@ -291,20 +273,11 @@ export default function WorkerDashboard() {
 					collection(db, 'service_requests'),
 					where('status', '==', STATUS.SUBMITTED)
 				),
-				async (snapshot) => {
+				(snapshot) => {
 					const data = snapshot.docs.map((doc) => ({
 						id: doc.id,
 						...doc.data(),
 					}))
-					for (let i = 0; i < data.length; i++) {
-						data[i].image = await get_signed_url(
-							data[i].id,
-							data[i].image,
-							data[i].image_expires_at
-								? new Date(data[i].image_expires_at)
-								: null
-						)
-					}
 					set_unclaimed_requests(data)
 				}
 			)
@@ -341,7 +314,11 @@ export default function WorkerDashboard() {
 		return <LoadingScreen />
 	}
 	if (error) {
-		return <ErrorScreen message={error} onRetry={error_handling} />
+		return <ErrorScreen message={error} onRetry={() => null} />
+	}
+
+	if (!worker || !stats) {
+		return null
 	}
 
 	const requests =
@@ -387,7 +364,6 @@ export default function WorkerDashboard() {
 				unread_messages={totalUnread}
 			/>
 
-			{/* 👇 NEW: Worker Global Ban Banner */}
 			{worker?.canMessage === false && (
 				<div
 					className="wd-global-ban-banner"
@@ -420,7 +396,6 @@ export default function WorkerDashboard() {
 						/>
 					) : (
 						<>
-							{/* ── Performance summary ─────────────────────────────── */}
 							<section className="wd-section">
 								<h2 className="wd-section-title">
 									Performance summary
@@ -470,7 +445,6 @@ export default function WorkerDashboard() {
 								</div>
 							</section>
 
-							{/* ── Request queue ───────────────────────────────────── */}
 							<section className="wd-section">
 								<div className="wd-queue-top-row">
 									<h2
@@ -526,7 +500,6 @@ export default function WorkerDashboard() {
 					)}
 				</main>
 
-				{/* ── Slide-in detail + message panel ─────────────────────── */}
 				{selected_req && (
 					<aside
 						className={`wd-detail-panel${panel_visible ? ' wd-detail-panel--visible' : ''}`}
@@ -567,7 +540,11 @@ function RequestDetailPanel({
 	const navigate = useNavigate()
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
-	const display_date = get_updated_display_date(req)
+
+	const display_date =
+		parse_date(req.updated_at) !== '-'
+			? parse_date(req.updated_at)
+			: parse_date(req.created_at)
 
 	useEffect(() => {
 		if (req.status !== 'closed') {
@@ -728,29 +705,59 @@ function RequestDetailPanel({
 						</dd>
 					</div>
 				)}
+				{req.status === STATUS.CLOSED &&
+					req.rating &&
+					typeof req.rating === 'number' &&
+					req.comment && (
+						<div className="wd-panel-meta-row wd-panel-meta-row--full">
+							<dt className="wd-panel-meta-label">Review</dt>
+							<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
+								{req.comment}
+							</dd>
+							<dt className="wd-panel-meta-label">Rating</dt>
+							<dd className="wd-panel-meta-value wd-panel-meta-desc">
+								<StarRating rating={req.rating} />
+							</dd>
+						</div>
+					)}
 			</dl>
 
 			<div className="wd-panel-image">
 				<img src={req.image} alt="Report image" />
 			</div>
 
-			{active_section === 'queue' ? (
+			{active_section === 'queue' && req.status !== STATUS.CLOSED ? (
 				<>
-					<div className="wd-panel-divider">
-						<span>Update Status</span>
-					</div>
-					<div className="wd-panel-status-row">
-						{AVAILABLE_STATUSES.map((status) => (
-							<button
-								key={status}
-								className={`wd-status-opt${req.status === status ? ' wd-status-opt--active' : ''}`}
-								onClick={() => on_status_change(req.id, status)}
-								disabled={req.status === status}
-							>
-								{STATUS_DISPLAY[status]}
-							</button>
-						))}
-					</div>
+					{/* Status update — hidden for closed requests */}
+					{req.status !== 'closed' && (
+						<>
+							<div className="wd-panel-divider">
+								<span>Update Status</span>
+							</div>
+							<div className="wd-panel-status-row">
+								{AVAILABLE_STATUSES.map((status) => (
+									<button
+										key={status}
+										className={`wd-status-opt${req.status === status ? ' wd-status-opt--active' : ''}`}
+										onClick={() =>
+											on_status_change(req.id, status)
+										}
+										disabled={req.status === status}
+									>
+										{STATUS_DISPLAY[status]}
+									</button>
+								))}
+							</div>
+						</>
+					)}
+					{req.status === 'closed' && (
+						<div className="wd-panel-divider">
+							<span>
+								This request has been closed by an admin and
+								cannot be updated.
+							</span>
+						</div>
+					)}
 
 					<div className="wd-panel-divider">
 						<span>Conversation with resident</span>
@@ -765,7 +772,6 @@ function RequestDetailPanel({
 								current_role="worker"
 								other_uid={req.user_uid}
 								other_name={resident_name}
-								/* 👇 FIXED: Safe props check for both thread lock and global worker ban */
 								messaging_enabled={
 									req.messaging_enabled !== false &&
 									worker.canMessage !== false
@@ -779,35 +785,7 @@ function RequestDetailPanel({
 						)}
 					</div>
 
-					<div className="wd-panel-divider">
-						<span>Public comments</span>
-					</div>
-
-					<div className="wd-comments-list">
-						{comments.length === 0 ? (
-							<p className="wd-comments-empty">
-								No comments yet.
-							</p>
-						) : (
-							comments.map((c) => (
-								<div key={c.id} className="wd-comment">
-									<div className="wd-comment-meta">
-										<span className="wd-comment-author">
-											{c.worker_name}
-										</span>
-										<span className="wd-comment-date">
-											{c.created_at?.toDate
-												? c.created_at
-														.toDate()
-														.toLocaleDateString()
-												: '—'}
-										</span>
-									</div>
-									<p className="wd-comment-text">{c.text}</p>
-								</div>
-							))
-						)}
-					</div>
+					<PublicComments comments={comments} />
 
 					<div className="wd-comment-form">
 						<textarea
@@ -827,14 +805,14 @@ function RequestDetailPanel({
 						</button>
 					</div>
 				</>
-			) : (
+			) : active_section !== 'queue' ? (
 				<ClaimBtn request_uid={req.id} post_claim={post_claim} />
+			) : (
+				<PublicComments comments={comments} />
 			)}
 		</div>
 	)
 }
-
-// ... Utility and Sub-components (StatCard, RequestRow, EmptyQueue, LoadingScreen, ErrorScreen, BusyToolTip) remain unchanged
 
 function get_initials(name = '') {
 	return name
@@ -862,7 +840,11 @@ function StatCard({ label, value, sub, value_modifier }) {
 }
 
 function RequestRow({ req, is_selected, on_click }) {
-	const display_date = get_updated_display_date(req)
+	const display_date =
+		parse_date(req.updated_at) !== '-'
+			? parse_date(req.updated_at)
+			: parse_date(req.created_at)
+
 	return (
 		<button
 			className={`wd-req-row${is_selected ? ' wd-req-row--selected' : ''}`}
@@ -912,6 +894,58 @@ function ErrorScreen({ message, onRetry }) {
 			<button className="wd-retry-btn" onClick={onRetry}>
 				Try again
 			</button>
+		</div>
+	)
+}
+
+function PublicComments({ comments }) {
+	return (
+		<>
+			<div className="wd-panel-divider">
+				<span>Public comments</span>
+			</div>
+
+			<div className="wd-comments-list">
+				{comments.length === 0 ? (
+					<p className="wd-comments-empty">No comments yet.</p>
+				) : (
+					comments.map((c) => (
+						<div key={c.id} className="wd-comment">
+							<div className="wd-comment-meta">
+								<span className="wd-comment-author">
+									{c.worker_name}
+								</span>
+								<span className="wd-comment-date">
+									{c.created_at?.toDate
+										? c.created_at
+												.toDate()
+												.toLocaleDateString()
+										: '—'}
+								</span>
+							</div>
+							<p className="wd-comment-text">{c.text}</p>
+						</div>
+					))
+				)}
+			</div>
+		</>
+	)
+}
+
+function StarRating({ rating, max = 5 }) {
+	return (
+		<div className="rd-stars-readonly">
+			{[...Array(max)].map((_, i) => (
+				<span
+					key={i}
+					className={`rd-star-readonly ${i < rating ? 'rd-star-readonly--active' : ''}`}
+				>
+					★
+				</span>
+			))}
+			<span className="rd-star-label">
+				{['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
+			</span>
 		</div>
 	)
 }

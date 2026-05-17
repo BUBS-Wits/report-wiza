@@ -4,6 +4,7 @@ import { auth, db } from '../firebase_config.js'
 import { sendSignInLinkToEmail } from 'firebase/auth'
 import {
 	doc,
+	getDoc,
 	setDoc,
 	updateDoc,
 	collection,
@@ -118,5 +119,55 @@ export const revoke_worker_role = async (uid) => {
 	} catch (error) {
 		console.error('Error revoking worker role:', error)
 		throw new Error('Could not revoke worker role. Try again.')
+	}
+}
+
+// Fetches all feedback documents from the feedback collection
+export const fetch_all_feedback = async () => {
+	try {
+		const snapshot = await getDocs(collection(db, 'feedback'))
+		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+	} catch (error) {
+		console.error('Error fetching feedback:', error)
+		throw new Error('Could not load feedback. Try again later.')
+	}
+}
+
+// Fetches a single request document by its ID
+// Used to get assigned_worker_uid and category for each feedback entry
+export const fetch_request_by_id = async (request_id) => {
+	try {
+		const request_ref = doc(db, 'service_requests', request_id)
+		const snapshot = await getDoc(request_ref)
+		if (!snapshot.exists()) {
+			return null
+		}
+		return { id: snapshot.id, ...snapshot.data() }
+	} catch (error) {
+		console.warn('Could not fetch request:', request_id, error)
+		return null
+	}
+}
+//user story 50
+export const fetch_rated_requests = async () => {
+	try {
+		const snapshot = await getDocs(collection(db, 'service_requests'))
+		return snapshot.docs
+			.map((d) => ({ id: d.id, ...d.data() }))
+			.filter((r) => r.rating !== undefined && r.rating !== null)
+	} catch (error) {
+		console.error('Error fetching rated requests:', error)
+		throw new Error('Could not load satisfaction data. Try again later.')
+	}
+}
+
+// Fetches all assignments documents
+export const fetch_assignments = async () => {
+	try {
+		const snapshot = await getDocs(collection(db, 'assignments'))
+		return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+	} catch (error) {
+		console.error('Error fetching assignments:', error)
+		throw new Error('Could not load assignments. Try again later.')
 	}
 }
