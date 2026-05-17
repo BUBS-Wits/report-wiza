@@ -145,15 +145,47 @@ function getStatusIcon(status) {
 	switch (status) {
 		case 'SUBMITTED':
 		case 'UNASSIGNED':
+		case 'open':
 			return openIcon
 		case 'ASSIGNED':
 		case 'IN_PROGRESS':
+		case 'acknowledged':
+		case 'in_progress':
 			return inProgressIcon
 		case 'RESOLVED':
+		case 'resolved':
 			return resolvedIcon
 		default:
 			return inProgressIcon
 	}
+}
+
+function getStatusLabel(status) {
+	switch (status) {
+		case 'SUBMITTED':
+		case 'open':
+			return 'Submitted'
+		case 'UNASSIGNED':
+			return 'Unassigned'
+		case 'ASSIGNED':
+		case 'acknowledged':
+			return 'Assigned'
+		case 'IN_PROGRESS':
+		case 'in_progress':
+			return 'In Progress'
+		case 'RESOLVED':
+		case 'resolved':
+			return 'Resolved'
+		case 'CLOSED':
+		case 'closed':
+			return 'Closed'
+		default:
+			return status || 'Unknown'
+	}
+}
+
+function getRequestWard(request) {
+	return request.sa_ward ?? request.ward
 }
 
 function PublicDashboard() {
@@ -174,6 +206,9 @@ function PublicDashboard() {
 	})
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
+	const [categoryFilter, setCategoryFilter] = useState('All')
+	const [wardFilter, setWardFilter] = useState('All')
+	const [statusFilter, setStatusFilter] = useState('All')
 	const navigate = useNavigate()
 	const [homeRoute, setHomeRoute] = useState('/')
 
@@ -243,6 +278,73 @@ function PublicDashboard() {
 			isFinite(r.longitude)
 	)
 
+	const categories = [
+		'All',
+		...new Set(
+			allRequests.map((request) => request.category).filter(Boolean)
+		),
+	]
+
+	const wards = [
+		'All',
+		...new Set(
+			allRequests
+				.map((request) => getRequestWard(request))
+				.filter(Boolean)
+		),
+	]
+
+	const statuses = [
+		'All',
+		...new Set(
+			allRequests.map((request) => request.status).filter(Boolean)
+		),
+	]
+
+	const matchesFilters = (request) => {
+		const requestWard = getRequestWard(request)
+
+		const categoryMatches =
+			categoryFilter === 'All' || request.category === categoryFilter
+
+		const wardMatches = wardFilter === 'All' || requestWard === wardFilter
+
+		const statusMatches =
+			statusFilter === 'All' || request.status === statusFilter
+
+		return categoryMatches && wardMatches && statusMatches
+	}
+
+	const filteredActive = active.filter(matchesFilters)
+	const filteredResolved = resolved.filter(matchesFilters)
+	const filteredRequests = [...filteredActive, ...filteredResolved]
+
+	// Map markers use filtered requests, but only those with valid coords
+	const filteredMapRequests = filteredRequests.filter(
+		(r) =>
+			typeof r.latitude === 'number' &&
+			isFinite(r.latitude) &&
+			typeof r.longitude === 'number' &&
+			isFinite(r.longitude)
+	)
+
+	const hasActiveFilters =
+		categoryFilter !== 'All' ||
+		wardFilter !== 'All' ||
+		statusFilter !== 'All'
+
+	const filteredWardsAffected = new Set(
+		filteredRequests
+			.map((request) => getRequestWard(request))
+			.filter(Boolean)
+	).size
+
+	const clearFilters = () => {
+		setCategoryFilter('All')
+		setWardFilter('All')
+		setStatusFilter('All')
+	}
+
 	if (loading) {
 		return (
 			<div className="public_dashboard">
@@ -282,24 +384,96 @@ function PublicDashboard() {
 			<section className="summary_grid">
 				<div className="summary_card">
 					<span className="summary_label">Open Requests</span>
-					<span className="summary_value">{stats.open_count}</span>
+					<span className="summary_value">
+						{hasActiveFilters
+							? filteredActive.length
+							: stats.open_count}
+					</span>
 				</div>
 				<div className="summary_card">
 					<span className="summary_label">Recently Resolved</span>
 					<span className="summary_value">
-						{stats.resolved_count}
+						{hasActiveFilters
+							? filteredResolved.length
+							: stats.resolved_count}
 					</span>
 				</div>
 				<div className="summary_card">
 					<span className="summary_label">Wards Affected</span>
 					<span className="summary_value">
-						{stats.wards_affected}
+						{hasActiveFilters
+							? filteredWardsAffected
+							: stats.wards_affected}
 					</span>
 				</div>
 			</section>
 
-			{/* Map section only renders when there are valid coordinates */}
-			{mapRequests.length > 0 && (
+			{/* Filter section from main */}
+			<section className="filter_section">
+				<div className="section_heading_row">
+					<h2>Filter Dashboard</h2>
+					{hasActiveFilters && (
+						<button
+							className="clear_filters_btn"
+							onClick={clearFilters}
+						>
+							Clear filters
+						</button>
+					)}
+				</div>
+
+				<div className="filter_grid">
+					<label className="filter_control">
+						<span>Category</span>
+						<select
+							value={categoryFilter}
+							onChange={(e) => setCategoryFilter(e.target.value)}
+						>
+							{categories.map((category) => (
+								<option key={category} value={category}>
+									{category}
+								</option>
+							))}
+						</select>
+					</label>
+
+					<label className="filter_control">
+						<span>Ward</span>
+						<select
+							value={wardFilter}
+							onChange={(e) => setWardFilter(e.target.value)}
+						>
+							{wards.map((ward) => (
+								<option key={ward} value={ward}>
+									{ward}
+								</option>
+							))}
+						</select>
+					</label>
+
+					<label className="filter_control">
+						<span>Status</span>
+						<select
+							value={statusFilter}
+							onChange={(e) => setStatusFilter(e.target.value)}
+						>
+							{statuses.map((status) => (
+								<option key={status} value={status}>
+									{getStatusLabel(status)}
+								</option>
+							))}
+						</select>
+					</label>
+				</div>
+
+				<p className="filter_result_text">
+					Showing {filteredRequests.length} of {allRequests.length}{' '}
+					requests.
+				</p>
+			</section>
+
+			{/* Map section – uses filtered markers with visibleFields, only if valid coords exist */}
+			{filteredMapRequests.length > 0 && (
 				<section className="map_section">
 					<div className="section_heading_row">
 						<h2>Ward Map Overview</h2>
@@ -313,12 +487,12 @@ function PublicDashboard() {
 						>
 							<FixMapSize />
 							<WardBoundaries />
-							<FitMapToRequests requests={mapRequests} />
+							<FitMapToRequests requests={filteredMapRequests} />
 							<TileLayer
 								attribution="&copy; OpenStreetMap contributors"
 								url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 							/>
-							{mapRequests.map((request) => (
+							{filteredMapRequests.map((request) => (
 								<Marker
 									key={request.id}
 									position={[
@@ -339,13 +513,16 @@ function PublicDashboard() {
 											)}
 											{visibleFields.status && (
 												<>
-													Status: {request.status}
+													Status:{' '}
+													{getStatusLabel(
+														request.status
+													)}
 													<br />
 												</>
 											)}
 											{visibleFields.ward && (
 												<>
-													{request.ward}
+													{getRequestWard(request)}
 													<br />
 												</>
 											)}
@@ -388,17 +565,18 @@ function PublicDashboard() {
 					</span>
 				</div>
 				<div className="request_list">
-					{active.length > 0 ? (
-						active.map((request) => (
+					{filteredActive.length > 0 ? (
+						filteredActive.map((request) => (
 							<RequestCard
 								key={request.id}
 								request={request}
 								visibleFields={visibleFields}
+								onLikeChange={refreshDashboard}
 							/>
 						))
 					) : (
 						<p className="empty_state">
-							No active requests at this time.
+							No active requests match the selected filters.
 						</p>
 					)}
 				</div>
@@ -412,17 +590,18 @@ function PublicDashboard() {
 					</span>
 				</div>
 				<div className="request_list">
-					{resolved.length > 0 ? (
-						resolved.map((request) => (
+					{filteredResolved.length > 0 ? (
+						filteredResolved.map((request) => (
 							<RequestCard
 								key={request.id}
 								request={request}
 								visibleFields={visibleFields}
+								onLikeChange={refreshDashboard}
 							/>
 						))
 					) : (
 						<p className="empty_state">
-							No resolved requests to show.
+							No resolved requests match the selected filters.
 						</p>
 					)}
 				</div>
