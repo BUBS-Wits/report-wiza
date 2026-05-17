@@ -344,6 +344,59 @@ describe('PublicDashboard Component', () => {
 		expect(screen.getAllByTestId('marker').length).toBe(3)
 	})
 
+	test('displays friendly ward labels while filtering by raw ward code', async () => {
+		await renderLoadedDashboard({
+			active: [
+				{
+					id: 'req_ward_57',
+					category: 'Pothole',
+					status: 'SUBMITTED',
+					latitude: -26.2,
+					longitude: 28.0,
+					sa_ward: 79800057,
+					municipality: 'Metro A',
+					description: 'Pothole in Ward 57',
+				},
+				{
+					id: 'req_ward_100',
+					category: 'Water Leak',
+					status: 'UNASSIGNED',
+					latitude: -26.3,
+					longitude: 28.1,
+					sa_ward: 79800100,
+					municipality: 'Metro B',
+					description: 'Water leak in Ward 100',
+				},
+			],
+			resolved: [],
+			stats: {
+				open_count: 2,
+				resolved_count: 0,
+				wards_affected: 2,
+			},
+		})
+
+		expect(screen.getByRole('option', { name: 'Ward 57' })).toHaveValue(
+			'79800057'
+		)
+		expect(screen.getByRole('option', { name: 'Ward 100' })).toHaveValue(
+			'79800100'
+		)
+
+		fireEvent.change(screen.getByLabelText('Ward'), {
+			target: { value: '79800057' },
+		})
+
+		expect(
+			screen.getByTestId('request-card-req_ward_57')
+		).toBeInTheDocument()
+		expect(
+			screen.queryByTestId('request-card-req_ward_100')
+		).not.toBeInTheDocument()
+		expect(screen.getByText('Showing 1 of 2 requests.')).toBeInTheDocument()
+		expect(screen.getAllByTestId('marker').length).toBe(1)
+	})
+
 	test('displays readable status filter labels for different public request statuses', async () => {
 		await renderLoadedDashboard({
 			active: [

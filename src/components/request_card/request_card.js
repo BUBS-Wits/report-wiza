@@ -2,6 +2,25 @@ import React from 'react'
 import LikeButton from './like_button/like_button.js'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 
+function getWardDisplayLabel(ward) {
+	if (ward === null || ward === undefined || ward === '') {
+		return '—'
+	}
+
+	const wardString = String(ward)
+
+	if (/^\d{8}$/.test(wardString)) {
+		const shortWard = Number(wardString.slice(-3))
+		return `Ward ${shortWard}`
+	}
+
+	if (/^Ward\s/i.test(wardString)) {
+		return wardString
+	}
+
+	return `Ward ${wardString}`
+}
+
 function RequestCard({ request, visibleFields }) {
 	const fields = {
 		category: true,
@@ -40,9 +59,10 @@ function RequestCard({ request, visibleFields }) {
 			{(fields.ward || fields.municipality) && (
 				<p className="request_location">
 					{fields.ward &&
-						(request.sa_ward ? `Ward ${request.sa_ward}` : '—')}
+						getWardDisplayLabel(request.sa_ward ?? request.ward)}
 					{fields.ward && fields.municipality && ' · '}
-					{fields.municipality && (request.sa_m_name || '—')}
+					{fields.municipality &&
+						(request.sa_m_name || request.municipality || '—')}
 				</p>
 			)}
 
