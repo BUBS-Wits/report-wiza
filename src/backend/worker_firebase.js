@@ -64,33 +64,26 @@ export const notify_status_change = async (
 
 		await batch.commit()
 	} catch (error) {
-		console.error('Error creating status notifications:', error)
+		console.error('Failed to send notifications:', error)
 	}
 }
 
-/* ── Existing Services ───────────────────────────────────────────────────── */
+/* ── Main Worker Service ─────────────────────────────────────────────────── */
 
-export const get_claimed_requests = async (worker_uid) => {
+export const fetch_unclaimed_requests = async (ward) => {
 	try {
 		const q = query(
 			collection(db, 'service_requests'),
-			where('assigned_worker_uid', '==', worker_uid)
+			where('sa_ward', '==', ward)
 		)
 		const snapshot = await getDocs(q)
-		return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-	} catch (error) {
-		console.error('Error fetching claimed requests:', error)
-		throw new Error('Could not load your requests. Try again later.')
-	}
-}
-
-export const get_unclaimed_requests = async () => {
-	try {
-		const snapshot = await getDocs(collection(db, 'service_requests'))
-		return snapshot.docs
-			.map((doc) => ({ id: doc.id, ...doc.data() }))
-			.filter((r) => !r.assigned_worker_uid)
-			.map((r) => ({ ...r, status: r.status || 'submitted' }))
+		return (
+			snapshot.docs
+				.map((doc) => ({ id: doc.id, ...doc.data() }))
+				.filter((r) => !r.assigned_worker_uid)
+				// Ensure fallback uses correct term 'open', not 'submitted'
+				.map((r) => ({ ...r, status: r.status || 'open' }))
+		)
 	} catch (error) {
 		console.error('Error fetching unclaimed requests:', error)
 		throw new Error('Could not load unclaimed requests. Try again later.')
@@ -102,13 +95,13 @@ export const claim_request = async (request_id, worker_uid) => {
 		const request_ref = doc(db, 'service_requests', request_id)
 		await updateDoc(request_ref, {
 			assigned_worker_uid: worker_uid,
-			status: 'assigned',
+			status: 'acknowledged', // Corrected from 'assigned'
 			updated_at: new Date().toUTCString(),
 		})
 
 		// Trigger notification!
-		// We pass 'assigned' as the status, and the worker_uid so the worker doesn't get spammed.
-		notify_status_change(request_id, 'assigned', worker_uid)
+		// We pass 'acknowledged' as the status, and the worker_uid so the worker doesn't get spammed.
+		notify_status_change(request_id, 'acknowledged', worker_uid)
 
 		return { success: true }
 	} catch (error) {
@@ -117,7 +110,6 @@ export const claim_request = async (request_id, worker_uid) => {
 	}
 }
 
-// NOTE: Added 'modifier_uid' so you can pass the worker's ID from your React component
 export const update_request_status = async (
 	request_id,
 	new_status,
@@ -130,12 +122,27 @@ export const update_request_status = async (
 			updated_at: new Date().toUTCString(),
 		})
 
-		// Trigger notification!
+		// Notify interested parties about the status update
 		notify_status_change(request_id, new_status, modifier_uid)
 
 		return { success: true }
 	} catch (error) {
 		console.error('Error updating request status:', error)
 		throw new Error('Could not update status. Try again.')
+	}
+}
+
+// Add to bottom of src/backend/worker_firebase.js if needed by legacy tests
+export const get_claimed_requests = async (worker_uid) => {
+	try {
+		const q = query(
+			collection(db, 'service_requests'),
+			where('assigned_worker_uid', '==', worker_uid)
+		)
+		const snapshot = await getDocs(q)
+		return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+	} catch (error) {
+		console.error('Error fetching claimed requests:', error)
+		throw new Error('Could not load your requests. Try again later.')
 	}
 }

@@ -81,6 +81,68 @@
 	color: #f8fafc;
 }
 
+.filter_section {
+	max-width: 1100px;
+	margin: 0 auto 36px;
+	background: #1e293b;
+	border: 1px solid #334155;
+	border-radius: 18px;
+	padding: 20px 22px;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.filter_grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 16px;
+}
+
+.filter_control {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	color: #cbd5e1;
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+
+.filter_control select {
+	width: 100%;
+	padding: 10px 12px;
+	border-radius: 10px;
+	border: 1px solid #475569;
+	background: #0f172a;
+	color: #f8fafc;
+	font-size: 0.95rem;
+}
+
+.filter_control select:focus {
+	outline: 2px solid #f59e0b;
+	outline-offset: 2px;
+}
+
+.clear_filters_btn {
+	border: 1px solid #f59e0b;
+	background: transparent;
+	color: #f59e0b;
+	border-radius: 999px;
+	padding: 8px 14px;
+	font-weight: 700;
+	cursor: pointer;
+	transition: 0.2s ease;
+}
+
+.clear_filters_btn:hover {
+	background: #f59e0b;
+	color: #0f172a;
+}
+
+.filter_result_text {
+	margin: 16px 0 0;
+	color: #94a3b8;
+	font-size: 0.95rem;
+}
+
 .map_section,
 .dashboard_section {
 	max-width: 1100px;
