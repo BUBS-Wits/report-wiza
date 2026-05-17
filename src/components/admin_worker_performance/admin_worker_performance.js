@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import './admin_worker_performance.css'
 import { fetch_aggregate_worker_performance } from '../../backend/admin_worker_performance_service.js'
+import TopBar from '../top_bar/top_bar.js'
+import Sidebar from '../admin_sidebar/admin_sidebar.js'
 
 /* ── helpers ── */
 
@@ -471,6 +473,8 @@ export default function AdminWorkerPerformance() {
 
 	return (
 		<div className="wp_page">
+			<TopBar />
+			<Sidebar />
 			{/* ── Header ── */}
 			<div className="wp_header">
 				<div className="wp_header_inner">
