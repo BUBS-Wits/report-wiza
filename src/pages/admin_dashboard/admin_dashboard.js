@@ -10,6 +10,8 @@ import RegisterWorker from '../../components/register_worker/register_worker.js'
 import WorkersList from '../../components/workers_list/workers_list.js'
 import AdminRequests from '../../components/admin_requests/admin_requests.js'
 import AdminMessagingReview from '../../components/admin_review_messages/admin_review_messages.js'
+import AdminWorkerPerformance from '../../components/admin_worker_performance/admin_worker_performance.js'
+import AdminCustomReport from '../../components/admin_custom_report/admin_custom_report.js'
 import './admin_dashboard.css'
 
 function AdminDashboard({ section = 'workers' }) {
@@ -89,6 +91,12 @@ function AdminDashboard({ section = 'workers' }) {
 
 			case 'messaging':
 				return <AdminMessagingReview />
+
+			case 'worker_performance':
+				return <AdminWorkerPerformance />
+
+			case 'custom_report':
+				return <AdminCustomReport />
 
 			case 'residents':
 				return (

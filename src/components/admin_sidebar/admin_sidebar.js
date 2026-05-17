@@ -56,8 +56,8 @@ const nav_items = [
 					{
 						id: 'worker_performance',
 						label: 'Worker Performance',
-						path: '/admin/analytics/performance',
-						ready: false,
+						path: '/admin/analytics/worker-performance',
+						ready: true,
 					},
 					{
 						id: 'satisfaction',
@@ -68,8 +68,8 @@ const nav_items = [
 					{
 						id: 'custom_reports',
 						label: 'Custom Reports',
-						path: '/admin/analytics/custom',
-						ready: false,
+						path: '/admin/analytics/custom-report',
+						ready: true,
 					},
 				],
 			},

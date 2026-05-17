@@ -5,10 +5,10 @@ import { parseLocation } from '../utils/parse_location.js'
 
 // Statuses treated as "open" (active) on the public dashboard
 const ACTIVE_STATUSES = new Set([
-	'SUBMITTED',
-	'UNASSIGNED',
-	'ASSIGNED',
-	'IN_PROGRESS',
+	'submitted',
+	'unassigned',
+	'assigned',
+	'in_progress',
 ])
 
 // Max resolved requests to surface on the public dashboard
@@ -31,7 +31,10 @@ const normalise_request = (id, data) => {
 	return {
 		id, // string — Firestore doc ID
 		category: data.category ?? 'Unknown',
-		status: data.status ?? 'UNASSIGNED',
+		// FIX 1: always lowercase so ACTIVE_STATUSES.has() and === 'resolved'
+		// comparisons work regardless of how Firestore stores the value
+		// (e.g. 'SUBMITTED', 'Submitted', 'submitted' all normalise the same way).
+		status: (data.status ?? 'unassigned').toLowerCase(),
 		ward: `Ward ${data.sa_ward ?? 'Unknown'}`,
 		sa_ward: data.sa_ward,
 		municipality: data.sa_m_name ?? 'Unknown Municipality',
@@ -77,7 +80,10 @@ export const fetchPublicDashboardData = async () => {
 
 		wards_seen.add(String(normalised.sa_ward))
 
-		if (normalised.status === 'RESOLVED') {
+		// FIX 2: only bucket 'resolved' into the resolved list.
+		// 'closed' is a terminal state that is intentionally excluded from the
+		// public dashboard surface — it should neither appear as active nor resolved.
+		if (normalised.status === 'resolved') {
 			if (resolved.length < RESOLVED_LIMIT) {
 				resolved.push(normalised)
 			}
