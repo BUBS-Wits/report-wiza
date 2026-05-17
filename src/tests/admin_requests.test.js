@@ -15,8 +15,8 @@ jest.mock('firebase/firestore', () => ({
 	orderBy: jest.fn(),
 	serverTimestamp: jest.fn(),
 	addDoc: jest.fn(),
-
 	setDoc: jest.fn(),
+	deleteDoc: jest.fn(),
 }))
 
 jest.mock(
@@ -31,6 +31,7 @@ jest.mock(
 import {
 	set_request_priority,
 	close_request,
+	reopen_request,
 	fetch_admin_requests,
 	fetch_categories,
 	add_category,
@@ -40,7 +41,7 @@ import {
 	fetch_worker_performance,
 } from '../backend/admin_requests_service.js'
 
-import { updateDoc, getDocs, addDoc } from 'firebase/firestore'
+import { updateDoc, getDocs, addDoc, deleteDoc } from 'firebase/firestore'
 
 // ── US027 — Set priority ──────────────────────────────────────────────────
 
@@ -109,6 +110,56 @@ describe('US028 — close_request', () => {
 				close_request('req-001', 'admin-uid', '')
 			).rejects.toThrow('A comment is required to close a request.')
 		})
+	})
+})
+
+// ── Reopen request ────────────────────────────────────────────────────────
+
+describe('reopen_request', () => {
+	beforeEach(() => jest.clearAllMocks())
+
+	it('updates the request status back to open', async () => {
+		updateDoc.mockResolvedValueOnce()
+		deleteDoc.mockResolvedValueOnce()
+		addDoc.mockResolvedValueOnce()
+
+		const result = await reopen_request('req-001', 'admin-uid')
+
+		expect(updateDoc).toHaveBeenCalledWith(
+			undefined,
+			expect.objectContaining({ status: 'open' })
+		)
+		expect(result).toEqual({ success: true })
+	})
+
+	it('deletes the assignment document when reopening', async () => {
+		updateDoc.mockResolvedValueOnce()
+		deleteDoc.mockResolvedValueOnce()
+		addDoc.mockResolvedValueOnce()
+
+		await reopen_request('req-001', 'admin-uid')
+
+		expect(deleteDoc).toHaveBeenCalled()
+	})
+
+	it('adds a reopen comment to the comments subcollection', async () => {
+		updateDoc.mockResolvedValueOnce()
+		deleteDoc.mockResolvedValueOnce()
+		addDoc.mockResolvedValueOnce()
+
+		await reopen_request('req-001', 'admin-uid')
+		expect(addDoc).toHaveBeenCalledWith(
+			undefined,
+			expect.objectContaining({ type: 'reopen_reason' })
+		)
+	})
+
+	it('throws an error if reopening fails', async () => {
+		updateDoc.mockRejectedValueOnce(new Error('Firestore error'))
+
+		await expect(reopen_request('req-001', 'admin-uid')).rejects.toThrow(
+			'Could not reopen request. Try again.'
+		)
 	})
 })
 

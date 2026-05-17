@@ -11,6 +11,7 @@ import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './resident_dashboard.css'
 import LikeButton from '../../components/request_card/like_button/like_button.js'
+import FeedbackForm from '../../components/feedback_form/feedback_form.js'
 import NotificationBell from '../../components/notification_bell/notification_bell.js'
 
 /* ── Status config ───────────────────────────────────────────────────────── */
@@ -366,8 +367,7 @@ export default function ResidentDashboard() {
 					{requests.length === 0 ? (
 						<div className="rd-no-requests">
 							<p>
-								You haven&apos;t submitted any service requests
-								yet.
+								You have not submitted any service requests yet.
 							</p>
 							<Link to="/request" className="rd-no-requests-cta">
 								Submit your first request →
@@ -453,28 +453,79 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 	const priority_meta = PRIORITY_META[req.priority] ?? null
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
+	const [feedback_form, set_feedback_form] = useState(false)
 
-	// Determine if the request can be cancelled (no worker assigned, not resolved/closed)
 	const canCancel =
 		!has_worker &&
 		req.status !== STATUS.RESOLVED &&
 		req.status !== STATUS.CLOSED
 
 	const parseWktPoint = (locationStr) => {
-		if (!locationStr) {
-			return null
-		}
+		if (!locationStr) return null
 		const match = locationStr.match(
 			/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i
 		)
 		if (match) {
 			const lon = parseFloat(match[1])
 			const lat = parseFloat(match[2])
-			if (!isNaN(lat) && !isNaN(lon)) {
-				return { lat, lon }
-			}
+			if (!isNaN(lat) && !isNaN(lon)) return { lat, lon }
 		}
 		return null
+	}
+
+	const feedback_toggle = () => set_feedback_form(!feedback_form)
+
+	const get_signed_url_expiry = (signed_url) => {
+		const url = new URL(signed_url)
+		const amz_date = url.searchParams.get('X-Amz-Date')
+		const amz_expires = url.searchParams.get('X-Amz-Expires')
+		const [date_part, time_part] = amz_date.split('T')
+		const iso_date = `${date_part.slice(0, 4)}-${date_part.slice(4, 6)}-${date_part.slice(6, 8)}T${time_part.slice(0, 2)}:${time_part.slice(2, 4)}:${time_part.slice(4, 6)}Z`
+		const issued_at = new Date(iso_date)
+		return new Date(issued_at.getTime() + parseInt(amz_expires) * 1000)
+	}
+
+	const is_expired = (expires_at) => {
+		return expires_at.getTime() - Date.now() < 5 * 60 * 1000
+	}
+
+	const get_signed_url = async (id, image, expires) => {
+		if (expires !== null && !is_expired(expires)) return image
+		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
+		if (!ret.ok) return image
+		const data = await ret.json()
+		req.image = data.data
+		return req.image
+	}
+
+	const submit_review = async ({ rating, comment }) => {
+		const headers = { 'Content-Type': 'application/json' }
+		if (auth.currentUser) {
+			const token = await auth.currentUser.getIdToken()
+			headers['Authorization'] = `Bearer ${token}`
+		}
+		return fetch('/api/submit-review', {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({ request_uid: req.id, rating, comment }),
+		})
+			.then(async (res) => {
+				if (!res.ok) {
+					const error_text = await res.text()
+					try {
+						alert(JSON.parse(error_text).error)
+					} catch {
+						alert('Server error. Please check console.')
+					}
+				} else {
+					alert('Review successfully submitted.')
+					feedback_toggle()
+				}
+			})
+			.catch((err) => {
+				alert('Error submitting review.')
+				console.error(err)
+			})
 	}
 
 	let lat = null,
@@ -485,6 +536,17 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 			lat = coords.lat
 			lng = coords.lon
 		}
+	}
+
+	if (req.image) {
+		get_signed_url(
+			req.id,
+			req.image,
+			req.image_expires_at ? new Date(req.image_expires_at) : null
+		).then((image) => {
+			req.image = image
+			req.image_expires_at = get_signed_url_expiry(image)
+		})
 	}
 
 	useEffect(() => {
@@ -498,19 +560,13 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 				import('../../firebase_config.js').then(({ db }) => {
 					getDocs(
 						query(
-							collection(
-								db,
-								'service_requests',
-								req.id,
-								'comments'
-							),
+							collection(db, 'service_requests', req.id, 'comments'),
 							where('type', '==', 'close_reason')
 						)
 					)
 						.then((snap) => {
-							if (!snap.empty) {
+							if (!snap.empty)
 								set_close_reason(snap.docs[0].data().text)
-							}
 						})
 						.catch(() => set_close_reason(null))
 						.finally(() => set_close_reason_loading(false))
@@ -538,18 +594,8 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						onClick={on_back}
 						aria-label="Back to requests"
 					>
-						<svg
-							viewBox="0 0 16 16"
-							fill="none"
-							style={{ width: '18px', height: '18px' }}
-						>
-							<path
-								d="M10 3L5 8l5 5"
-								stroke="currentColor"
-								strokeWidth="1.75"
-								strokeLinecap="round"
-								strokeLinejoin="round"
-							/>
+						<svg viewBox="0 0 16 16" fill="none" style={{ width: '18px', height: '18px' }}>
+							<path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
 						</svg>
 					</button>
 					<div className="rd-detail-title-group">
@@ -557,114 +603,124 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						<span className="rd-detail-id">{req.id}</span>
 					</div>
 				</div>
-				<div
-					style={{
-						display: 'flex',
-						alignItems: 'center',
-						gap: '12px',
-					}}
-				>
-					<span
-						className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}
-					>
+				<div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+					<span className={`rd-status-pill rd-status-pill--lg ${meta.cls}`}>
 						{meta.label}
 					</span>
-					<LikeButton
-						requestId={req.id}
-						initialLikeCount={req.like_count || 0}
-					/>
+					<LikeButton requestId={req.id} initialLikeCount={req.like_count || 0} />
+					{req.status && (
+						<button className="wd-home-btn" onClick={feedback_toggle}>
+							Review
+						</button>
+					)}
 				</div>
 			</div>
 
-			<dl className="rd-detail-meta">
-				<div className="rd-detail-meta-item">
-					<dt>Ward</dt>
-					<dd>{req.sa_ward || '—'}</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Priority</dt>
-					<dd>
-						{priority_meta ? (
-							<span
-								className={`rd-priority-pill ${priority_meta.cls}`}
-							>
-								{priority_meta.label}
-							</span>
-						) : (
-							<span className="rd-priority-none">Not set</span>
-						)}
-					</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Submitted</dt>
-					<dd>{format_date(req.created_at)}</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Last updated</dt>
-					<dd>{format_date(req.updated_at)}</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Assigned worker</dt>
-					<dd>
-						{req.worker_name ?? (
-							<span className="rd-unassigned">
-								Not yet assigned
-							</span>
-						)}
-					</dd>
-				</div>
-				<div className="rd-detail-meta-item">
-					<dt>Location</dt>
-					<dd>
-						{lat && lng ? (
-							<a
-								href={`https://www.google.com/maps?q=${lat},${lng}`}
-								target="_blank"
-								rel="noopener noreferrer"
-								style={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									gap: '4px',
-								}}
-							>
-								📍 {lat.toFixed(6)}, {lng.toFixed(6)}
-							</a>
-						) : (
-							'—'
-						)}
-					</dd>
-				</div>
-				<div className="rd-detail-meta-item rd-detail-meta-item--full">
-					<dt>Description</dt>
-					<dd>{req.description}</dd>
-				</div>
-				{req.image && (
-					<div className="rd-detail-meta-item rd-detail-meta-item--full">
-						<dt>Photo</dt>
+			{!feedback_form && (
+				<dl className="rd-detail-meta">
+					<div className="rd-detail-meta-item">
+						<dt>Ward</dt>
+						<dd>{req.sa_ward || '—'}</dd>
+					</div>
+					<div className="rd-detail-meta-item">
+						<dt>Priority</dt>
 						<dd>
-							<img
-								src={req.image}
-								alt="Request"
-								style={{
-									maxWidth: '100%',
-									maxHeight: '200px',
-									borderRadius: '8px',
-								}}
-							/>
+							{priority_meta ? (
+								<span className={`rd-priority-pill ${priority_meta.cls}`}>
+									{priority_meta.label}
+								</span>
+							) : (
+								<span className="rd-priority-none">Not set</span>
+							)}
 						</dd>
 					</div>
-				)}
-				{req.status === 'closed' && (
+					<div className="rd-detail-meta-item">
+						<dt>Submitted</dt>
+						<dd>{format_date(req.created_at)}</dd>
+					</div>
+					<div className="rd-detail-meta-item">
+						<dt>Last updated</dt>
+						<dd>{format_date(req.updated_at)}</dd>
+					</div>
+					<div className="rd-detail-meta-item">
+						<dt>Assigned worker</dt>
+						<dd>
+							{req.worker_name ?? (
+								<span className="rd-unassigned">Not yet assigned</span>
+							)}
+						</dd>
+					</div>
+					<div className="rd-detail-meta-item">
+						<dt>Location</dt>
+						<dd>
+							{lat && lng ? (
+								<a
+									href={`https://www.google.com/maps?q=${lat},${lng}`}
+									target="_blank"
+									rel="noopener noreferrer"
+									style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+								>
+									📍 {lat.toFixed(6)}, {lng.toFixed(6)}
+								</a>
+							) : (
+								'—'
+							)}
+						</dd>
+					</div>
+
 					<div className="rd-detail-meta-item rd-detail-meta-item--full">
-						<dt>Close reason</dt>
-						<dd className="rd-close-reason">
-							{close_reason_loading
-								? 'Loading…'
-								: (close_reason ?? '—')}
-						</dd>
+						<dt>Description</dt>
+						<dd>{req.description}</dd>
 					</div>
-				)}
-			</dl>
+
+					{req.image && (
+						<div className="rd-detail-meta-item rd-detail-meta-item--full">
+							<dt>Photo</dt>
+							<dd>
+								<img
+									src={req.image}
+									alt="Request"
+									style={{
+										maxWidth: '100%',
+										maxHeight: '200px',
+										borderRadius: '8px',
+									}}
+								/>
+							</dd>
+						</div>
+					)}
+
+					{req.status === 'closed' && (
+						<div className="rd-detail-meta-item rd-detail-meta-item--full">
+							<dt>Close reason</dt>
+							<dd className="rd-close-reason">
+								{close_reason_loading
+									? 'Loading…'
+									: (close_reason ?? '—')}
+							</dd>
+						</div>
+					)}
+
+					{req.rating &&
+						typeof req.rating === 'number' &&
+						req.comment && (
+							<div className="rd-detail-meta-item rd-detail-meta-item--full">
+								<dt>Review</dt>
+								<StarRating rating={req.rating} />
+								<dd className="rd-review-comment" style={{ marginTop: '12px' }}>
+									{req.comment}
+								</dd>
+							</div>
+						)}
+				</dl>
+			)}
+
+			{feedback_form && (
+				<FeedbackForm
+					onCancel={feedback_toggle}
+					onSubmit={submit_review}
+				/>
+			)}
 
 			{/* Cancel button for unassigned requests */}
 			{canCancel && (
@@ -687,29 +743,38 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						current_role="resident"
 						other_uid={req.worker_uid}
 						other_name={req.worker_name ?? 'Worker'}
+						messaging_enabled={req.messaging_enabled !== false}
 					/>
 				) : (
 					<div className="rd-no-worker">
 						<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-							<path
-								d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"
-								stroke="currentColor"
-								strokeWidth="1.5"
-							/>
-							<path
-								d="M12 8v4M12 16h.01"
-								stroke="currentColor"
-								strokeWidth="1.5"
-								strokeLinecap="round"
-							/>
+							<path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" stroke="currentColor" strokeWidth="1.5"/>
+							<path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
 						</svg>
 						<p>
-							Messaging will be available once a worker is
-							assigned to this request.
+							Messaging will be available once a worker is assigned to this request.
 						</p>
 					</div>
 				)}
 			</div>
+		</div>
+	)
+}
+
+function StarRating({ rating, max = 5 }) {
+	return (
+		<div className="rd-stars-readonly">
+			{[...Array(max)].map((_, i) => (
+				<span
+					key={i}
+					className={`rd-star-readonly ${i < rating ? 'rd-star-readonly--active' : ''}`}
+				>
+					★
+				</span>
+			))}
+			<span className="rd-star-label">
+				{['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
+			</span>
 		</div>
 	)
 }

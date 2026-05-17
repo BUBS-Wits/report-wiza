@@ -179,7 +179,7 @@ describe('ResidentDashboard Component', () => {
 		await waitFor(() => {
 			expect(
 				screen.getByText(
-					"You haven't submitted any service requests yet."
+					'You have not submitted any service requests yet.'
 				)
 			).toBeInTheDocument()
 		})

@@ -28,6 +28,8 @@ jest.mock('firebase/firestore', () => ({
 	getDoc: jest.fn(),
 	setDoc: jest.fn(),
 	serverTimestamp: jest.fn(),
+	getDocs: jest.fn(),
+	collection: jest.fn(),
 }))
 
 const mock_navigate = jest.fn()
@@ -46,7 +48,7 @@ jest.mock(
 )
 
 import { signInWithPopup } from 'firebase/auth'
-import { getDoc, setDoc } from 'firebase/firestore'
+import { getDoc, setDoc, getDocs } from 'firebase/firestore'
 
 const render_login = () => render(<Login />)
 
@@ -204,6 +206,60 @@ describe('Login page', () => {
 				expect(
 					screen.queryByText(/sign-in failed/i)
 				).not.toBeInTheDocument()
+			})
+		})
+	})
+
+	describe('Live stats', () => {
+		it('fetches and displays resolved requests count', async () => {
+			getDocs.mockResolvedValueOnce({
+				docs: [
+					{
+						data: () => ({
+							status: 'resolved',
+							sa_ward: '79800057',
+						}),
+					},
+					{
+						data: () => ({ status: 'open', sa_ward: '79800057' }),
+					},
+					{
+						data: () => ({
+							status: 'resolved',
+							sa_ward: '79800058',
+						}),
+					},
+				],
+			})
+
+			render_login()
+
+			await waitFor(() => {
+				expect(
+					screen.getByText('Requests resolved')
+				).toBeInTheDocument()
+			})
+		})
+
+		it('shows loading state while fetching stats', () => {
+			getDocs.mockImplementationOnce(
+				() => new Promise((resolve) => setTimeout(resolve, 1000))
+			)
+
+			render_login()
+
+			expect(screen.getAllByText('...').length).toBeGreaterThan(0)
+		})
+
+		it('keeps default values when fetch fails', async () => {
+			getDocs.mockRejectedValueOnce(new Error('Network error'))
+
+			render_login()
+
+			await waitFor(() => {
+				expect(
+					screen.getByText('Requests resolved')
+				).toBeInTheDocument()
 			})
 		})
 	})

@@ -14,12 +14,13 @@ import './message_thread.css'
  * request-detail pages. Renders realtime messages and a send input.
  *
  * Props:
- * request_uid   {string}  — The service request ID (= thread ID)
- * current_uid   {string}  — Firebase Auth UID of the logged-in user
- * current_name  {string}  — Display name of the logged-in user
- * current_role  {string}  — 'resident' | 'worker'
- * other_uid     {string}  — UID of the other party
- * other_name    {string}  — Display name of the other party
+ * request_uid       {string}  — The service request ID (= thread ID)
+ * current_uid       {string}  — Firebase Auth UID of the logged-in user
+ * current_name      {string}  — Display name of the logged-in user
+ * current_role      {string}  — 'resident' | 'worker'
+ * other_uid         {string}  — UID of the other party
+ * other_name        {string}  — Display name of the other party
+ * messaging_enabled {boolean} — Controls if the thread is active (Admin feature)
  */
 export default function MessageThread({
 	request_uid,
@@ -28,6 +29,7 @@ export default function MessageThread({
 	current_role,
 	other_uid,
 	other_name,
+	messaging_enabled = true, // 👈 NEW PROP DEFAULTING TO TRUE
 }) {
 	const [messages, set_messages] = useState([])
 	const [input, set_input] = useState('')
@@ -70,7 +72,8 @@ export default function MessageThread({
 	// ── Send ───────────────────────────────────────────────────────────────
 	const handle_send = useCallback(async () => {
 		const text = input.trim()
-		if (!text || sending) {
+		// 👈 Prevent sending if locked
+		if (!text || sending || !messaging_enabled) {
 			return
 		}
 
@@ -111,6 +114,7 @@ export default function MessageThread({
 		other_uid,
 		current_name,
 		current_role,
+		messaging_enabled, // 👈 Added dependency
 	])
 
 	// ── Keyboard handler ───────────────────────────────────────────────────
@@ -148,8 +152,10 @@ export default function MessageThread({
 					</span>
 				</div>
 				<div className="mt_header_badge" aria-hidden="true">
-					<span className="mt_badge_dot" />
-					Live
+					<span
+						className={`mt_badge_dot ${!messaging_enabled ? 'mt_badge_dot_offline' : ''}`}
+					/>
+					{messaging_enabled ? 'Live' : 'Locked'}
 				</div>
 			</header>
 
@@ -223,11 +229,28 @@ export default function MessageThread({
 											is_mine
 												? 'mt_bubble_mine'
 												: 'mt_bubble_theirs',
+											msg.deleted
+												? 'mt_bubble_deleted'
+												: '', // 👈 Style hook for deleted messages
 										].join(' ')}
 									>
-										<p className="mt_bubble_text">
-											{msg.text}
-										</p>
+										{/* 👈 Soft-Delete Logic */}
+										{msg.deleted ? (
+											<p
+												className="mt_bubble_text"
+												style={{
+													fontStyle: 'italic',
+													opacity: 0.7,
+												}}
+											>
+												Message removed by admin
+											</p>
+										) : (
+											<p className="mt_bubble_text">
+												{msg.text}
+											</p>
+										)}
+
 										<div className="mt_bubble_meta">
 											<span className="mt_bubble_time">
 												{format_message_time(
@@ -270,24 +293,48 @@ export default function MessageThread({
 				</div>
 			)}
 
+			{/* 👈 NEW: Locked Banner */}
+			{!messaging_enabled && (
+				<div
+					className="mt_locked_banner"
+					role="alert"
+					style={{
+						backgroundColor: '#fee2e2',
+						color: '#991b1b',
+						padding: '10px',
+						textAlign: 'center',
+						fontSize: '0.9rem',
+						fontWeight: 'bold',
+					}}
+				>
+					🔒 This conversation has been locked by an administrator.
+				</div>
+			)}
+
 			{/* Compose bar */}
-			<div className="mt_compose">
+			<div
+				className={`mt_compose ${!messaging_enabled ? 'mt_compose_disabled' : ''}`}
+			>
 				<textarea
 					ref={textarea_ref}
 					className="mt_input"
 					value={input}
 					onChange={handle_input_change}
 					onKeyDown={handle_keydown}
-					placeholder="Type a message…"
+					placeholder={
+						messaging_enabled
+							? 'Type a message…'
+							: 'Messaging is disabled'
+					}
 					rows={1}
-					disabled={sending}
+					disabled={sending || !messaging_enabled} // 👈 Disable input if locked
 					aria-label="Message input"
 					maxLength={2000}
 				/>
 				<button
 					className={`mt_send_btn ${sending ? 'mt_send_btn_loading' : ''}`}
 					onClick={handle_send}
-					disabled={!input.trim() || sending}
+					disabled={!input.trim() || sending || !messaging_enabled} // 👈 Disable button if locked
 					aria-label="Send message"
 				>
 					{sending ? (

@@ -161,7 +161,7 @@ export const fetch_worker_dashboard_data = async (uid) => {
 	return {
 		worker: {
 			uid,
-			name: user_data.name ?? 'Municipal Worker',
+			name: user_data.display_name ?? 'Municipal Worker',
 			email: user_data.email ?? '',
 			role: user_data.role,
 		},

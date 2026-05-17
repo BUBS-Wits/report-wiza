@@ -3,13 +3,13 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
-import Sidebar from '../components/sidebar/sidebar.js'
+import Sidebar from '../components/admin_sidebar/admin_sidebar.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Mocks
 ───────────────────────────────────────────────────────────────────────────── */
 
-jest.mock('../components/sidebar/sidebar.css', () => ({}))
+jest.mock('../components/admin_sidebar/admin_sidebar.css', () => ({}))
 
 // Avoid jest.requireActual — CRA's Jest transform doesn't reliably spread
 // react-router-dom's ESM exports. Instead, stub exactly what Sidebar uses:
