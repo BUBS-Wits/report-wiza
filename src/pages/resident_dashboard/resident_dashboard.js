@@ -633,7 +633,8 @@ function RequestDetail({ req, resident, on_back }) {
 						requestId={req.id}
 						initialLikeCount={req.like_count || 0}
 					/>
-					{(req.status === STATUS.CLOSED || req.status === STATUS.RESOLVED) && (
+					{(req.status === STATUS.CLOSED ||
+						req.status === STATUS.RESOLVED) && (
 						<button
 							className="wd-home-btn"
 							onClick={feedback_toggle}
@@ -729,7 +730,7 @@ function RequestDetail({ req, resident, on_back }) {
 						</div>
 					)}
 
-					{(req.status === 'closed') && (
+					{req.status === 'closed' && (
 						<div className="rd-detail-meta-item rd-detail-meta-item--full">
 							<dt>Close reason</dt>
 							<dd className="rd-close-reason">
