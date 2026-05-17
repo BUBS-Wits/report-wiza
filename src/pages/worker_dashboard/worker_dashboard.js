@@ -3,22 +3,22 @@ import { useNavigate } from 'react-router-dom'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, db } from '../../firebase_config.js'
 import {
-	collection,
-	query,
-	where,
-	orderBy,
-	onSnapshot,
-	getDocs,
+    collection,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    getDocs,
 } from 'firebase/firestore'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import {
-	verify_worker_and_get_profile,
-	compute_worker_stats,
+    verify_worker_and_get_profile,
+    compute_worker_stats,
 } from '../../backend/worker_analytics_service.js'
 import { update_request_status } from '../../backend/worker_firebase.js'
 import {
-	fetch_comment,
-	add_comment,
+    fetch_comment,
+    add_comment,
 } from '../../backend/worker_analytics_service.js'
 import Worker_nav_bar from '../../components/worker_nav_bar/worker_nav_bar.js'
 import ClaimBtn from '../request/claim/claim_btn.js'
@@ -28,815 +28,813 @@ import { subscribe_to_worker_conversations } from '../../backend/worker_conversa
 import './worker_dashboard.css'
 
 const parse_date = (val) => {
-	if (!val) {
-		return '-'
-	}
-	try {
-		const d = val.toDate ? val.toDate() : new Date(val)
-		return isNaN(d.getTime()) ? '-' : d.toISOString().split('T')[0]
-	} catch {
-		return '-'
-	}
+    if (!val) {
+        return '-'
+    }
+    try {
+        const d = val.toDate ? val.toDate() : new Date(val)
+        return isNaN(d.getTime()) ? '-' : d.toISOString().split('T')[0]
+    } catch {
+        return '-'
+    }
 }
 
 const AVAILABLE_STATUSES = [
-	STATUS.ASSIGNED,
-	STATUS.IN_PROGRESS,
-	STATUS.RESOLVED,
+    STATUS.ASSIGNED,
+    STATUS.IN_PROGRESS,
+    STATUS.RESOLVED,
 ]
 
 const STATUSES = [
-	'All',
-	STATUS_DISPLAY[STATUS.ASSIGNED],
-	STATUS_DISPLAY[STATUS.IN_PROGRESS],
-	STATUS_DISPLAY[STATUS.RESOLVED],
-	STATUS_DISPLAY[STATUS.CLOSED],
+    'All',
+    STATUS_DISPLAY[STATUS.ASSIGNED],
+    STATUS_DISPLAY[STATUS.IN_PROGRESS],
+    STATUS_DISPLAY[STATUS.RESOLVED],
+    STATUS_DISPLAY[STATUS.CLOSED],
 ]
 
 const STATUS_BADGE_CLASS = {
-	Pending: 'wd-badge--assigned',
-	Acknowledged: 'wd-badge--in-progress',
-	Resolved: 'wd-badge--resolved',
-	Closed: 'wd-badge--closed',
+    Pending: 'wd-badge--assigned',
+    Acknowledged: 'wd-badge--in-progress',
+    Resolved: 'wd-badge--resolved',
+    Closed: 'wd-badge--closed',
 }
 
 const PRIORITY_BADGE_CLASS = {
-	Low: 'wd-priority--low',
-	Medium: 'wd-priority--medium',
-	High: 'wd-priority--high',
-	Critical: 'wd-priority--critical',
+    Low: 'wd-priority--low',
+    Medium: 'wd-priority--medium',
+    High: 'wd-priority--high',
+    Critical: 'wd-priority--critical',
 }
 
 export default function WorkerDashboard() {
-	const [worker, set_worker] = useState(null)
-	const [claimed_requests, set_claimed_requests] = useState([])
-	const [unclaimed_requests, set_unclaimed_requests] = useState([])
-	const [stats, set_stats] = useState({
-		total: 0,
-		resolved: 0,
-		pending: 0,
-		acknowledged: 0,
-		avg_resolution_days: null,
-	})
-	const [loading, set_loading] = useState(true)
-	const [error, set_error] = useState(null)
-	const [active_filter, set_filter] = useState('All')
-	const [active_section, set_active_section] = useState('queue')
-	const [selected_req, set_selected_req] = useState(null)
-	const [panel_visible, set_panel_visible] = useState(false)
-	const [show_busy_tip, set_show_busy_tip] = useState(false)
-	const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
-	const navigate = useNavigate()
-	const busy_ref = useRef(false)
-	const [totalUnread, setTotalUnread] = useState(0)
+    const [worker, set_worker] = useState(null)
+    const [claimed_requests, set_claimed_requests] = useState([])
+    const [unclaimed_requests, set_unclaimed_requests] = useState([])
+    const [stats, set_stats] = useState({
+        total: 0,
+        resolved: 0,
+        pending: 0,
+        acknowledged: 0,
+        avg_resolution_days: null,
+    })
+    const [loading, set_loading] = useState(true)
+    const [error, set_error] = useState(null)
+    const [active_filter, set_filter] = useState('All')
+    const [active_section, set_active_section] = useState('queue')
+    const [selected_req, set_selected_req] = useState(null)
+    const [panel_visible, set_panel_visible] = useState(false)
+    const [show_busy_tip, set_show_busy_tip] = useState(false)
+    const [busy_tip, set_busy_tip] = useState('Already Loading Dashboard Info…')
+    const navigate = useNavigate()
+    const busy_ref = useRef(false)
+    const [totalUnread, setTotalUnread] = useState(0)
 
-	useEffect(() => {
-		if (!worker?.uid) {
-			return
-		}
+    useEffect(() => {
+        if (!worker?.uid) {
+            return
+        }
 
-		const unsub = subscribe_to_worker_conversations(
-			worker.uid,
-			(convs) => {
-				const unreadSum = convs.reduce(
-					(sum, c) => sum + (c.unread_count || 0),
-					0
-				)
-				setTotalUnread(unreadSum)
-			},
-			(err) => console.error('Failed to fetch unread messages:', err)
-		)
-		return () => unsub()
-	}, [worker?.uid])
+        const unsub = subscribe_to_worker_conversations(
+            worker.uid,
+            (convs) => {
+                const unreadSum = convs.reduce(
+                    (sum, c) => sum + (c.unread_count || 0),
+                    0
+                )
+                setTotalUnread(unreadSum)
+            },
+            (err) => console.error('Failed to fetch unread messages:', err)
+        )
+        return () => unsub()
+    }, [worker?.uid])
 
-	const popup_busy = (text) => {
-		set_show_busy_tip(true)
-		set_busy_tip(text)
-		setTimeout(() => set_show_busy_tip(false), 2000)
-	}
+    const popup_busy = (text) => {
+        set_show_busy_tip(true)
+        set_busy_tip(text)
+        setTimeout(() => set_show_busy_tip(false), 2000)
+    }
 
-	const is_expired = (expires_at) => {
-		const expiry = expires_at
-		const now = new Date()
-		const buffer_ms = 5 * 60 * 1000
-		return expiry.getTime() - now.getTime() < buffer_ms
-	}
+    const is_expired = (expires_at) => {
+        const expiry = expires_at
+        const now = new Date()
+        const buffer_ms = 5 * 60 * 1000
+        return expiry.getTime() - now.getTime() < buffer_ms
+    }
 
-	const get_signed_url = async (id, image, expires) => {
-		if (expires !== null && !is_expired(expires)) {
-			return image
-		}
-		const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
-		if (!ret.ok) {
-			return image
-		}
-		const data = await ret.json()
-		return data.data
-	}
+    const get_signed_url = async (id, image, expires) => {
+        if (expires !== null && !is_expired(expires)) {
+            return image
+        }
+        const ret = await fetch(`/api/get-signed-url?request_uid=${id}`)
+        if (!ret.ok) {
+            return image
+        }
+        const data = await ret.json()
+        return data.data
+    }
 
-	/* ── Panel helpers ────────────────────────────────────────────────── */
+    /* ── Panel helpers ────────────────────────────────────────────────── */
 
-	const open_panel = useCallback((req) => {
-		set_selected_req(req)
-		requestAnimationFrame(() => set_panel_visible(true))
-	}, [])
+    const open_panel = useCallback((req) => {
+        set_selected_req(req)
+        requestAnimationFrame(() => set_panel_visible(true))
+    }, [])
 
-	const active_section_ref = useRef(active_section)
-	useEffect(() => {
-		active_section_ref.current = active_section
-	}, [active_section])
+    const active_section_ref = useRef(active_section)
+    useEffect(() => {
+        active_section_ref.current = active_section
+    }, [active_section])
 
-	const close_panel = useCallback(() => {
-		set_panel_visible(false)
-		setTimeout(() => set_selected_req(null), 280)
-	}, [])
+    const close_panel = useCallback(() => {
+        set_panel_visible(false)
+        setTimeout(() => set_selected_req(null), 280)
+    }, [])
 
-	const toggle_panel = useCallback(
-		(req) => {
-			if (selected_req?.id === req.id) {
-				close_panel()
-			} else {
-				open_panel(req)
-			}
-		},
-		[selected_req, close_panel, open_panel]
-	)
+    const toggle_panel = useCallback(
+        (req) => {
+            if (selected_req?.id === req.id) {
+                close_panel()
+            } else {
+                open_panel(req)
+            }
+        },
+        [selected_req, close_panel, open_panel]
+    )
 
-	const set_queue_requests = () => {
-		if (busy_ref.current) {
-			popup_busy('Already Loading Dashboard Info...')
-			return
-		}
-		set_active_section('queue')
-		close_panel()
-	}
+    const set_queue_requests = () => {
+        if (busy_ref.current) {
+            popup_busy('Already Loading Dashboard Info...')
+            return
+        }
+        set_active_section('queue')
+        close_panel()
+    }
 
-	const set_available_requests = () => {
-		if (busy_ref.current) {
-			popup_busy('Already Loading Dashboard Info...')
-			return
-		}
-		set_active_section('available')
-		close_panel()
-	}
+    const set_available_requests = () => {
+        if (busy_ref.current) {
+            popup_busy('Already Loading Dashboard Info...')
+            return
+        }
+        set_active_section('available')
+        close_panel()
+    }
 
-	const set_messages_section = () => {
-		if (busy_ref.current) {
-			popup_busy('Already Loading Dashboard Info...')
-			return
-		}
-		set_active_section('messages')
-		close_panel()
-	}
+    const set_messages_section = () => {
+        if (busy_ref.current) {
+            popup_busy('Already Loading Dashboard Info...')
+            return
+        }
+        set_active_section('messages')
+        close_panel()
+    }
 
-	useEffect(() => {
-		const unsub = onAuthStateChanged(auth, async (user) => {
-			if (!user) {
-				set_error('You are not logged in.')
-				set_loading(false)
-				return
-			}
-			const snap = await verify_worker_and_get_profile(user.uid)
-			const data = snap.data()
-			set_worker({
-				uid: user.uid,
-				name: data.name ?? 'Municipal Worker',
-				email: data.email ?? '',
-				role: data.role,
-			})
-			set_loading(false)
-		})
-		return () => unsub()
-	}, [])
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                set_error('You are not logged in.')
+                set_loading(false)
+                return
+            }
+            const snap = await verify_worker_and_get_profile(user.uid)
+            const data = snap.data()
+            set_worker({
+                uid: user.uid,
+                name: data.name ?? 'Municipal Worker',
+                email: data.email ?? '',
+                role: data.role,
+                canMessage: data.canMessage,
+            })
+            set_loading(false)
+        })
+        return () => unsub()
+    }, [])
 
-	/* ── Real-time listeners ──────────────────────────────────────────── */
+    /* ── Real-time listeners ──────────────────────────────────────────── */
 
-	useEffect(() => {
-		if (!worker?.uid) {
-			return
-		}
-		let requests_unsub_list = null
-		const chunk = (arr, size) => {
-			return Array.from(
-				{ length: Math.ceil(arr.length / size) },
-				(_, i) => arr.slice(i * size, i * size + size)
-			)
-		}
-		const assignments_query = query(
-			collection(db, 'assignments'),
-			where('worker_uid', '==', worker.uid)
-		)
-		const assignments_snapshot_handler = async (assignments_snapshot) => {
-			if (requests_unsub_list) {
-				requests_unsub_list.forEach((unsub) => unsub())
-				requests_unsub_list = null
-			}
+    useEffect(() => {
+        if (!worker?.uid) {
+            return
+        }
+        let requests_unsub_list = null
+        const chunk = (arr, size) => {
+            return Array.from(
+                { length: Math.ceil(arr.length / size) },
+                (_, i) => arr.slice(i * size, i * size + size)
+            )
+        }
+        const assignments_query = query(
+            collection(db, 'assignments'),
+            where('worker_uid', '==', worker.uid)
+        )
+        const assignments_snapshot_handler = async (assignments_snapshot) => {
+            if (requests_unsub_list) {
+                requests_unsub_list.forEach((unsub) => unsub())
+                requests_unsub_list = null
+            }
 
-			const claimed_request_uids = assignments_snapshot.docs.map(
-				(doc) => doc.data().request_uid
-			)
-			const all_claimed_requests = new Map()
+            const claimed_request_uids = assignments_snapshot.docs.map(
+                (doc) => doc.data().request_uid
+            )
+            const all_claimed_requests = new Map()
 
-			if (claimed_request_uids.length === 0) {
-				set_claimed_requests([])
-			} else {
-				const batches = chunk(claimed_request_uids, 30)
+            if (claimed_request_uids.length === 0) {
+                set_claimed_requests([])
+            } else {
+                const batches = chunk(claimed_request_uids, 30)
 
-				requests_unsub_list = batches.map((batch) => {
-					const claimed_q = query(
-						collection(db, 'service_requests'),
-						where('__name__', 'in', batch)
-					)
-					return onSnapshot(claimed_q, (snapshot) => {
-						snapshot.docChanges().forEach((change) => {
-							const id = change.doc.id
-							const data = change.doc.data()
+                requests_unsub_list = batches.map((batch) => {
+                    const claimed_q = query(
+                        collection(db, 'service_requests'),
+                        where('__name__', 'in', batch)
+                    )
+                    return onSnapshot(claimed_q, (snapshot) => {
+                        snapshot.docChanges().forEach((change) => {
+                            const id = change.doc.id
+                            const data = change.doc.data()
 
-							if (
-								change.type === 'added' ||
-								change.type === 'modified'
-							) {
-								all_claimed_requests.set(id, { id, ...data })
-							}
-							if (change.type === 'removed') {
-								all_claimed_requests.delete(id)
-							}
-						})
-						const tmp = [...all_claimed_requests.values()]
-						set_claimed_requests(tmp)
-						set_stats(compute_worker_stats(tmp))
-					})
-				})
-			}
-			const unclaimed_unsub = onSnapshot(
-				query(
-					collection(db, 'service_requests'),
-					where('status', '==', STATUS.SUBMITTED)
-				),
-				(snapshot) => {
-					const data = snapshot.docs.map((doc) => ({
-						id: doc.id,
-						...doc.data(),
-					}))
-					set_unclaimed_requests(data)
-				}
-			)
+                            if (
+                                change.type === 'added' ||
+                                change.type === 'modified'
+                            ) {
+                                all_claimed_requests.set(id, { id, ...data })
+                            }
+                            if (change.type === 'removed') {
+                                all_claimed_requests.delete(id)
+                            }
+                        })
+                        const tmp = [...all_claimed_requests.values()]
+                        set_claimed_requests(tmp)
+                        set_stats(compute_worker_stats(tmp))
+                    })
+                })
+            }
+            const unclaimed_unsub = onSnapshot(
+                query(
+                    collection(db, 'service_requests'),
+                    where('status', '==', STATUS.SUBMITTED)
+                ),
+                (snapshot) => {
+                    const data = snapshot.docs.map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }))
+                    set_unclaimed_requests(data)
+                }
+            )
 
-			if (requests_unsub_list) {
-				requests_unsub_list.push(unclaimed_unsub)
-			} else {
-				requests_unsub_list = [unclaimed_unsub]
-			}
-		}
-		const assigment_unsub = onSnapshot(
-			assignments_query,
-			assignments_snapshot_handler
-		)
-		return () => {
-			assigment_unsub()
-			if (requests_unsub_list) {
-				requests_unsub_list.forEach((unsub) => unsub())
-			}
-		}
-	}, [worker?.uid])
+            if (requests_unsub_list) {
+                requests_unsub_list.push(unclaimed_unsub)
+            } else {
+                requests_unsub_list = [unclaimed_unsub]
+            }
+        }
+        const assigment_unsub = onSnapshot(
+            assignments_query,
+            assignments_snapshot_handler
+        )
+        return () => {
+            assigment_unsub()
+            if (requests_unsub_list) {
+                requests_unsub_list.forEach((unsub) => unsub())
+            }
+        }
+    }, [worker?.uid])
 
-	useEffect(() => {
-		const on_key = (e) => {
-			if (e.key === 'Escape') {
-				close_panel()
-			}
-		}
-		window.addEventListener('keydown', on_key)
-		return () => window.removeEventListener('keydown', on_key)
-	}, [])
+    useEffect(() => {
+        const on_key = (e) => {
+            if (e.key === 'Escape') {
+                close_panel()
+            }
+        }
+        window.addEventListener('keydown', on_key)
+        return () => window.removeEventListener('keydown', on_key)
+    }, [])
 
-	if (loading) {
-		return <LoadingScreen />
-	}
-	if (error) {
-		return <ErrorScreen message={error} onRetry={() => null} />
-	}
+    if (loading) {
+        return <LoadingScreen />
+    }
+    if (error) {
+        return <ErrorScreen message={error} onRetry={() => null} />
+    }
 
-	if (!worker || !stats) {
-		return null
-	}
+    if (!worker || !stats) {
+        return null
+    }
 
-	const requests =
-		active_section === 'queue' ? claimed_requests : unclaimed_requests
+    const requests =
+        active_section === 'queue' ? claimed_requests : unclaimed_requests
 
-	const filtered_requests =
-		active_filter === 'All'
-			? requests
-			: requests.filter((r) => STATUS_DISPLAY[r.status] === active_filter)
+    const filtered_requests =
+        active_filter === 'All'
+            ? requests
+            : requests.filter((r) => STATUS_DISPLAY[r.status] === active_filter)
 
-	const count_by_status = (status) =>
-		claimed_requests.filter((r) => STATUS_DISPLAY[r.status] === status)
-			.length
+    const count_by_status = (status) =>
+        claimed_requests.filter((r) => STATUS_DISPLAY[r.status] === status)
+            .length
 
-	const awaiting_action = stats.pending + stats.acknowledged
-	const resolved_pct =
-		stats.total > 0
-			? `${Math.round((stats.resolved / stats.total) * 100)}% of assigned`
-			: '—'
-	const avg_display =
-		stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
+    const awaiting_action = stats.pending + stats.acknowledged
+    const resolved_pct =
+        stats.total > 0
+            ? `${Math.round((stats.resolved / stats.total) * 100)}% of assigned`
+            : '—'
+    const avg_display =
+        stats.avg_resolution_days !== null ? stats.avg_resolution_days : '—'
 
-	return (
-		<div className="wd-page">
-			<Worker_nav_bar
-				user={{
-					uid: worker.uid,
-					name: worker.name,
-					email: worker.email,
-					role: worker.role,
-					initials: get_initials(worker.name),
-				}}
-				requests={{
-					claimed: claimed_requests.length,
-					unclaimed: unclaimed_requests.length,
-				}}
-				sections={{
-					queue_onclick: set_queue_requests,
-					available_onclick: set_available_requests,
-					messages_onclick: set_messages_section,
-				}}
-				active_section={active_section}
-				unread_messages={totalUnread}
-			/>
+    return (
+        <div className="wd-page">
+            <Worker_nav_bar
+                user={{
+                    uid: worker.uid,
+                    name: worker.name,
+                    email: worker.email,
+                    role: worker.role,
+                    initials: get_initials(worker.name),
+                }}
+                requests={{
+                    claimed: claimed_requests.length,
+                    unclaimed: unclaimed_requests.length,
+                }}
+                sections={{
+                    queue_onclick: set_queue_requests,
+                    available_onclick: set_available_requests,
+                    messages_onclick: set_messages_section,
+                }}
+                active_section={active_section}
+                unread_messages={totalUnread}
+            />
 
-			{worker?.canMessage === false && (
-				<div
-					className="wd-global-ban-banner"
-					style={{
-						backgroundColor: '#fee2e2',
-						color: '#991b1b',
-						padding: '12px',
-						textAlign: 'center',
-						fontWeight: 'bold',
-					}}
-				>
-					🚨 Your messaging privileges have been temporarily suspended
-					by an administrator.
-				</div>
-			)}
+            {worker?.canMessage === false && (
+                <div
+                    className="wd-global-ban-banner"
+                    style={{
+                        backgroundColor: '#fee2e2',
+                        color: '#991b1b',
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                    }}
+                >
+                    🚨 Your messaging privileges have been temporarily suspended
+                    by an administrator.
+                </div>
+            )}
 
-			<BusyToolTip show_busy_tip={show_busy_tip} busy_tip={busy_tip} />
+            <BusyToolTip show_busy_tip={show_busy_tip} busy_tip={busy_tip} />
 
-			<div
-				className={`wd-layout${selected_req ? ' wd-layout--panel-open' : ''}`}
-			>
-				<main className="wd-main">
-					{active_section === 'messages' ? (
-						<WorkerMessages
-							worker={worker}
-							requests={[
-								...claimed_requests,
-								...unclaimed_requests,
-							]}
-						/>
-					) : (
-						<>
-							<section className="wd-section">
-								<h2 className="wd-section-title">
-									Performance summary
-								</h2>
-								<div className="wd-stats-grid">
-									<StatCard
-										label={
-											'Total ' +
-											STATUS_DISPLAY[STATUS.ASSIGNED]
-										}
-										value={stats.total}
-										sub="All time"
-									/>
-									<StatCard
-										label={STATUS_DISPLAY[STATUS.RESOLVED]}
-										value={stats.resolved}
-										sub={resolved_pct}
-										value_modifier="success"
-									/>
-									<StatCard
-										label="Avg. resolution time"
-										value={
-											avg_display !== '—' ? (
-												<>
-													{avg_display}
-													<span className="wd-stat-unit">
-														{' '}
-														d
-													</span>
-												</>
-											) : (
-												'—'
-											)
-										}
-										sub="Across resolved requests"
-									/>
-									<StatCard
-										label="Awaiting action"
-										value={awaiting_action}
-										sub={`${STATUS_DISPLAY[STATUS.ASSIGNED]} + ${STATUS_DISPLAY[STATUS.IN_PROGRESS]}`}
-										value_modifier={
-											awaiting_action > 0
-												? 'warning'
-												: null
-										}
-									/>
-								</div>
-							</section>
+            <div
+                className={`wd-layout${selected_req ? ' wd-layout--panel-open' : ''}`}
+            >
+                <main className="wd-main">
+                    {active_section === 'messages' ? (
+                        <WorkerMessages
+                            worker={worker}
+                            requests={[
+                                ...claimed_requests,
+                                ...unclaimed_requests,
+                            ]}
+                        />
+                    ) : (
+                        <>
+                            <section className="wd-section">
+                                <h2 className="wd-section-title">
+                                    Performance summary
+                                </h2>
+                                <div className="wd-stats-grid">
+                                    <StatCard
+                                        label={
+                                            'Total ' +
+                                            STATUS_DISPLAY[STATUS.ASSIGNED]
+                                        }
+                                        value={stats.total}
+                                        sub="All time"
+                                    />
+                                    <StatCard
+                                        label={STATUS_DISPLAY[STATUS.RESOLVED]}
+                                        value={stats.resolved}
+                                        sub={resolved_pct}
+                                        value_modifier="success"
+                                    />
+                                    <StatCard
+                                        label="Avg. resolution time"
+                                        value={
+                                            avg_display !== '—' ? (
+                                                <>
+                                                    {avg_display}
+                                                    <span className="wd-stat-unit">
+                                                        {' '}
+                                                        d
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                '—'
+                                            )
+                                        }
+                                        sub="Across resolved requests"
+                                    />
+                                    <StatCard
+                                        label="Awaiting action"
+                                        value={awaiting_action}
+                                        sub={`${STATUS_DISPLAY[STATUS.ASSIGNED]} + ${STATUS_DISPLAY[STATUS.IN_PROGRESS]}`}
+                                        value_modifier={
+                                            awaiting_action > 0
+                                                ? 'warning'
+                                                : null
+                                        }
+                                    />
+                                </div>
+                            </section>
 
-							<section className="wd-section">
-								<div className="wd-queue-top-row">
-									<h2
-										className="wd-section-title"
-										style={{ marginBottom: 0 }}
-									>
-										{active_section === 'queue'
-											? 'Assigned request queue'
-											: 'Available requests'}
-									</h2>
-									{active_section === 'queue' && (
-										<div className="wd-filter-row">
-											{STATUSES.map((s) => (
-												<button
-													key={s}
-													onClick={() =>
-														set_filter(s)
-													}
-													className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
-												>
-													{s}
-													{s !== 'All' && (
-														<span className="wd-filter-count">
-															{count_by_status(s)}
-														</span>
-													)}
-												</button>
-											))}
-										</div>
-									)}
-								</div>
+                            <section className="wd-section">
+                                <div className="wd-queue-top-row">
+                                    <h2
+                                        className="wd-section-title"
+                                        style={{ marginBottom: 0 }}
+                                    >
+                                        {active_section === 'queue'
+                                            ? 'Assigned request queue'
+                                            : 'Available requests'}
+                                    </h2>
+                                    {active_section === 'queue' && (
+                                        <div className="wd-filter-row">
+                                            {STATUSES.map((s) => (
+                                                <button
+                                                    key={s}
+                                                    onClick={() =>
+                                                        set_filter(s)
+                                                    }
+                                                    className={`wd-filter-btn${active_filter === s ? ' wd-filter-btn--active' : ''}`}
+                                                >
+                                                    {s}
+                                                    {s !== 'All' && (
+                                                        <span className="wd-filter-count">
+                                                            {count_by_status(s)}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
 
-								<div className="wd-queue-card">
-									{filtered_requests.length === 0 ? (
-										<EmptyQueue filter={active_filter} />
-									) : (
-										filtered_requests.map((req) => (
-											<RequestRow
-												key={req.id}
-												req={req}
-												is_selected={
-													selected_req?.id === req.id
-												}
-												on_click={() =>
-													toggle_panel(req)
-												}
-											/>
-										))
-									)}
-								</div>
-							</section>
-						</>
-					)}
-				</main>
+                                <div className="wd-queue-card">
+                                    {filtered_requests.length === 0 ? (
+                                        <EmptyQueue filter={active_filter} />
+                                    ) : (
+                                        filtered_requests.map((req) => (
+                                            <RequestRow
+                                                key={req.id}
+                                                req={req}
+                                                is_selected={
+                                                    selected_req?.id === req.id
+                                                }
+                                                on_click={() =>
+                                                    toggle_panel(req)
+                                                }
+                                            />
+                                        ))
+                                    )}
+                                </div>
+                            </section>
+                        </>
+                    )}
+                </main>
 
-				{selected_req && (
-					<aside
-						className={`wd-detail-panel${panel_visible ? ' wd-detail-panel--visible' : ''}`}
-						aria-label="Request detail and messaging"
-					>
-						<RequestDetailPanel
-							req={selected_req}
-							worker={worker}
-							on_close={close_panel}
-							active_section={active_section}
-							popup_busy={popup_busy}
-						/>
-					</aside>
-				)}
-			</div>
+                {selected_req && (
+                    <aside
+                        className={`wd-detail-panel${panel_visible ? ' wd-detail-panel--visible' : ''}`}
+                        aria-label="Request detail and messaging"
+                    >
+                        <RequestDetailPanel
+                            req={selected_req}
+                            worker={worker}
+                            on_close={close_panel}
+                            active_section={active_section}
+                            popup_busy={popup_busy}
+                        />
+                    </aside>
+                )}
+            </div>
 
-			{selected_req && (
-				<div
-					className={`wd-backdrop${panel_visible ? ' wd-backdrop--visible' : ''}`}
-					onClick={close_panel}
-					aria-hidden="true"
-				/>
-			)}
-		</div>
-	)
+            {selected_req && (
+                <div
+                    className={`wd-backdrop${panel_visible ? ' wd-backdrop--visible' : ''}`}
+                    onClick={close_panel}
+                    aria-hidden="true"
+                />
+            )}
+        </div>
+    )
 }
 
 /* ── RequestDetailPanel ──────────────────────────────────────────────────── */
 
 function RequestDetailPanel({
-	req,
-	worker,
-	on_close,
-	active_section,
-	popup_busy,
+    req,
+    worker,
+    on_close,
+    active_section,
+    popup_busy,
 }) {
-	const updating = useRef(false)
-	const navigate = useNavigate()
-	const [close_reason, set_close_reason] = useState(null)
-	const [close_reason_loading, set_close_reason_loading] = useState(false)
+    const updating = useRef(false)
+    const navigate = useNavigate()
+    const [close_reason, set_close_reason] = useState(null)
+    const [close_reason_loading, set_close_reason_loading] = useState(false)
 
-	const display_date =
-		parse_date(req.updated_at) !== '-'
-			? parse_date(req.updated_at)
-			: parse_date(req.created_at)
+    const display_date =
+        parse_date(req.updated_at) !== '-'
+            ? parse_date(req.updated_at)
+            : parse_date(req.created_at)
 
-	useEffect(() => {
-		if (req.status !== 'closed') {
-			set_close_reason(null)
-			return
-		}
-		set_close_reason_loading(true)
-		getDocs(
-			query(
-				collection(db, 'service_requests', req.id, 'comments'),
-				where('type', '==', 'close_reason')
-			)
-		)
-			.then((snap) => {
-				if (!snap.empty) {
-					set_close_reason(snap.docs[0].data().text)
-				}
-			})
-			.catch(() => set_close_reason(null))
-			.finally(() => set_close_reason_loading(false))
-	}, [req.id, req.status])
+    useEffect(() => {
+        if (req.status !== STATUS.CLOSED) {
+            set_close_reason(null)
+            return
+        }
+        set_close_reason_loading(true)
+        getDocs(
+            query(
+                collection(db, 'service_requests', req.id, 'comments'),
+                where('type', '==', 'close_reason')
+            )
+        )
+            .then((snap) => {
+                if (!snap.empty) {
+                    set_close_reason(snap.docs[0].data().text)
+                }
+            })
+            .catch(() => set_close_reason(null))
+            .finally(() => set_close_reason_loading(false))
+    }, [req.id, req.status])
 
-	const resident_name = req.resident_name || 'Resident'
+    const resident_name = req.resident_name || 'Resident'
 
-	const post_claim = async () => {
-		navigate('/worker-dashboard')
-	}
+    const post_claim = async () => {
+        navigate('/worker-dashboard')
+    }
 
-	const on_status_change = async (req_uid, new_status) => {
-		if (updating.current === true) {
-			return
-		}
-		updating.current = true
-		try {
-			const ret = await update_request_status(req_uid, new_status)
-			popup_busy('Successfully updated request status.')
-		} catch (err) {
-			console.error(err)
-			popup_busy(err.message || 'Failed to update request status.')
-		} finally {
-			updating.current = false
-			on_close()
-		}
-	}
+    const on_status_change = async (req_uid, new_status) => {
+        if (updating.current === true) {
+            return
+        }
+        updating.current = true
+        try {
+            const ret = await update_request_status(req_uid, new_status)
+            popup_busy('Successfully updated request status.')
+        } catch (err) {
+            console.error(err)
+            popup_busy(err.message || 'Failed to update request status.')
+        } finally {
+            updating.current = false
+            on_close()
+        }
+    }
 
-	const [comments, set_comments] = useState([])
-	const [comment_text, set_comment_text] = useState('')
-	const [is_submitting, set_is_submitting] = useState(false)
+    const [comments, set_comments] = useState([])
+    const [comment_text, set_comment_text] = useState('')
+    const [is_submitting, set_is_submitting] = useState(false)
 
-	useEffect(() => {
-		fetch_comment(req.id).then(set_comments).catch(console.error)
-	}, [req.id])
+    useEffect(() => {
+        fetch_comment(req.id).then(set_comments).catch(console.error)
+    }, [req.id])
 
-	const handle_submit = async () => {
-		if (!comment_text.trim()) {
-			return
-		}
-		set_is_submitting(true)
-		try {
-			await add_comment(req.id, worker.name, worker.uid, comment_text)
-			set_comment_text('')
-			const updated = await fetch_comment(req.id)
-			set_comments(updated)
-		} catch (err) {
-			console.error('Failed to post comment:', err)
-		} finally {
-			set_is_submitting(false)
-		}
-	}
+    const handle_submit = async () => {
+        if (!comment_text.trim()) {
+            return
+        }
+        set_is_submitting(true)
+        try {
+            await add_comment(req.id, worker.name, worker.uid, comment_text)
+            set_comment_text('')
+            const updated = await fetch_comment(req.id)
+            set_comments(updated)
+        } catch (err) {
+            console.error('Failed to post comment:', err)
+        } finally {
+            set_is_submitting(false)
+        }
+    }
 
-	return (
-		<div className="wd-panel-inner">
-			<div className="wd-panel-header">
-				<div className="wd-panel-header-left">
-					<span className="wd-panel-req-id">{req.id}</span>
-					<span
-						className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
-					>
-						{STATUS_DISPLAY[req.status]}
-					</span>
-				</div>
-				<button
-					className="wd-panel-close"
-					onClick={on_close}
-					aria-label="Close panel"
-				>
-					<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-						<path
-							d="M3 3l10 10M13 3L3 13"
-							stroke="currentColor"
-							strokeWidth="1.75"
-							strokeLinecap="round"
-						/>
-					</svg>
-				</button>
-			</div>
+    return (
+        <div className="wd-panel-inner">
+            <div className="wd-panel-header">
+                <div className="wd-panel-header-left">
+                    <span className="wd-panel-req-id">{req.id}</span>
+                    <span
+                        className={`wd-badge ${STATUS_BADGE_CLASS[STATUS_DISPLAY[req.status]] ?? ''}`}
+                    >
+                        {STATUS_DISPLAY[req.status]}
+                    </span>
+                </div>
+                <button
+                    className="wd-panel-close"
+                    onClick={on_close}
+                    aria-label="Close panel"
+                >
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path
+                            d="M3 3l10 10M13 3L3 13"
+                            stroke="currentColor"
+                            strokeWidth="1.75"
+                            strokeLinecap="round"
+                        />
+                    </svg>
+                </button>
+            </div>
 
-			<dl className="wd-panel-meta">
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Category</dt>
-					<dd className="wd-panel-meta-value">{req.category}</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Priority</dt>
-					<dd className="wd-panel-meta-value">
-						{req.priority ? (
-							<span
-								className={`wd-priority-badge ${PRIORITY_BADGE_CLASS[req.priority] ?? ''}`}
-							>
-								{req.priority}
-							</span>
-						) : (
-							<span className="wd-priority-none">Not set</span>
-						)}
-					</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Province</dt>
-					<dd className="wd-panel-meta-value">{req.sa_province}</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Municipality</dt>
-					<dd className="wd-panel-meta-value">{req.sa_m_name}</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Ward</dt>
-					<dd className="wd-panel-meta-value">{req.sa_ward}</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Created At</dt>
-					<dd className="wd-panel-meta-value">
-						{parse_date(req.created_at)}
-					</dd>
-				</div>
-				<div className="wd-panel-meta-row">
-					<dt className="wd-panel-meta-label">Last Updated At</dt>
-					<dd className="wd-panel-meta-value">{display_date}</dd>
-				</div>
-				<div className="wd-panel-meta-row wd-panel-meta-row--full">
-					<dt className="wd-panel-meta-label">Description</dt>
-					<dd className="wd-panel-meta-value wd-panel-meta-desc">
-						{req.description}
-					</dd>
-				</div>
-				<div className="wd-panel-meta-row wd-panel-meta-row--full">
-					<dt className="wd-panel-meta-label">Status</dt>
-					<dd className="wd-panel-meta-value wd-panel-meta-desc">
-						{STATUS_DISPLAY[req.status]}
-					</dd>
-				</div>
-				{req.status === 'closed' && (
-					<div className="wd-panel-meta-row wd-panel-meta-row--full">
-						<dt className="wd-panel-meta-label">Close Reason</dt>
-						<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
-							{close_reason_loading
-								? 'Loading...'
-								: (close_reason ?? '-')}
-						</dd>
-					</div>
-				)}
-				{req.status === STATUS.CLOSED &&
-					req.rating &&
-					typeof req.rating === 'number' &&
-					req.comment && (
-						<div className="wd-panel-meta-row wd-panel-meta-row--full">
-							<dt className="wd-panel-meta-label">Review</dt>
-							<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
-								{req.comment}
-							</dd>
-							<dt className="wd-panel-meta-label">Rating</dt>
-							<dd className="wd-panel-meta-value wd-panel-meta-desc">
-								<StarRating rating={req.rating} />
-							</dd>
-						</div>
-					)}
-			</dl>
+            <dl className="wd-panel-meta">
+                <div className="wd-panel-meta-row">
+                    <dt className="wd-panel-meta-label">Category</dt>
+                    <dd className="wd-panel-meta-value">{req.category}</dd>
+                </div>
+                <div className="wd-panel-meta-row">
+                    <dt className="wd-panel-meta-label">Priority</dt>
+                    <dd className="wd-panel-meta-value">
+                        {req.priority ? (
+                            <span
+                                className={`wd-priority-badge ${PRIORITY_BADGE_CLASS[req.priority] ?? ''}`}
+                            >
+                                {req.priority}
+                            </span>
+                        ) : (
+                            <span className="wd-priority-none">Not set</span>
+                        )}
+                    </dd>
+                </div>
+                <div className="wd-panel-meta-row">
+                    <dt className="wd-panel-meta-label">Province</dt>
+                    <dd className="wd-panel-meta-value">{req.sa_province}</dd>
+                </div>
+                <div className="wd-panel-meta-row">
+                    <dt className="wd-panel-meta-label">Municipality</dt>
+                    <dd className="wd-panel-meta-value">{req.sa_m_name}</dd>
+                </div>
+                <div className="wd-panel-meta-row">
+                    <dt className="wd-panel-meta-label">Ward</dt>
+                    <dd className="wd-panel-meta-value">{req.sa_ward}</dd>
+                </div>
+                <div className="wd-panel-meta-row">
+                    <dt className="wd-panel-meta-label">Created At</dt>
+                    <dd className="wd-panel-meta-value">
+                        {parse_date(req.created_at)}
+                    </dd>
+                </div>
+                <div className="wd-panel-meta-row">
+                    <dt className="wd-panel-meta-label">Last Updated At</dt>
+                    <dd className="wd-panel-meta-value">{display_date}</dd>
+                </div>
+                <div className="wd-panel-meta-row wd-panel-meta-row--full">
+                    <dt className="wd-panel-meta-label">Description</dt>
+                    <dd className="wd-panel-meta-value wd-panel-meta-desc">
+                        {req.description}
+                    </dd>
+                </div>
+                <div className="wd-panel-meta-row wd-panel-meta-row--full">
+                    <dt className="wd-panel-meta-label">Status</dt>
+                    <dd className="wd-panel-meta-value wd-panel-meta-desc">
+                        {STATUS_DISPLAY[req.status]}
+                    </dd>
+                </div>
+                {req.status === STATUS.CLOSED && (
+                    <div className="wd-panel-meta-row wd-panel-meta-row--full">
+                        <dt className="wd-panel-meta-label">Close Reason</dt>
+                        <dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
+                            {close_reason_loading
+                                ? 'Loading...'
+                                : (close_reason ?? '-')}
+                        </dd>
+                    </div>
+                )}
+                {req.status === STATUS.CLOSED &&
+                    req.rating &&
+                    typeof req.rating === 'number' &&
+                    req.comment && (
+                        <div className="wd-panel-meta-row wd-panel-meta-row--full">
+                            <dt className="wd-panel-meta-label">Review</dt>
+                            <dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
+                                {req.comment}
+                            </dd>
+                            <dt className="wd-panel-meta-label">Rating</dt>
+                            <dd className="wd-panel-meta-value wd-panel-meta-desc">
+                                <StarRating rating={req.rating} />
+                            </dd>
+                        </div>
+                    )}
+            </dl>
 
-			<div className="wd-panel-image">
-				<img src={req.image} alt="Report image" />
-			</div>
+            <div className="wd-panel-image">
+                <img src={req.image} alt="Report image" />
+            </div>
 
-			{active_section === 'queue' && req.status !== STATUS.CLOSED ? (
-				<>
-					{/* Status update — hidden for closed requests */}
-					{req.status !== 'closed' && (
-						<>
-							<div className="wd-panel-divider">
-								<span>Update Status</span>
-							</div>
-							<div className="wd-panel-status-row">
-								{AVAILABLE_STATUSES.map((status) => (
-									<button
-										key={status}
-										className={`wd-status-opt${req.status === status ? ' wd-status-opt--active' : ''}`}
-										onClick={() =>
-											on_status_change(req.id, status)
-										}
-										disabled={req.status === status}
-									>
-										{STATUS_DISPLAY[status]}
-									</button>
-								))}
-							</div>
-						</>
-					)}
-					{req.status === 'closed' && (
-						<div className="wd-panel-divider">
-							<span>
-								This request has been closed by an admin and
-								cannot be updated.
-							</span>
-						</div>
-					)}
+            {active_section === 'queue' ? (
+                <>
+                    {/* Status update — hidden for closed requests */}
+                    {req.status !== STATUS.CLOSED ? (
+                        <>
+                            <div className="wd-panel-divider">
+                                <span>Update Status</span>
+                            </div>
+                            <div className="wd-panel-status-row">
+                                {AVAILABLE_STATUSES.map((status) => (
+                                    <button
+                                        key={status}
+                                        className={`wd-status-opt${req.status === status ? ' wd-status-opt--active' : ''}`}
+                                        onClick={() =>
+                                            on_status_change(req.id, status)
+                                        }
+                                        disabled={req.status === status}
+                                    >
+                                        {STATUS_DISPLAY[status]}
+                                    </button>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="wd-panel-divider">
+                            <span>
+                                This request has been closed by an admin and
+                                cannot be updated.
+                            </span>
+                        </div>
+                    )}
 
-					<div className="wd-panel-divider">
-						<span>Conversation with resident</span>
-					</div>
+                    <div className="wd-panel-divider">
+                        <span>Conversation with resident</span>
+                    </div>
 
-					<div className="wd-panel-thread">
-						{req.user_uid ? (
-							<MessageThread
-								request_uid={req.id}
-								current_uid={worker.uid}
-								current_name={worker.name}
-								current_role="worker"
-								other_uid={req.user_uid}
-								other_name={resident_name}
-								messaging_enabled={
-									req.messaging_enabled !== false &&
-									worker.canMessage !== false
-								}
-							/>
-						) : (
-							<p className="wd-panel-no-resident">
-								Resident information unavailable — messaging is
-								disabled for this request.
-							</p>
-						)}
-					</div>
+                    <div className="wd-panel-thread">
+                        {req.user_uid ? (
+                            <MessageThread
+                                request_uid={req.id}
+                                current_uid={worker.uid}
+                                current_name={worker.name}
+                                current_role="worker"
+                                other_uid={req.user_uid}
+                                other_name={resident_name}
+                                messaging_enabled={
+                                    req.messaging_enabled !== false &&
+                                    worker.canMessage !== false
+                                }
+                            />
+                        ) : (
+                            <p className="wd-panel-no-resident">
+                                Resident information unavailable — messaging is
+                                disabled for this request.
+                            </p>
+                        )}
+                    </div>
 
-					<PublicComments comments={comments} />
+                    <PublicComments comments={comments} />
 
-					<div className="wd-comment-form">
-						<textarea
-							className="wd-comment-input"
-							rows={3}
-							placeholder="Leave a public comment about this request..."
-							value={comment_text}
-							onChange={(e) => set_comment_text(e.target.value)}
-							disabled={is_submitting}
-						/>
-						<button
-							className="wd-comment-submit"
-							onClick={handle_submit}
-							disabled={is_submitting || !comment_text.trim()}
-						>
-							{is_submitting ? 'Posting…' : 'Post comment'}
-						</button>
-					</div>
-				</>
-			) : active_section !== 'queue' ? (
-				<ClaimBtn request_uid={req.id} post_claim={post_claim} />
-			) : (
-				<PublicComments comments={comments} />
-			)}
-		</div>
-	)
+                    <div className="wd-comment-form">
+                        <textarea
+                            className="wd-comment-input"
+                            rows={3}
+                            placeholder="Leave a public comment about this request..."
+                            value={comment_text}
+                            onChange={(e) => set_comment_text(e.target.value)}
+                            disabled={is_submitting}
+                        />
+                        <button
+                            className="wd-comment-submit"
+                            onClick={handle_submit}
+                            disabled={is_submitting || !comment_text.trim()}
+                        >
+                            {is_submitting ? 'Posting…' : 'Post comment'}
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <ClaimBtn request_uid={req.id} post_claim={post_claim} />
+            )}
+        </div>
+    )
 }
 
 function get_initials(name = '') {
-	return name
-		.split(' ')
-		.filter(Boolean)
-		.slice(0, 2)
-		.map((w) => w[0].toUpperCase())
-		.join('')
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((w) => w[0].toUpperCase())
+        .join('')
 }
 
 function StatCard({ label, value, sub, value_modifier }) {
-	const cls = [
-		'wd-stat-value',
-		value_modifier && `wd-stat-value--${value_modifier}`,
-	]
-		.filter(Boolean)
-		.join(' ')
-	return (
-		<div className="wd-stat-card">
-			<div className="wd-stat-label">{label}</div>
-			<div className={cls}>{value}</div>
-			<div className="wd-stat-sub">{sub}</div>
-		</div>
-	)
+    const cls = [
+        'wd-stat-value',
+        value_modifier && `wd-stat-value--${value_modifier}`,
+    ]
+        .filter(Boolean)
+        .join(' ')
+    return (
+        <div className="wd-stat-card">
+            <div className="wd-stat-label">{label}</div>
+            <div className={cls}>{value}</div>
+            <div className="wd-stat-sub">{sub}</div>
+        </div>
+    )
 }
 
 function RequestRow({ req, is_selected, on_click }) {
@@ -856,7 +854,9 @@ function RequestRow({ req, is_selected, on_click }) {
             <div className="wd-row-body">
                 <div className="wd-row-top-left">
                     <span className="wd-req-cat">{req.category}</span>
-                    <span className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}>
+                    <span
+                        className={`wd-badge ${STATUS_BADGE_CLASS[STATUS_DISPLAY[req.status]] ?? ''}`}
+                    >
                         {STATUS_DISPLAY[req.status]}
                     </span>
                 </div>
@@ -865,7 +865,9 @@ function RequestRow({ req, is_selected, on_click }) {
                     <span className="wd-req-date">{display_date}</span>
                 </div>
                 <div className="wd-row-chevron-cell">
-                    <span className="wd-req-chevron" aria-hidden="true">›</span>
+                    <span className="wd-req-chevron" aria-hidden="true">
+                        ›
+                    </span>
                 </div>
                 <div className="wd-row-desc-cell">
                     <span className="wd-req-desc">{req.description}</span>
@@ -876,92 +878,92 @@ function RequestRow({ req, is_selected, on_click }) {
 }
 
 function EmptyQueue({ filter }) {
-	return (
-		<div className="wd-empty-queue">
-			No {filter === 'All' ? '' : `${filter.toLowerCase()} `}requests
-			assigned to you.
-		</div>
-	)
+    return (
+        <div className="wd-empty-queue">
+            No {filter === 'All' ? '' : `${filter.toLowerCase()} `}requests
+            assigned to you.
+        </div>
+    )
 }
 
 function LoadingScreen() {
-	return (
-		<div className="wd-centered-screen">
-			<div className="wd-loading-text">Loading dashboard…</div>
-		</div>
-	)
+    return (
+        <div className="wd-centered-screen">
+            <div className="wd-loading-text">Loading dashboard…</div>
+        </div>
+    )
 }
 
 function ErrorScreen({ message, onRetry }) {
-	return (
-		<div className="wd-centered-screen">
-			<div className="wd-error-text">{message}</div>
-			<button className="wd-retry-btn" onClick={onRetry}>
-				Try again
-			</button>
-		</div>
-	)
+    return (
+        <div className="wd-centered-screen">
+            <div className="wd-error-text">{message}</div>
+            <button className="wd-retry-btn" onClick={onRetry}>
+                Try again
+            </button>
+        </div>
+    )
 }
 
 function PublicComments({ comments }) {
-	return (
-		<>
-			<div className="wd-panel-divider">
-				<span>Public comments</span>
-			</div>
+    return (
+        <>
+            <div className="wd-panel-divider">
+                <span>Public comments</span>
+            </div>
 
-			<div className="wd-comments-list">
-				{comments.length === 0 ? (
-					<p className="wd-comments-empty">No comments yet.</p>
-				) : (
-					comments.map((c) => (
-						<div key={c.id} className="wd-comment">
-							<div className="wd-comment-meta">
-								<span className="wd-comment-author">
-									{c.worker_name}
-								</span>
-								<span className="wd-comment-date">
-									{c.created_at?.toDate
-										? c.created_at
-												.toDate()
-												.toLocaleDateString()
-										: '—'}
-								</span>
-							</div>
-							<p className="wd-comment-text">{c.text}</p>
-						</div>
-					))
-				)}
-			</div>
-		</>
-	)
+            <div className="wd-comments-list">
+                {comments.length === 0 ? (
+                    <p className="wd-comments-empty">No comments yet.</p>
+                ) : (
+                    comments.map((c) => (
+                        <div key={c.id} className="wd-comment">
+                            <div className="wd-comment-meta">
+                                <span className="wd-comment-author">
+                                    {c.worker_name}
+                                </span>
+                                <span className="wd-comment-date">
+                                    {c.created_at?.toDate
+                                        ? c.created_at
+                                              .toDate()
+                                              .toLocaleDateString()
+                                        : '—'}
+                                </span>
+                            </div>
+                            <p className="wd-comment-text">{c.text}</p>
+                        </div>
+                    ))
+                )}
+            </div>
+        </>
+    )
 }
 
 function StarRating({ rating, max = 5 }) {
-	return (
-		<div className="rd-stars-readonly">
-			{[...Array(max)].map((_, i) => (
-				<span
-					key={i}
-					className={`rd-star-readonly ${i < rating ? 'rd-star-readonly--active' : ''}`}
-				>
-					★
-				</span>
-			))}
-			<span className="rd-star-label">
-				{['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
-			</span>
-		</div>
-	)
+    return (
+        <div className="rd-stars-readonly">
+            {[...Array(max)].map((_, i) => (
+                <span
+                    key={i}
+                    className={`rd-star-readonly ${i < rating ? 'rd-star-readonly--active' : ''}`}
+                >
+                    ★
+                </span>
+            ))}
+            <span className="rd-star-label">
+                {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
+            </span>
+        </div>
+    )
 }
 
 function BusyToolTip({ show_busy_tip, busy_tip }) {
-	return (
-		<div
-			className="wd-busy-tooltip"
-			style={{ position: 'relative', display: 'inline-block' }}
-		>
-			{show_busy_tip && <div className="wd-tooltip">{busy_tip}</div>}
-		</div>
-	)
+    return (
+        <div
+            className="wd-busy-tooltip"
+            style={{ position: 'relative', display: 'inline-block' }}
+        >
+            {show_busy_tip && <div className="wd-tooltip">{busy_tip}</div>}
+        </div>
+    )
 }

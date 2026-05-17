@@ -368,49 +368,51 @@ export default function ResidentDashboard() {
 /* ── RequestCard ─────────────────────────────────────────────────────────── */
 
 function RequestCard({ req, is_selected, on_click, index }) {
-    const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
+	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
 
-    const bar_colors = {
-        pending: '#c05a3a',
-        acknowledged: '#1b5e98',
-        resolved: '#1e6b3a',
-        closed: '#5e574f',
-    }
-    const bar_widths = {
-        pending: '25%',
-        acknowledged: '55%',
-        resolved: '100%',
-        closed: '100%',
-    }
-    const bar_color = bar_colors[req.status] ?? 'var(--rd-accent-muted)'
-    const bar_width = bar_widths[req.status] ?? '30%'
+	const bar_colors = {
+		pending: '#c05a3a',
+		acknowledged: '#1b5e98',
+		resolved: '#1e6b3a',
+		closed: '#5e574f',
+	}
+	const bar_widths = {
+		pending: '25%',
+		acknowledged: '55%',
+		resolved: '100%',
+		closed: '100%',
+	}
+	const bar_color = bar_colors[req.status] ?? 'var(--rd-accent-muted)'
+	const bar_width = bar_widths[req.status] ?? '30%'
 
-    return (
-        <button
-            className={`rd-req-card${is_selected ? ' rd-req-card--selected' : ''}`}
-            onClick={on_click}
-            aria-pressed={is_selected}
-            style={{ animationDelay: `${index * 55}ms` }}
-        >
-            <div
-                className="rd-card-bar"
-                style={{ '--bar-color': bar_color, '--bar-w': bar_width }}
-            />
-            <div className="rd-card-inner">
-                <div className="rd-req-card-top">
-                    <span className="rd-req-category">{req.category}</span>
-                    <span className={`rd-status-pill ${meta.cls}`}>
-                        {meta.label}
-                    </span>
-                </div>
-                <p className="rd-req-desc">{req.description}</p>
-                <div className="rd-req-card-bottom">
-                    <span className="rd-ward-chip">{req.sa_ward}</span>
-                    <span className="rd-req-date">{format_date(req.created_at)}</span>
-                </div>
-            </div>
-        </button>
-    )
+	return (
+		<button
+			className={`rd-req-card${is_selected ? ' rd-req-card--selected' : ''}`}
+			onClick={on_click}
+			aria-pressed={is_selected}
+			style={{ animationDelay: `${index * 55}ms` }}
+		>
+			<div
+				className="rd-card-bar"
+				style={{ '--bar-color': bar_color, '--bar-w': bar_width }}
+			/>
+			<div className="rd-card-inner">
+				<div className="rd-req-card-top">
+					<span className="rd-req-category">{req.category}</span>
+					<span className={`rd-status-pill ${meta.cls}`}>
+						{meta.label}
+					</span>
+				</div>
+				<p className="rd-req-desc">{req.description}</p>
+				<div className="rd-req-card-bottom">
+					<span className="rd-ward-chip">{req.sa_ward}</span>
+					<span className="rd-req-date">
+						{format_date(req.created_at)}
+					</span>
+				</div>
+			</div>
+		</button>
+	)
 }
 
 /* ── RequestDetail ───────────────────────────────────────────────────────── */
