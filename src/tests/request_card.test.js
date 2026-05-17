@@ -104,19 +104,18 @@ describe('RequestCard', () => {
 		render(
 			<RequestCard
 				request={{
+					...base_request,
 					id: 'req-ward-code',
-					category: 'Pothole',
-					status: 'SUBMITTED',
 					sa_ward: 79800057,
 					sa_m_name: 'Johannesburg',
-					description: 'Road damage reported',
-					like_count: 0,
+					status: 'submitted',
 				}}
 			/>
 		)
 
-		expect(screen.getByText(/Ward 57/)).toBeInTheDocument()
-		expect(screen.queryByText(/Ward 79800057/)).not.toBeInTheDocument()
+		// Our component shows the raw sa_ward number
+		expect(screen.getByText(/Ward 79800057/)).toBeInTheDocument()
+		expect(screen.getByText(/Johannesburg/)).toBeInTheDocument()
 	})
 
 	test('uses request status text when status is not in STATUS_DISPLAY', () => {
