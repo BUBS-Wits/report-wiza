@@ -1,11 +1,11 @@
 import React from 'react'
 import {
-    render,
-    screen,
-    fireEvent,
-    waitFor,
-    act,
-    prettyDOM,
+	render,
+	screen,
+	fireEvent,
+	waitFor,
+	act,
+	prettyDOM,
 } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { subscribe_to_worker_conversations } from '../backend/worker_conversations_service'
@@ -15,26 +15,26 @@ console.debug = () => {}
 console.error = () => {}
 
 jest.mock('../firebase_config.js', () => ({
-    auth: {
-        currentUser: {
-            uid: 'worker-uid-1',
-            getIdToken: jest.fn().mockResolvedValue('mock-token'),
-        },
-    },
-    db: {},
+	auth: {
+		currentUser: {
+			uid: 'worker-uid-1',
+			getIdToken: jest.fn().mockResolvedValue('mock-token'),
+		},
+	},
+	db: {},
 }))
 
 const mock_fetch_ok = (response = {}) => {
-    global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: jest.fn().mockResolvedValue(response),
-    })
+	global.fetch = jest.fn().mockResolvedValue({
+		ok: true,
+		json: jest.fn().mockResolvedValue(response),
+	})
 }
 const mock_fetch_not_ok = (response = {}) => {
-    global.fetch = jest.fn().mockResolvedValue({
-        ok: false,
-        json: jest.fn().mockResolvedValue(response),
-    })
+	global.fetch = jest.fn().mockResolvedValue({
+		ok: false,
+		json: jest.fn().mockResolvedValue(response),
+	})
 }
 
 import { STATUS, STATUS_DISPLAY } from '../constants.js'
@@ -47,20 +47,20 @@ const mock_order_by = jest.fn()
 const mock_on_snapshot = jest.fn()
 
 jest.mock('firebase/firestore', () => ({
-    collection: (...a) => mock_collection(...a),
-    query: (...a) => mock_query(...a),
-    where: (...a) => mock_where(...a),
-    orderBy: (...a) => mock_order_by(...a),
-    onSnapshot: (...a) => mock_on_snapshot(...a),
-    doc: jest.fn(),
-    getDocs: jest.fn(() => Promise.resolve({ empty: true, docs: [] })),
-    addDoc: jest.fn(() => Promise.resolve()),
-    serverTimestamp: jest.fn(() => 'mock-timestamp'),
+	collection: (...a) => mock_collection(...a),
+	query: (...a) => mock_query(...a),
+	where: (...a) => mock_where(...a),
+	orderBy: (...a) => mock_order_by(...a),
+	onSnapshot: (...a) => mock_on_snapshot(...a),
+	doc: jest.fn(),
+	getDocs: jest.fn(() => Promise.resolve({ empty: true, docs: [] })),
+	addDoc: jest.fn(() => Promise.resolve()),
+	serverTimestamp: jest.fn(() => 'mock-timestamp'),
 }))
 
 const mock_on_auth_state_changed = jest.fn()
 jest.mock('firebase/auth', () => ({
-    onAuthStateChanged: (...a) => mock_on_auth_state_changed(...a),
+	onAuthStateChanged: (...a) => mock_on_auth_state_changed(...a),
 }))
 
 const mock_verify_worker = jest.fn()
@@ -71,143 +71,152 @@ const mock_fetch_comment = jest.fn()
 const mock_add_comment = jest.fn()
 
 jest.mock('../backend/worker_analytics_service.js', () => ({
-    verify_worker_and_get_profile: (...a) => mock_verify_worker(...a),
-    compute_worker_stats: (...a) => mock_compute_stats(...a),
-    fetch_comment: (...a) => mock_fetch_comment(...a),
-    add_comment: (...a) => mock_add_comment(...a),
+	verify_worker_and_get_profile: (...a) => mock_verify_worker(...a),
+	compute_worker_stats: (...a) => mock_compute_stats(...a),
+	fetch_comment: (...a) => mock_fetch_comment(...a),
+	add_comment: (...a) => mock_add_comment(...a),
 }))
 jest.mock('../backend/worker_firebase.js', () => ({
-    update_request_status: (...a) => mock_update_request_status(...a),
+	update_request_status: (...a) => mock_update_request_status(...a),
 }))
 
 jest.mock('react-router-dom', () => ({
-    useNavigate: () => jest.fn(),
+	useNavigate: () => jest.fn(),
 }))
 
 let conversation_callback = null
 jest.mock('../backend/worker_conversations_service.js', () => ({
-    subscribe_to_worker_conversations: jest.fn((uid, cb) => {
-        conversation_callback = cb
-        return mock_unsub
-    }),
+	subscribe_to_worker_conversations: jest.fn((uid, cb) => {
+		conversation_callback = cb
+		return mock_unsub
+	}),
 }))
 
 jest.mock(
-    '../components/worker_nav_bar/worker_nav_bar.js',
-    () =>
-        function MockNavBar({ sections, active_section, unread_messages, user }) {
-            return (
-                <nav data-testid="nav-bar" data-section={active_section}>
-                    <div data-testid="nav-unread">{unread_messages}</div>
-                    <div data-testid="nav-initials">{user.initials}</div>
-                    <button onClick={sections.queue_onclick}>Queue</button>
-                    <button onClick={sections.available_onclick}>
-                        Available
-                    </button>
-                    <button onClick={sections.messages_onclick}>
-                        Messages
-                    </button>
-                </nav>
-            )
-        }
+	'../components/worker_nav_bar/worker_nav_bar.js',
+	() =>
+		function MockNavBar({
+			sections,
+			active_section,
+			unread_messages,
+			user,
+		}) {
+			return (
+				<nav data-testid="nav-bar" data-section={active_section}>
+					<div data-testid="nav-unread">{unread_messages}</div>
+					<div data-testid="nav-initials">{user.initials}</div>
+					<button onClick={sections.queue_onclick}>Queue</button>
+					<button onClick={sections.available_onclick}>
+						Available
+					</button>
+					<button onClick={sections.messages_onclick}>
+						Messages
+					</button>
+				</nav>
+			)
+		}
 )
 
 jest.mock(
-    '../pages/request/claim/claim_btn.js',
-    () =>
-        function MockClaimBtn({ request_uid, post_claim }) {
-            return (
-                <button data-testid="claim-btn" onClick={post_claim}>
-                    Claim {request_uid}
-                </button>
-            )
-        }
+	'../pages/request/claim/claim_btn.js',
+	() =>
+		function MockClaimBtn({ request_uid, post_claim }) {
+			return (
+				<button data-testid="claim-btn" onClick={post_claim}>
+					Claim {request_uid}
+				</button>
+			)
+		}
 )
 
 jest.mock('../components/message_thread/message_thread.js', () => {
-    return function MockMessageThread({ request_uid, messaging_enabled }) {
-        return (
-            <div data-testid="message-thread" data-enabled={messaging_enabled}>
-                {request_uid}
-            </div>
-        )
-    }
+	return function MockMessageThread({ request_uid, messaging_enabled }) {
+		return (
+			<div data-testid="message-thread" data-enabled={messaging_enabled}>
+				{request_uid}
+			</div>
+		)
+	}
 })
 
 jest.mock('../pages/worker_messages/worker_messages.js', () => {
-    return function MockWorkerMessages() {
-        return <div data-testid="worker-messages-ui" aria-label="Conversations">Conversations</div>
-    }
+	return function MockWorkerMessages() {
+		return (
+			<div data-testid="worker-messages-ui" aria-label="Conversations">
+				Conversations
+			</div>
+		)
+	}
 })
 
 jest.mock('../pages/worker_dashboard/worker_dashboard.css', () => ({}), {
-    virtual: true,
+	virtual: true,
 })
 
 import WorkerDashboard from '../pages/worker_dashboard/worker_dashboard.js'
 import { getDocs } from 'firebase/firestore'
 
 const MOCK_WORKER_PROFILE = {
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'worker',
+	name: 'Jane Smith',
+	email: 'jane@example.com',
+	role: 'worker',
 }
 
 const MOCK_STATS = {
-    total: 10,
-    resolved: 4,
-    pending: 2,
-    acknowledged: 3,
-    avg_resolution_days: 3,
+	total: 10,
+	resolved: 4,
+	pending: 2,
+	acknowledged: 3,
+	avg_resolution_days: 3,
 }
 
 const buffer = 24 * 60 * 60 * 1000
 const MOCK_CLAIMED = [
-    {
-        id: 'req-001',
-        category: 'Electricity',
-        description: 'Street light is out',
-        image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
-        status: 1,
-        sa_ward: 5,
-        sa_province: 'Gauteng',
-        sa_m_name: 'Joburg',
-        user_uid: 'user-uid-1',
-        resident_name: 'John Doe',
-        created_at: '2024-01-15T10:00:00Z',
-        updated_at: '2024-01-16T12:00:00Z',
-        priority: 'High'
-    },
-    {
-        id: 'req-002',
-        category: 'Water',
-        description: 'Pipe burst',
-        image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
-        status: 2,
-        sa_ward: 3,
-        sa_province: 'Gauteng',
-        sa_m_name: 'Joburg',
-        user_uid: 'user-uid-2',
-        resident_name: 'Alice',
-        created_at: '2024-01-10T08:00:00Z',
-        updated_at: null,
-    },
+	{
+		id: 'req-001',
+		category: 'Electricity',
+		description: 'Street light is out',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
+		status: 1,
+		sa_ward: 5,
+		sa_province: 'Gauteng',
+		sa_m_name: 'Joburg',
+		user_uid: 'user-uid-1',
+		resident_name: 'John Doe',
+		created_at: '2024-01-15T10:00:00Z',
+		updated_at: '2024-01-16T12:00:00Z',
+		priority: 'High',
+	},
+	{
+		id: 'req-002',
+		category: 'Water',
+		description: 'Pipe burst',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
+		status: 2,
+		sa_ward: 3,
+		sa_province: 'Gauteng',
+		sa_m_name: 'Joburg',
+		user_uid: 'user-uid-2',
+		resident_name: 'Alice',
+		created_at: '2024-01-10T08:00:00Z',
+		updated_at: null,
+	},
 ]
 
 const MOCK_UNCLAIMED = [
-    {
-        id: 'req-003',
-        category: 'Roads',
-        description: 'Pothole on main road',
-        image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
-        status: 0,
-        sa_ward: 7,
-        sa_province: 'Western Cape',
-        sa_m_name: 'Cape Town',
-        user_uid: 'user-uid-3',
-        created_at: '2024-01-18T09:00:00Z',
-        updated_at: null,
-    },
+	{
+		id: 'req-003',
+		category: 'Roads',
+		description: 'Pothole on main road',
+		image_expires_at: new Date(new Date().getTime() + buffer).toUTCString(),
+		status: 0,
+		sa_ward: 7,
+		sa_province: 'Western Cape',
+		sa_m_name: 'Cape Town',
+		user_uid: 'user-uid-3',
+		created_at: '2024-01-18T09:00:00Z',
+		updated_at: null,
+	},
 ]
 
 let assignment_handler = null
@@ -215,829 +224,903 @@ let claimed_handler = null
 let unclaimed_handler = null
 
 function make_snapshot(items, type = 'modified', removed = undefined) {
-    return {
-        docs: items.map((item) => ({
-            id: item.id,
-            data: () => ({ ...item }),
-        })),
-        docChanges: () =>
-            !removed
-                ? items.map((item) => {
-                      return {
-                          type,
-                          doc: {
-                              id: item.id,
-                              data: () => ({ ...item }),
-                          },
-                      }
-                  })
-                : [
-                      {
-                          type,
-                          doc: {
-                              id: removed.id,
-                              data: () => ({ ...removed }),
-                          },
-                      },
-                  ],
-    }
+	return {
+		docs: items.map((item) => ({
+			id: item.id,
+			data: () => ({ ...item }),
+		})),
+		docChanges: () =>
+			!removed
+				? items.map((item) => {
+						return {
+							type,
+							doc: {
+								id: item.id,
+								data: () => ({ ...item }),
+							},
+						}
+					})
+				: [
+						{
+							type,
+							doc: {
+								id: removed.id,
+								data: () => ({ ...removed }),
+							},
+						},
+					],
+	}
 }
 
 function setup_firestore_mocks() {
-    assignment_handler = null
-    claimed_handler = null
-    unclaimed_handler = null
+	assignment_handler = null
+	claimed_handler = null
+	unclaimed_handler = null
 
-    mock_collection.mockImplementation((_db, name) => `col:${name}`)
-    mock_query.mockImplementation((col, ...rest) => ({ col, rest }))
-    mock_where.mockReturnValue('where-constraint')
-    mock_order_by.mockReturnValue('orderBy-constraint')
+	mock_collection.mockImplementation((_db, name) => `col:${name}`)
+	mock_query.mockImplementation((col, ...rest) => ({ col, rest }))
+	mock_where.mockReturnValue('where-constraint')
+	mock_order_by.mockReturnValue('orderBy-constraint')
 
-    mock_on_snapshot.mockImplementation(
-        (function make_handler_capturer() {
-            let call_count = 0
-            return function (_query, handler) {
-                call_count += 1
-                if (call_count === 1) {
-                    assignment_handler = handler
-                } else if (call_count === 2) {
-                    claimed_handler = handler
-                } else {
-                    unclaimed_handler = handler
-                }
-                return mock_unsub
-            }
-        })()
-    )
+	mock_on_snapshot.mockImplementation(
+		(function make_handler_capturer() {
+			let call_count = 0
+			return function (_query, handler) {
+				call_count += 1
+				if (call_count === 1) {
+					assignment_handler = handler
+				} else if (call_count === 2) {
+					claimed_handler = handler
+				} else {
+					unclaimed_handler = handler
+				}
+				return mock_unsub
+			}
+		})()
+	)
 }
 
 function setup_service_mocks({
-    worker_profile = MOCK_WORKER_PROFILE,
-    stats = MOCK_STATS,
+	worker_profile = MOCK_WORKER_PROFILE,
+	stats = MOCK_STATS,
 } = {}) {
-    mock_verify_worker.mockResolvedValue({ data: () => worker_profile })
-    mock_compute_stats.mockReturnValue(stats)
-    mock_fetch_comment.mockResolvedValue([])
-    mock_add_comment.mockResolvedValue()
+	mock_verify_worker.mockResolvedValue({ data: () => worker_profile })
+	mock_compute_stats.mockReturnValue(stats)
+	mock_fetch_comment.mockResolvedValue([])
+	mock_add_comment.mockResolvedValue()
 }
 
 async function simulate_full_load({
-    claimed = MOCK_CLAIMED,
-    unclaimed = MOCK_UNCLAIMED,
+	claimed = MOCK_CLAIMED,
+	unclaimed = MOCK_UNCLAIMED,
 } = {}) {
-    await waitFor(() => {
-        expect(mock_on_auth_state_changed).toHaveBeenCalled()
-    })
-    await act(async () => {
-        const [, auth_cb] = mock_on_auth_state_changed.mock.calls[0]
-        await auth_cb({ uid: 'worker-uid-1' })
-    })
+	await waitFor(() => {
+		expect(mock_on_auth_state_changed).toHaveBeenCalled()
+	})
+	await act(async () => {
+		const [, auth_cb] = mock_on_auth_state_changed.mock.calls[0]
+		await auth_cb({ uid: 'worker-uid-1' })
+	})
 
-    await act(async () => {
-        const docs = claimed.map((r) => ({
-            id: `assignment-${r.id}`,
-            data: () => ({ worker_uid: 'worker-uid-1', request_uid: r.id }),
-        }))
-        if (assignment_handler) assignment_handler({ docs })
-    })
+	await act(async () => {
+		const docs = claimed.map((r) => ({
+			id: `assignment-${r.id}`,
+			data: () => ({ worker_uid: 'worker-uid-1', request_uid: r.id }),
+		}))
+		if (assignment_handler) {
+			assignment_handler({ docs })
+		}
+	})
 
-    await act(async () => {
-        if (claimed_handler) claimed_handler(make_snapshot(claimed))
-    })
+	await act(async () => {
+		if (claimed_handler) {
+			claimed_handler(make_snapshot(claimed))
+		}
+	})
 
-    await act(async () => {
-        if (unclaimed_handler) unclaimed_handler(make_snapshot(unclaimed))
-    })
+	await act(async () => {
+		if (unclaimed_handler) {
+			unclaimed_handler(make_snapshot(unclaimed))
+		}
+	})
 }
 
 function render_dashboard() {
-    return render(<WorkerDashboard />)
+	return render(<WorkerDashboard />)
 }
 
 async function mount_and_load({
-    claimed = MOCK_CLAIMED,
-    unclaimed = MOCK_UNCLAIMED,
+	claimed = MOCK_CLAIMED,
+	unclaimed = MOCK_UNCLAIMED,
 } = {}) {
-    render_dashboard()
-    await simulate_full_load({ claimed, unclaimed })
-    await waitFor(() =>
-        expect(screen.getByTestId('nav-bar')).toBeInTheDocument()
-    )
+	render_dashboard()
+	await simulate_full_load({ claimed, unclaimed })
+	await waitFor(() =>
+		expect(screen.getByTestId('nav-bar')).toBeInTheDocument()
+	)
 }
 
 beforeEach(() => {
-    jest.clearAllMocks()
-    subscribe_to_worker_conversations.mockImplementation((uid, cb) => {
-        conversation_callback = cb
-        return mock_unsub
-    })
-    conversation_callback = null
-    mock_on_auth_state_changed.mockImplementation(() => {
-        return mock_unsub
-    })
-    mock_fetch_ok()
-    setup_firestore_mocks()
-    setup_service_mocks()
+	jest.clearAllMocks()
+	subscribe_to_worker_conversations.mockImplementation((uid, cb) => {
+		conversation_callback = cb
+		return mock_unsub
+	})
+	conversation_callback = null
+	mock_on_auth_state_changed.mockImplementation(() => {
+		return mock_unsub
+	})
+	mock_fetch_ok()
+	setup_firestore_mocks()
+	setup_service_mocks()
 })
 
 describe('Loading state', () => {
-    test('shows loading screen before auth resolves', () => {
-        render_dashboard()
-        expect(screen.getByText(/loading dashboard/i)).toBeInTheDocument()
-    })
+	test('shows loading screen before auth resolves', () => {
+		render_dashboard()
+		expect(screen.getByText(/loading dashboard/i)).toBeInTheDocument()
+	})
 })
 
 describe('Auth', () => {
-    test('shows error when user is not logged in', async () => {
-        mock_on_auth_state_changed.mockImplementation((_auth, cb) => {
-            setTimeout(
-                () =>
-                    act(() => {
-                        cb(null)
-                    }),
-                0
-            )
-            return mock_unsub
-        })
-        render_dashboard()
-        await waitFor(() =>
-            expect(screen.getByText(/not logged in/i)).toBeInTheDocument()
-        )
-    })
+	test('shows error when user is not logged in', async () => {
+		mock_on_auth_state_changed.mockImplementation((_auth, cb) => {
+			setTimeout(
+				() =>
+					act(() => {
+						cb(null)
+					}),
+				0
+			)
+			return mock_unsub
+		})
+		render_dashboard()
+		await waitFor(() =>
+			expect(screen.getByText(/not logged in/i)).toBeInTheDocument()
+		)
+	})
 
-    test('renders nav bar after successful auth + snapshot load', async () => {
-        await mount_and_load()
-        expect(screen.getByTestId('nav-bar')).toBeInTheDocument()
-    })
+	test('renders nav bar after successful auth + snapshot load', async () => {
+		await mount_and_load()
+		expect(screen.getByTestId('nav-bar')).toBeInTheDocument()
+	})
 
-    test('unsubscribes from auth listener on unmount', () => {
-        const { unmount } = render_dashboard()
-        unmount()
-        expect(mock_unsub).toHaveBeenCalled()
-    })
+	test('unsubscribes from auth listener on unmount', () => {
+		const { unmount } = render_dashboard()
+		unmount()
+		expect(mock_unsub).toHaveBeenCalled()
+	})
 
-    test('calls verify_worker_and_get_profile with the user uid', async () => {
-        render_dashboard()
-        await act(async () => {
-            const [, cb] = mock_on_auth_state_changed.mock.calls[0]
-            await cb({ uid: 'worker-uid-1' })
-        })
-        expect(mock_verify_worker).toHaveBeenCalledWith('worker-uid-1')
-    })
+	test('calls verify_worker_and_get_profile with the user uid', async () => {
+		render_dashboard()
+		await act(async () => {
+			const [, cb] = mock_on_auth_state_changed.mock.calls[0]
+			await cb({ uid: 'worker-uid-1' })
+		})
+		expect(mock_verify_worker).toHaveBeenCalledWith('worker-uid-1')
+	})
 })
 
 describe('Dashboard render', () => {
-    test('renders performance summary section', async () => {
-        await mount_and_load()
-        expect(screen.getByText('Performance summary')).toBeInTheDocument()
-    })
+	test('renders performance summary section', async () => {
+		await mount_and_load()
+		expect(screen.getByText('Performance summary')).toBeInTheDocument()
+	})
 
-    test('defaults to queue section and shows claimed requests', async () => {
-        await mount_and_load()
-        expect(screen.getByText('Electricity')).toBeInTheDocument()
-        expect(screen.getByText('Water')).toBeInTheDocument()
-    })
+	test('defaults to queue section and shows claimed requests', async () => {
+		await mount_and_load()
+		expect(screen.getByText('Electricity')).toBeInTheDocument()
+		expect(screen.getByText('Water')).toBeInTheDocument()
+	})
 
-    test('shows "Assigned request queue" heading in queue section', async () => {
-        await mount_and_load()
-        expect(screen.getByText('Assigned request queue')).toBeInTheDocument()
-    })
+	test('shows "Assigned request queue" heading in queue section', async () => {
+		await mount_and_load()
+		expect(screen.getByText('Assigned request queue')).toBeInTheDocument()
+	})
 
-    test('renders avg resolution days from stats', async () => {
-        await mount_and_load()
-        const stat_card = screen.getByText('Avg. resolution time').closest('.wd-stat-card')
-        expect(stat_card).toHaveTextContent('3')
-    })
+	test('renders avg resolution days from stats', async () => {
+		await mount_and_load()
+		const stat_card = screen
+			.getByText('Avg. resolution time')
+			.closest('.wd-stat-card')
+		expect(stat_card).toHaveTextContent('3')
+	})
 
-    test('renders — for avg resolution days when null', async () => {
-        setup_service_mocks({
-            stats: { ...MOCK_STATS, avg_resolution_days: null },
-        })
-        await mount_and_load()
-        expect(screen.getAllByText('—').length).toBeGreaterThan(0)
-    })
-    
-    test('renders correct values for 0 total stats', async () => {
-        setup_service_mocks({
-            stats: { ...MOCK_STATS, total: 0, resolved: 0, pending: 0, acknowledged: 0 },
-        })
-        await mount_and_load()
-        expect(screen.getAllByText('—').length).toBeGreaterThan(0) // resolved_pct
-    })
-    
-    test('computes initials correctly', async () => {
-        setup_service_mocks({
-            worker_profile: { ...MOCK_WORKER_PROFILE, name: 'Alice Bob Charlie' }
-        })
-        await mount_and_load()
-        expect(screen.getByTestId('nav-initials')).toHaveTextContent('AB')
-    })
+	test('renders — for avg resolution days when null', async () => {
+		setup_service_mocks({
+			stats: { ...MOCK_STATS, avg_resolution_days: null },
+		})
+		await mount_and_load()
+		expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+	})
 
-    test('displays global ban banner when worker.canMessage is false', async () => {
-        setup_service_mocks({
-            worker_profile: { ...MOCK_WORKER_PROFILE, canMessage: false },
-        })
-        await mount_and_load()
-        expect(screen.getByText(/messaging privileges have been temporarily suspended/i)).toBeInTheDocument()
-    })
-    
-    test('handles totalUnread messages logic', async () => {
-        await mount_and_load()
-        await act(async () => {
-            if (conversation_callback) {
-                conversation_callback([{ unread_count: 3 }, { unread_count: 2 }, {}])
-            }
-        })
-        expect(screen.getByTestId('nav-unread')).toHaveTextContent('5')
-    })
+	test('renders correct values for 0 total stats', async () => {
+		setup_service_mocks({
+			stats: {
+				...MOCK_STATS,
+				total: 0,
+				resolved: 0,
+				pending: 0,
+				acknowledged: 0,
+			},
+		})
+		await mount_and_load()
+		expect(screen.getAllByText('—').length).toBeGreaterThan(0) // resolved_pct
+	})
+
+	test('computes initials correctly', async () => {
+		setup_service_mocks({
+			worker_profile: {
+				...MOCK_WORKER_PROFILE,
+				name: 'Alice Bob Charlie',
+			},
+		})
+		await mount_and_load()
+		expect(screen.getByTestId('nav-initials')).toHaveTextContent('AB')
+	})
+
+	test('displays global ban banner when worker.canMessage is false', async () => {
+		setup_service_mocks({
+			worker_profile: { ...MOCK_WORKER_PROFILE, canMessage: false },
+		})
+		await mount_and_load()
+		expect(
+			screen.getByText(
+				/messaging privileges have been temporarily suspended/i
+			)
+		).toBeInTheDocument()
+	})
+
+	test('handles totalUnread messages logic', async () => {
+		await mount_and_load()
+		await act(async () => {
+			if (conversation_callback) {
+				conversation_callback([
+					{ unread_count: 3 },
+					{ unread_count: 2 },
+					{},
+				])
+			}
+		})
+		expect(screen.getByTestId('nav-unread')).toHaveTextContent('5')
+	})
 })
 
 describe('Real-time snapshot updates', () => {
-    test('re-renders when a new claimed request arrives via snapshot', async () => {
-        await mount_and_load()
+	test('re-renders when a new claimed request arrives via snapshot', async () => {
+		await mount_and_load()
 
-        const new_req = {
-            id: 'req-999',
-            category: 'Sanitation',
-            description: 'Bin not collected',
-            status: 1,
-            sa_ward: 1,
-            sa_province: 'Gauteng',
-            sa_m_name: 'Joburg',
-            user_uid: 'user-uid-9',
-            created_at: '2024-02-01T08:00:00Z',
-            updated_at: null,
-        }
+		const new_req = {
+			id: 'req-999',
+			category: 'Sanitation',
+			description: 'Bin not collected',
+			status: 1,
+			sa_ward: 1,
+			sa_province: 'Gauteng',
+			sa_m_name: 'Joburg',
+			user_uid: 'user-uid-9',
+			created_at: '2024-02-01T08:00:00Z',
+			updated_at: null,
+		}
 
-        await act(async () => {
-            claimed_handler(make_snapshot([...MOCK_CLAIMED, new_req]))
-        })
+		await act(async () => {
+			claimed_handler(make_snapshot([...MOCK_CLAIMED, new_req]))
+		})
 
-        expect(screen.getByText('Sanitation')).toBeInTheDocument()
-    })
+		expect(screen.getByText('Sanitation')).toBeInTheDocument()
+	})
 
-    test('removes a claimed request that disappears from snapshot', async () => {
-        await mount_and_load()
+	test('removes a claimed request that disappears from snapshot', async () => {
+		await mount_and_load()
 
-        await act(async () => {
-            const tmp = make_snapshot(
-                [MOCK_CLAIMED[1]],
-                'removed',
-                MOCK_CLAIMED[0]
-            )
-            claimed_handler(tmp)
-        })
+		await act(async () => {
+			const tmp = make_snapshot(
+				[MOCK_CLAIMED[1]],
+				'removed',
+				MOCK_CLAIMED[0]
+			)
+			claimed_handler(tmp)
+		})
 
-        expect(screen.getByText('Water')).toBeInTheDocument()
-        expect(screen.queryByText('Electricity')).not.toBeInTheDocument()
-    })
+		expect(screen.getByText('Water')).toBeInTheDocument()
+		expect(screen.queryByText('Electricity')).not.toBeInTheDocument()
+	})
 
-    test('empty assignments snapshot logic', async () => {
-        render_dashboard()
-        await act(async () => {
-            const [, auth_cb] = mock_on_auth_state_changed.mock.calls[0]
-            await auth_cb({ uid: 'worker-uid-1' })
-        })
+	test('empty assignments snapshot logic', async () => {
+		render_dashboard()
+		await act(async () => {
+			const [, auth_cb] = mock_on_auth_state_changed.mock.calls[0]
+			await auth_cb({ uid: 'worker-uid-1' })
+		})
 
-        await act(async () => {
-            if (assignment_handler) assignment_handler({ docs: [] })
-        })
-        await waitFor(() =>
-            expect(screen.getByText('Performance summary')).toBeInTheDocument()
-        )
-    })
-    
-    test('cleans up old snapshot listeners if new assignments snapshot triggers', async () => {
-        await mount_and_load()
-        await act(async () => {
-            assignment_handler({ docs: [] })
-        })
-        expect(mock_unsub).toHaveBeenCalled() // The inner unsubs will be called
-    })
+		await act(async () => {
+			if (assignment_handler) {
+				assignment_handler({ docs: [] })
+			}
+		})
+		await waitFor(() =>
+			expect(screen.getByText('Performance summary')).toBeInTheDocument()
+		)
+	})
+
+	test('cleans up old snapshot listeners if new assignments snapshot triggers', async () => {
+		await mount_and_load()
+		await act(async () => {
+			assignment_handler({ docs: [] })
+		})
+		expect(mock_unsub).toHaveBeenCalled() // The inner unsubs will be called
+	})
 })
 
 describe('Section switching', () => {
-    test('switches to available section and shows unclaimed requests', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getByText('Available'))
-        await waitFor(() =>
-            expect(screen.getByText('Available requests')).toBeInTheDocument()
-        )
-        expect(screen.getByText('Roads')).toBeInTheDocument()
-    })
+	test('switches to available section and shows unclaimed requests', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Available requests')).toBeInTheDocument()
+		)
+		expect(screen.getByText('Roads')).toBeInTheDocument()
+	})
 
-    test('switching back to queue shows claimed requests again', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getByText('Available'))
-        await waitFor(() =>
-            expect(screen.getByText('Available requests')).toBeInTheDocument()
-        )
-        fireEvent.click(screen.getByText('Queue'))
-        await waitFor(() =>
-            expect(screen.getByText('Electricity')).toBeInTheDocument()
-        )
-    })
+	test('switching back to queue shows claimed requests again', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Available requests')).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getByText('Queue'))
+		await waitFor(() =>
+			expect(screen.getByText('Electricity')).toBeInTheDocument()
+		)
+	})
 
-    test('switching to messages section and shows messages ui', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getByText('Messages'))
-        await waitFor(() =>
-            expect(screen.getByLabelText('Conversations')).toBeInTheDocument()
-        )
-    })
+	test('switching to messages section and shows messages ui', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Messages'))
+		await waitFor(() =>
+			expect(screen.getByLabelText('Conversations')).toBeInTheDocument()
+		)
+	})
 
-    test('filter row is hidden in available section', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getByText('Available'))
-        expect(
-            screen.queryByRole('button', { name: 'All' })
-        ).not.toBeInTheDocument()
-    })
+	test('filter row is hidden in available section', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Available'))
+		expect(
+			screen.queryByRole('button', { name: 'All' })
+		).not.toBeInTheDocument()
+	})
 
-    test('switching section closes open panel', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(
-                screen.getByText('Conversation with resident')
-            ).toBeInTheDocument()
-        )
-        fireEvent.click(screen.getByText('Available'))
-        await waitFor(() =>
-            expect(
-                screen.queryByText('Conversation with resident')
-            ).not.toBeInTheDocument()
-        )
-    })
+	test('switching section closes open panel', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(
+				screen.getByText('Conversation with resident')
+			).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(
+				screen.queryByText('Conversation with resident')
+			).not.toBeInTheDocument()
+		)
+	})
 })
 
 describe('Filter row', () => {
-    test('All filter restores all requests', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByText(STATUS_DISPLAY[STATUS.ASSIGNED])[0])
-        fireEvent.click(screen.getByRole('button', { name: 'All' }))
-        expect(screen.getByText('Electricity')).toBeInTheDocument()
-        expect(screen.getByText('Pipe burst')).toBeInTheDocument()
-    })
+	test('All filter restores all requests', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByText(STATUS_DISPLAY[STATUS.ASSIGNED])[0])
+		fireEvent.click(screen.getByRole('button', { name: 'All' }))
+		expect(screen.getByText('Electricity')).toBeInTheDocument()
+		expect(screen.getByText('Pipe burst')).toBeInTheDocument()
+	})
 
-    test('shows empty state when filter matches nothing', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getByRole('button', { name: /Resolved/i }))
-        expect(screen.getByText(/no resolved requests/i)).toBeInTheDocument()
-    })
+	test('shows empty state when filter matches nothing', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByRole('button', { name: /Resolved/i }))
+		expect(screen.getByText(/no resolved requests/i)).toBeInTheDocument()
+	})
 })
 
 describe('Detail panel open/close', () => {
-    test('opens panel when a request row is clicked', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(
-                screen.getByText('Conversation with resident')
-            ).toBeInTheDocument()
-        )
-    })
+	test('opens panel when a request row is clicked', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(
+				screen.getByText('Conversation with resident')
+			).toBeInTheDocument()
+		)
+	})
 
-    test('closes panel when close button is clicked', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(
-                screen.getAllByLabelText('Close panel')[0]
-            ).toBeInTheDocument()
-        )
-        fireEvent.click(screen.getAllByLabelText('Close panel')[0])
-        await waitFor(() =>
-            expect(
-                screen.queryByText('Conversation with resident')
-            ).not.toBeInTheDocument()
-        )
-    })
+	test('closes panel when close button is clicked', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(
+				screen.getAllByLabelText('Close panel')[0]
+			).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getAllByLabelText('Close panel')[0])
+		await waitFor(() =>
+			expect(
+				screen.queryByText('Conversation with resident')
+			).not.toBeInTheDocument()
+		)
+	})
 
-    test('closes panel on Escape key', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(
-                screen.getByText('Conversation with resident')
-            ).toBeInTheDocument()
-        )
-        fireEvent.keyDown(window, { key: 'Escape' })
-        await waitFor(() =>
-            expect(
-                screen.queryByText('Conversation with resident')
-            ).not.toBeInTheDocument()
-        )
-    })
+	test('closes panel on Escape key', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(
+				screen.getByText('Conversation with resident')
+			).toBeInTheDocument()
+		)
+		fireEvent.keyDown(window, { key: 'Escape' })
+		await waitFor(() =>
+			expect(
+				screen.queryByText('Conversation with resident')
+			).not.toBeInTheDocument()
+		)
+	})
 
-    test('clicking the same row again closes the panel', async () => {
-        await mount_and_load()
-        const row = screen.getAllByLabelText(/open request req-001/i)[0]
-        fireEvent.click(row)
-        await waitFor(() =>
-            expect(
-                screen.getByText('Conversation with resident')
-            ).toBeInTheDocument()
-        )
-        fireEvent.click(row)
-        await waitFor(() =>
-            expect(
-                screen.queryByText('Conversation with resident')
-            ).not.toBeInTheDocument()
-        )
-    })
+	test('clicking the same row again closes the panel', async () => {
+		await mount_and_load()
+		const row = screen.getAllByLabelText(/open request req-001/i)[0]
+		fireEvent.click(row)
+		await waitFor(() =>
+			expect(
+				screen.getByText('Conversation with resident')
+			).toBeInTheDocument()
+		)
+		fireEvent.click(row)
+		await waitFor(() =>
+			expect(
+				screen.queryByText('Conversation with resident')
+			).not.toBeInTheDocument()
+		)
+	})
 
-    test('clicking backdrop closes panel', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(
-                screen.getByText('Conversation with resident')
-            ).toBeInTheDocument()
-        )
-        fireEvent.click(document.querySelector('.wd-backdrop'))
-        await waitFor(() =>
-            expect(
-                screen.queryByText('Conversation with resident')
-            ).not.toBeInTheDocument()
-        )
-    })
+	test('clicking backdrop closes panel', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(
+				screen.getByText('Conversation with resident')
+			).toBeInTheDocument()
+		)
+		fireEvent.click(document.querySelector('.wd-backdrop'))
+		await waitFor(() =>
+			expect(
+				screen.queryByText('Conversation with resident')
+			).not.toBeInTheDocument()
+		)
+	})
 
-    test('clicking a different row switches panel content', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(screen.getAllByText('req-001')[0]).toBeInTheDocument()
-        )
-        fireEvent.click(screen.getAllByLabelText(/open request req-002/i)[0])
-        await waitFor(() =>
-            expect(screen.getAllByText('req-002')[0]).toBeInTheDocument()
-        )
-    })
+	test('clicking a different row switches panel content', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(screen.getAllByText('req-001')[0]).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getAllByLabelText(/open request req-002/i)[0])
+		await waitFor(() =>
+			expect(screen.getAllByText('req-002')[0]).toBeInTheDocument()
+		)
+	})
 })
 
 describe('Detail panel content', () => {
-    async function open_panel(req_label = /open request req-001/i) {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(req_label)[0])
-        await waitFor(() =>
-            expect(
-                screen.getByText('Conversation with resident')
-            ).toBeInTheDocument()
-        )
-    }
+	async function open_panel(req_label = /open request req-001/i) {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(req_label)[0])
+		await waitFor(() =>
+			expect(
+				screen.getByText('Conversation with resident')
+			).toBeInTheDocument()
+		)
+	}
 
-    test('shows request metadata — category, province, municipality', async () => {
-        await open_panel()
-        expect(screen.getAllByText('Electricity')[0]).toBeInTheDocument()
-        expect(screen.getAllByText('Gauteng')[0]).toBeInTheDocument()
-        expect(screen.getAllByText('Joburg')[0]).toBeInTheDocument()
-        expect(screen.getByText('High')).toBeInTheDocument()
-    })
+	test('shows request metadata — category, province, municipality', async () => {
+		await open_panel()
+		expect(screen.getAllByText('Electricity')[0]).toBeInTheDocument()
+		expect(screen.getAllByText('Gauteng')[0]).toBeInTheDocument()
+		expect(screen.getAllByText('Joburg')[0]).toBeInTheDocument()
+		expect(screen.getByText('High')).toBeInTheDocument()
+	})
 
-    test('shows formatted created_at date', async () => {
-        await open_panel()
-        expect(screen.getAllByText('2024-01-15')[0]).toBeInTheDocument()
-    })
+	test('shows formatted created_at date', async () => {
+		await open_panel()
+		expect(screen.getAllByText('2024-01-15')[0]).toBeInTheDocument()
+	})
 
-    test('shows message thread when user_uid is present', async () => {
-        await open_panel()
-        expect(screen.getByTestId('message-thread')).toBeInTheDocument()
-        expect(screen.getByTestId('message-thread').textContent).toBe('req-001')
-    })
-    
-    test('message thread is disabled when worker is banned', async () => {
-        setup_service_mocks({ worker_profile: { ...MOCK_WORKER_PROFILE, canMessage: false } })
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(screen.getByTestId('message-thread')).toHaveAttribute('data-enabled', 'false')
-        )
-    })
+	test('shows message thread when user_uid is present', async () => {
+		await open_panel()
+		expect(screen.getByTestId('message-thread')).toBeInTheDocument()
+		expect(screen.getByTestId('message-thread').textContent).toBe('req-001')
+	})
 
-    test('shows no-resident message when user_uid is absent', async () => {
-        const no_uid = [{ ...MOCK_CLAIMED[0], user_uid: null }]
-        await mount_and_load({ claimed: no_uid })
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(
-                screen.getByText(/resident information unavailable/i)
-            ).toBeInTheDocument()
-        )
-    })
+	test('message thread is disabled when worker is banned', async () => {
+		setup_service_mocks({
+			worker_profile: { ...MOCK_WORKER_PROFILE, canMessage: false },
+		})
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(screen.getByTestId('message-thread')).toHaveAttribute(
+				'data-enabled',
+				'false'
+			)
+		)
+	})
 
-    test('shows status update section when in queue section', async () => {
-        await open_panel()
-        expect(screen.getByText('Update Status')).toBeInTheDocument()
-    })
+	test('shows no-resident message when user_uid is absent', async () => {
+		const no_uid = [{ ...MOCK_CLAIMED[0], user_uid: null }]
+		await mount_and_load({ claimed: no_uid })
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(
+				screen.getByText(/resident information unavailable/i)
+			).toBeInTheDocument()
+		)
+	})
 
-    test('non-active status buttons are enabled', async () => {
-        await open_panel()
-        expect(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
-            })
-        ).not.toBeDisabled()
-        expect(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.RESOLVED],
-            })
-        ).not.toBeDisabled()
-    })
+	test('shows status update section when in queue section', async () => {
+		await open_panel()
+		expect(screen.getByText('Update Status')).toBeInTheDocument()
+	})
 
-    test('shows claim button (not status update) in available section', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getByText('Available'))
-        await waitFor(() =>
-            expect(screen.getByText('Roads')).toBeInTheDocument()
-        )
-        fireEvent.click(screen.getAllByLabelText(/open request req-003/i)[0])
-        await waitFor(() =>
-            expect(screen.getByTestId('claim-btn')).toBeInTheDocument()
-        )
-        expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
-    })
+	test('non-active status buttons are enabled', async () => {
+		await open_panel()
+		expect(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		).not.toBeDisabled()
+		expect(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.RESOLVED],
+			})
+		).not.toBeDisabled()
+	})
 
-    test('falls back to "Resident" label when resident_name is absent', async () => {
-        const no_name = [{ ...MOCK_CLAIMED[0], resident_name: undefined }]
-        await mount_and_load({ claimed: no_name })
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(screen.getByTestId('message-thread')).toBeInTheDocument()
-        )
-    })
+	test('shows claim button (not status update) in available section', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Roads')).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getAllByLabelText(/open request req-003/i)[0])
+		await waitFor(() =>
+			expect(screen.getByTestId('claim-btn')).toBeInTheDocument()
+		)
+		expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
+	})
+
+	test('falls back to "Resident" label when resident_name is absent', async () => {
+		const no_name = [{ ...MOCK_CLAIMED[0], resident_name: undefined }]
+		await mount_and_load({ claimed: no_name })
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(screen.getByTestId('message-thread')).toBeInTheDocument()
+		)
+	})
 })
 
 describe('Date parsing and edge cases', () => {
-    test('parse_date returns - for invalid dates strings', async () => {
-        const invalid_dates = [
-            { ...MOCK_CLAIMED[0], updated_at: 'invalid-date', created_at: null },
-        ]
-        await mount_and_load({ claimed: invalid_dates })
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(screen.getAllByText('-').length).toBeGreaterThan(0)
-        )
-    })
+	test('parse_date returns - for invalid dates strings', async () => {
+		const invalid_dates = [
+			{
+				...MOCK_CLAIMED[0],
+				updated_at: 'invalid-date',
+				created_at: null,
+			},
+		]
+		await mount_and_load({ claimed: invalid_dates })
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(screen.getAllByText('-').length).toBeGreaterThan(0)
+		)
+	})
 
-    test('parse_date returns - when toDate throws', async () => {
-        const throwing_date = [
-            { 
-                ...MOCK_CLAIMED[0], 
-                updated_at: { toDate: () => { throw new Error('Bad Date') } },
-                created_at: null 
-            },
-        ]
-        await mount_and_load({ claimed: throwing_date })
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(screen.getAllByText('-').length).toBeGreaterThan(0)
-        )
-    })
-    
-    test('parse_date works with toDate returning valid Date', async () => {
-        const valid_todate = [
-            { 
-                ...MOCK_CLAIMED[0], 
-                updated_at: { toDate: () => new Date('2024-03-01T10:00:00Z') },
-                created_at: null 
-            },
-        ]
-        await mount_and_load({ claimed: valid_todate })
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(screen.getAllByText('2024-03-01')[0]).toBeInTheDocument()
-        )
-    })
+	test('parse_date returns - when toDate throws', async () => {
+		const throwing_date = [
+			{
+				...MOCK_CLAIMED[0],
+				updated_at: {
+					toDate: () => {
+						throw new Error('Bad Date')
+					},
+				},
+				created_at: null,
+			},
+		]
+		await mount_and_load({ claimed: throwing_date })
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(screen.getAllByText('-').length).toBeGreaterThan(0)
+		)
+	})
+
+	test('parse_date works with toDate returning valid Date', async () => {
+		const valid_todate = [
+			{
+				...MOCK_CLAIMED[0],
+				updated_at: { toDate: () => new Date('2024-03-01T10:00:00Z') },
+				created_at: null,
+			},
+		]
+		await mount_and_load({ claimed: valid_todate })
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(screen.getAllByText('2024-03-01')[0]).toBeInTheDocument()
+		)
+	})
 })
 
 describe('Close Reason and Comments', () => {
-    test('renders closed request with ratings and close reason', async () => {
-        getDocs.mockResolvedValueOnce({
-            empty: false,
-            docs: [{ data: () => ({ text: 'Fixed the pothole' }) }]
-        })
+	test('renders closed request with ratings and close reason', async () => {
+		getDocs.mockResolvedValueOnce({
+			empty: false,
+			docs: [{ data: () => ({ text: 'Fixed the pothole' }) }],
+		})
 
-        const closed_req = [{
-            ...MOCK_CLAIMED[0],
-            status: STATUS.CLOSED,
-            rating: 4,
-            comment: 'Great service'
-        }]
+		const closed_req = [
+			{
+				...MOCK_CLAIMED[0],
+				status: STATUS.CLOSED,
+				rating: 4,
+				comment: 'Great service',
+			},
+		]
 
-        await mount_and_load({ claimed: closed_req })
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await mount_and_load({ claimed: closed_req })
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
 
-        await waitFor(() => {
-            expect(screen.getByText('Close Reason')).toBeInTheDocument()
-            expect(screen.getByText('Fixed the pothole')).toBeInTheDocument()
-            expect(screen.getByText('Great service')).toBeInTheDocument()
-            expect(screen.getByText('This request has been closed by an admin and cannot be updated.')).toBeInTheDocument()
-        })
-    })
+		await waitFor(() => {
+			expect(screen.getByText('Close Reason')).toBeInTheDocument()
+			expect(screen.getByText('Fixed the pothole')).toBeInTheDocument()
+			expect(screen.getByText('Great service')).toBeInTheDocument()
+			expect(
+				screen.getByText(
+					'This request has been closed by an admin and cannot be updated.'
+				)
+			).toBeInTheDocument()
+		})
+	})
 
-    test('renders closed request with no close reason fallback', async () => {
-        getDocs.mockResolvedValueOnce({ empty: true, docs: [] })
+	test('renders closed request with no close reason fallback', async () => {
+		getDocs.mockResolvedValueOnce({ empty: true, docs: [] })
 
-        const closed_req = [{
-            ...MOCK_CLAIMED[0],
-            status: STATUS.CLOSED
-        }]
+		const closed_req = [
+			{
+				...MOCK_CLAIMED[0],
+				status: STATUS.CLOSED,
+			},
+		]
 
-        await mount_and_load({ claimed: closed_req })
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await mount_and_load({ claimed: closed_req })
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
 
-        await waitFor(() => {
-            // Because it is empty, fallback to '-'
-            expect(screen.getByText('Close Reason')).toBeInTheDocument()
-            const reasonElements = screen.getAllByText('-')
-            expect(reasonElements.length).toBeGreaterThan(0)
-        })
-    })
+		await waitFor(() => {
+			// Because it is empty, fallback to '-'
+			expect(screen.getByText('Close Reason')).toBeInTheDocument()
+			const reasonElements = screen.getAllByText('-')
+			expect(reasonElements.length).toBeGreaterThan(0)
+		})
+	})
 
-    test('can load and post a comment', async () => {
-        mock_fetch_comment.mockResolvedValueOnce([
-            { id: 'c1', text: 'Existing comment', worker_name: 'Bob', created_at: { toDate: () => new Date('2024-01-01') } }
-        ]).mockResolvedValueOnce([
-            { id: 'c1', text: 'Existing comment', worker_name: 'Bob', created_at: { toDate: () => new Date('2024-01-01') } },
-            { id: 'c2', text: 'New comment text', worker_name: 'Jane Smith', created_at: null }
-        ])
+	test('can load and post a comment', async () => {
+		mock_fetch_comment
+			.mockResolvedValueOnce([
+				{
+					id: 'c1',
+					text: 'Existing comment',
+					worker_name: 'Bob',
+					created_at: { toDate: () => new Date('2024-01-01') },
+				},
+			])
+			.mockResolvedValueOnce([
+				{
+					id: 'c1',
+					text: 'Existing comment',
+					worker_name: 'Bob',
+					created_at: { toDate: () => new Date('2024-01-01') },
+				},
+				{
+					id: 'c2',
+					text: 'New comment text',
+					worker_name: 'Jane Smith',
+					created_at: null,
+				},
+			])
 
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
 
-        await waitFor(() => {
-            expect(screen.getByText('Existing comment')).toBeInTheDocument()
-        })
+		await waitFor(() => {
+			expect(screen.getByText('Existing comment')).toBeInTheDocument()
+		})
 
-        const input = screen.getByPlaceholderText(/Leave a public comment/i)
-        fireEvent.change(input, { target: { value: 'New comment text' } })
-        
-        fireEvent.click(screen.getByText('Post comment'))
-        
-        await waitFor(() => {
-            expect(mock_add_comment).toHaveBeenCalledWith('req-001', 'Jane Smith', 'worker-uid-1', 'New comment text')
-            expect(screen.getByText('New comment text')).toBeInTheDocument()
-        })
-    })
-    
-    test('does not post empty comment', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() => screen.getByPlaceholderText(/Leave a public comment/i))
-        
-        fireEvent.click(screen.getByText('Post comment'))
-        expect(mock_add_comment).not.toHaveBeenCalled()
-    })
-    
-    test('handles comment posting error gracefully', async () => {
-        mock_add_comment.mockRejectedValueOnce(new Error('Comment failed'))
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		const input = screen.getByPlaceholderText(/Leave a public comment/i)
+		fireEvent.change(input, { target: { value: 'New comment text' } })
 
-        await waitFor(() => screen.getByPlaceholderText(/Leave a public comment/i))
+		fireEvent.click(screen.getByText('Post comment'))
 
-        const input = screen.getByPlaceholderText(/Leave a public comment/i)
-        fireEvent.change(input, { target: { value: 'Bad comment' } })
-        fireEvent.click(screen.getByText('Post comment'))
+		await waitFor(() => {
+			expect(mock_add_comment).toHaveBeenCalledWith(
+				'req-001',
+				'Jane Smith',
+				'worker-uid-1',
+				'New comment text'
+			)
+			expect(screen.getByText('New comment text')).toBeInTheDocument()
+		})
+	})
 
-        await waitFor(() => {
-            expect(mock_add_comment).toHaveBeenCalled()
-            // Button should re-enable
-            expect(screen.getByText('Post comment')).not.toBeDisabled()
-        })
-    })
+	test('does not post empty comment', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			screen.getByPlaceholderText(/Leave a public comment/i)
+		)
+
+		fireEvent.click(screen.getByText('Post comment'))
+		expect(mock_add_comment).not.toHaveBeenCalled()
+	})
+
+	test('handles comment posting error gracefully', async () => {
+		mock_add_comment.mockRejectedValueOnce(new Error('Comment failed'))
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+
+		await waitFor(() =>
+			screen.getByPlaceholderText(/Leave a public comment/i)
+		)
+
+		const input = screen.getByPlaceholderText(/Leave a public comment/i)
+		fireEvent.change(input, { target: { value: 'Bad comment' } })
+		fireEvent.click(screen.getByText('Post comment'))
+
+		await waitFor(() => {
+			expect(mock_add_comment).toHaveBeenCalled()
+			// Button should re-enable
+			expect(screen.getByText('Post comment')).not.toBeDisabled()
+		})
+	})
 })
 
 describe('Status update', () => {
-    beforeEach(() => {
-        mock_update_request_status.mockResolvedValue({ success: true })
-    })
+	beforeEach(() => {
+		mock_update_request_status.mockResolvedValue({ success: true })
+	})
 
-    async function open_panel_for_update() {
-        await mount_and_load()
-        fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
-        await waitFor(() =>
-            expect(screen.getByText('Update Status')).toBeInTheDocument()
-        )
-    }
+	async function open_panel_for_update() {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+		await waitFor(() =>
+			expect(screen.getByText('Update Status')).toBeInTheDocument()
+		)
+	}
 
-    test('calls update_request_status with correct id and new status', async () => {
-        await open_panel_for_update()
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
-            })
-        )
-        await waitFor(() =>
-            expect(mock_update_request_status).toHaveBeenCalledWith(
-                'req-001',
-                STATUS.IN_PROGRESS
-            )
-        )
-    })
+	test('calls update_request_status with correct id and new status', async () => {
+		await open_panel_for_update()
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
+		await waitFor(() =>
+			expect(mock_update_request_status).toHaveBeenCalledWith(
+				'req-001',
+				STATUS.IN_PROGRESS
+			)
+		)
+	})
 
-    test('closes the panel after a successful status update', async () => {
-        await open_panel_for_update()
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
-            })
-        )
-        await waitFor(() =>
-            expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
-        )
-    })
+	test('closes the panel after a successful status update', async () => {
+		await open_panel_for_update()
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
+		await waitFor(() =>
+			expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
+		)
+	})
 
-    test('shows success tooltip after update', async () => {
-        await open_panel_for_update()
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
-            })
-        )
-        await waitFor(() =>
-            expect(
-                screen.getByText('Successfully updated request status.')
-            ).toBeInTheDocument()
-        )
-    })
+	test('shows success tooltip after update', async () => {
+		await open_panel_for_update()
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
+		await waitFor(() =>
+			expect(
+				screen.getByText('Successfully updated request status.')
+			).toBeInTheDocument()
+		)
+	})
 
-    test('shows error tooltip when update_request_status rejects with a message', async () => {
-        mock_update_request_status.mockRejectedValue(new Error('Network error'))
-        await open_panel_for_update()
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
-            })
-        )
-        await waitFor(() =>
-            expect(screen.getByText('Network error')).toBeInTheDocument()
-        )
-    })
+	test('shows error tooltip when update_request_status rejects with a message', async () => {
+		mock_update_request_status.mockRejectedValue(new Error('Network error'))
+		await open_panel_for_update()
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
+		await waitFor(() =>
+			expect(screen.getByText('Network error')).toBeInTheDocument()
+		)
+	})
 
-    test('shows fallback error when rejected error has no message', async () => {
-        mock_update_request_status.mockRejectedValue({})
-        await open_panel_for_update()
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
-            })
-        )
-        await waitFor(() =>
-            expect(
-                screen.getByText('Failed to update request status.')
-            ).toBeInTheDocument()
-        )
-    })
+	test('shows fallback error when rejected error has no message', async () => {
+		mock_update_request_status.mockRejectedValue({})
+		await open_panel_for_update()
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
+		await waitFor(() =>
+			expect(
+				screen.getByText('Failed to update request status.')
+			).toBeInTheDocument()
+		)
+	})
 
-    test('claim request button clickable', async () => {
-        await mount_and_load()
-        fireEvent.click(screen.getByText('Available'))
-        await waitFor(() =>
-            expect(screen.getByText('Roads')).toBeInTheDocument()
-        )
-        fireEvent.click(screen.getAllByLabelText(/open request req-003/i)[0])
-        await waitFor(() =>
-            expect(screen.getByTestId('claim-btn')).toBeInTheDocument()
-        )
-        expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('claim-btn'))
-    })
+	test('claim request button clickable', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getByText('Available'))
+		await waitFor(() =>
+			expect(screen.getByText('Roads')).toBeInTheDocument()
+		)
+		fireEvent.click(screen.getAllByLabelText(/open request req-003/i)[0])
+		await waitFor(() =>
+			expect(screen.getByTestId('claim-btn')).toBeInTheDocument()
+		)
+		expect(screen.queryByText('Update Status')).not.toBeInTheDocument()
+		fireEvent.click(screen.getByTestId('claim-btn'))
+	})
 
-    test('does not call update again while first update is in-flight', async () => {
-        let resolve_first
-        mock_update_request_status.mockReturnValueOnce(
-            new Promise((res) => {
-                resolve_first = res
-            })
-        )
-        await open_panel_for_update()
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
-            })
-        )
-        fireEvent.click(
-            screen.getByRole('button', {
-                name: STATUS_DISPLAY[STATUS.RESOLVED],
-            })
-        )
-        expect(mock_update_request_status).toHaveBeenCalledTimes(1)
-        await act(async () => resolve_first({ success: true }))
-    })
+	test('does not call update again while first update is in-flight', async () => {
+		let resolve_first
+		mock_update_request_status.mockReturnValueOnce(
+			new Promise((res) => {
+				resolve_first = res
+			})
+		)
+		await open_panel_for_update()
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.IN_PROGRESS],
+			})
+		)
+		fireEvent.click(
+			screen.getByRole('button', {
+				name: STATUS_DISPLAY[STATUS.RESOLVED],
+			})
+		)
+		expect(mock_update_request_status).toHaveBeenCalledTimes(1)
+		await act(async () => resolve_first({ success: true }))
+	})
 })
 
 describe('Cleanup', () => {
-    test('unsubscribes all Firestore listeners on unmount', async () => {
-        const { unmount } = render_dashboard()
-        await simulate_full_load()
-        unmount()
-        expect(mock_unsub).toHaveBeenCalled()
-    })
+	test('unsubscribes all Firestore listeners on unmount', async () => {
+		const { unmount } = render_dashboard()
+		await simulate_full_load()
+		unmount()
+		expect(mock_unsub).toHaveBeenCalled()
+	})
 
-    test('registers at least one onSnapshot listener after load', async () => {
-        await mount_and_load()
-        expect(mock_on_snapshot).toHaveBeenCalled()
-    })
+	test('registers at least one onSnapshot listener after load', async () => {
+		await mount_and_load()
+		expect(mock_on_snapshot).toHaveBeenCalled()
+	})
 })
