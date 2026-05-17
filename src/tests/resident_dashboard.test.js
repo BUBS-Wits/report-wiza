@@ -433,7 +433,7 @@ describe('ResidentDashboard Component', () => {
 		})
 		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
 		fetch_resident_requests.mockResolvedValue([
-			{ id: 'req1', status: 'resolved' },
+			{ id: 'req1', status: 'closed' },
 		])
 
 		// Mock auth token
@@ -484,7 +484,7 @@ describe('ResidentDashboard Component', () => {
 		})
 		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
 		fetch_resident_requests.mockResolvedValue([
-			{ id: 'req1', status: 'resolved' },
+			{ id: 'req1', status: 'closed' },
 		])
 
 		// Force auth.currentUser to null
@@ -524,7 +524,7 @@ describe('ResidentDashboard Component', () => {
 		})
 		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
 		fetch_resident_requests.mockResolvedValue([
-			{ id: 'req1', status: 'resolved' },
+			{ id: 'req1', status: 'closed' },
 		])
 
 		// Mock JSON API error
@@ -556,7 +556,7 @@ describe('ResidentDashboard Component', () => {
 		})
 		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
 		fetch_resident_requests.mockResolvedValue([
-			{ id: 'req1', status: 'resolved' },
+			{ id: 'req1', status: 'closed' },
 		])
 
 		// Mock HTML/Text API error (Invalid JSON)
@@ -590,7 +590,7 @@ describe('ResidentDashboard Component', () => {
 		})
 		fetch_resident_profile.mockResolvedValue({ uid: 'user123' })
 		fetch_resident_requests.mockResolvedValue([
-			{ id: 'req1', status: 'resolved' },
+			{ id: 'req1', status: 'closed' },
 		])
 
 		// Mock outright promise rejection
