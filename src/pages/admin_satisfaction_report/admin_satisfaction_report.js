@@ -27,8 +27,12 @@ function RatingBar({ avg, max = 4 }) {
 function aggregate_by_category(requests) {
 	const result = {}
 	requests.forEach(({ rating, category }) => {
-		if (!category) {return}
-		if (!result[category]) {result[category] = []}
+		if (!category) {
+			return
+		}
+		if (!result[category]) {
+			result[category] = []
+		}
 		result[category].push(rating)
 	})
 	return Object.entries(result).map(([cat, ratings]) => ({
