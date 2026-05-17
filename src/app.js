@@ -15,6 +15,8 @@ import CategoryReport from './components/admin_category_report/admin_category_re
 import WorkerMessages from './pages/worker_messages/worker_messages.js'
 import ResidentDashboard from './pages/resident_dashboard/resident_dashboard.js'
 import ProtectedRoute from './components/protected_route/protected_route.js'
+import AdminWorkerPerformance from './components/admin_worker_performance/admin_worker_performance.js'
+import AdminCustomReport from './components/admin_custom_report/admin_custom_report.js'
 import './app.css'
 
 function App() {
@@ -108,6 +110,10 @@ function App() {
 					}
 				/>
 				<Route
+					path="/admin/analytics/worker-performance"
+					element={<AdminWorkerPerformance />}
+				/>
+				<Route
 					path="/admin/analytics/category-report"
 					element={
 						<ProtectedRoute allowed_roles={['admin']}>
@@ -122,6 +128,10 @@ function App() {
 							<AdminSatisfactionReport />
 						</ProtectedRoute>
 					}
+				/>
+				<Route
+					path="/admin/analytics/custom-report"
+					element={<AdminCustomReport />}
 				/>
 			</Routes>
 		</BrowserRouter>

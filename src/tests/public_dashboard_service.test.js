@@ -104,12 +104,12 @@ describe('Public Dashboard Service', () => {
 
 	test('separates active and resolved statuses correctly and ignores unknown statuses', async () => {
 		const mockSnapshot = [
-			createMockDoc('req_1', { status: 'SUBMITTED', sa_ward: '10' }),
-			createMockDoc('req_2', { status: 'UNASSIGNED', sa_ward: '11' }),
-			createMockDoc('req_3', { status: 'ASSIGNED', sa_ward: '10' }), // Duplicate ward
-			createMockDoc('req_4', { status: 'IN_PROGRESS', sa_ward: '12' }),
-			createMockDoc('req_5', { status: 'RESOLVED', sa_ward: '13' }),
-			createMockDoc('req_6', { status: 'CLOSED', sa_ward: '14' }), // Should be ignored by active/resolved lists
+			createMockDoc('req_1', { status: 'submitted', sa_ward: '10' }),
+			createMockDoc('req_2', { status: 'unassigned', sa_ward: '11' }),
+			createMockDoc('req_3', { status: 'assigned', sa_ward: '10' }), // Duplicate ward
+			createMockDoc('req_4', { status: 'in_progress', sa_ward: '12' }),
+			createMockDoc('req_5', { status: 'resolved', sa_ward: '13' }),
+			createMockDoc('req_6', { status: 'closed', sa_ward: '14' }), // Should be ignored by active/resolved lists
 		]
 
 		getDocs.mockResolvedValueOnce(mockSnapshot)
@@ -157,14 +157,14 @@ describe('Public Dashboard Service', () => {
 
 	test('calculates unique wards_affected accurately', async () => {
 		const mockSnapshot = [
-			createMockDoc('req_1', { status: 'SUBMITTED', sa_ward: '99' }),
-			createMockDoc('req_2', { status: 'SUBMITTED', sa_ward: '99' }),
+			createMockDoc('req_1', { status: 'submitted', sa_ward: '99' }),
+			createMockDoc('req_2', { status: 'submitted', sa_ward: '99' }),
 			createMockDoc('req_3', { status: 'RESOLVED', sa_ward: '100' }),
 			createMockDoc('req_4', { status: 'RESOLVED', sa_ward: '100' }),
 			createMockDoc('req_5', { status: 'IN_PROGRESS', sa_ward: '101' }),
 			// Test how it handles undefined/null wards during String() coercion
-			createMockDoc('req_6', { status: 'SUBMITTED' }),
-			createMockDoc('req_7', { status: 'SUBMITTED' }),
+			createMockDoc('req_6', { status: 'submitted' }),
+			createMockDoc('req_7', { status: 'submitted' }),
 		]
 
 		getDocs.mockResolvedValueOnce(mockSnapshot)
