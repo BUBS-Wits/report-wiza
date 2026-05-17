@@ -31,8 +31,12 @@ function RatingBar({ avg, max = 4 }) {
 function aggregate_by_category(requests) {
 	const result = {}
 	requests.forEach(({ rating, category }) => {
-		if (!category) {return}
-		if (!result[category]) {result[category] = []}
+		if (!category) {
+			return
+		}
+		if (!result[category]) {
+			result[category] = []
+		}
 		result[category].push(rating)
 	})
 	return Object.entries(result).map(([cat, ratings]) => ({
@@ -49,7 +53,9 @@ function aggregate_by_worker(requests, assignment_map, worker_map) {
 	const result = {}
 	requests.forEach(({ id, rating }) => {
 		const worker_uid = assignment_map[id]
-		if (!worker_uid) {return}
+		if (!worker_uid) {
+			return
+		}
 		if (!result[worker_uid]) {
 			result[worker_uid] = {
 				display_name: worker_map[worker_uid] || 'Unknown Worker',

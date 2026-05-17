@@ -139,7 +139,9 @@ export const fetch_request_by_id = async (request_id) => {
 	try {
 		const request_ref = doc(db, 'service_requests', request_id)
 		const snapshot = await getDoc(request_ref)
-		if (!snapshot.exists()) {return null}
+		if (!snapshot.exists()) {
+			return null
+		}
 		return { id: snapshot.id, ...snapshot.data() }
 	} catch (error) {
 		console.warn('Could not fetch request:', request_id, error)
