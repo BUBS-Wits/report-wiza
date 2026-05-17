@@ -167,15 +167,25 @@ export function get_voting_district_info(longitude, latitude) {
 
 export function get_location() {
 	return new Promise((resolve, reject) => {
+		if (!('geolocation' in navigator)) {
+			console.error('Geolocation not supported by this browser.')
+			resolve(null)
+			return
+		}
+
 		navigator.geolocation.getCurrentPosition(
 			(position) => {
 				resolve([position.coords.longitude, position.coords.latitude])
 			},
 			(err) => {
-				alert('Failed to get current location')
-				reject(err)
+				console.error('Geolocation error:', err.message)
+				resolve(null)
 			},
-			{ timeout: 10 * 1000, enableHighAccuracy: true }
+			{
+				enableHighAccuracy: true,
+				timeout: 10000,
+				maximumAge: 60000,
+			}
 		)
 	})
 }
