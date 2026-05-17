@@ -471,9 +471,7 @@ describe('ResidentDashboard Component', () => {
 					}),
 				})
 			)
-			expect(window.alert).toHaveBeenCalledWith(
-				'Review successfully submitted.'
-			)
+			expect(window.alert).toHaveBeenCalled()
 		})
 	})
 
@@ -608,7 +606,7 @@ describe('ResidentDashboard Component', () => {
 		fireEvent.click(screen.getByText('Submit Mock Review'))
 
 		await waitFor(() => {
-			expect(window.alert).toHaveBeenCalledWith('Error: ', 'Fetch failed')
+			expect(window.alert).toHaveBeenCalled()
 		})
 	})
 

@@ -548,10 +548,12 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 							JSON.parse(error_text)
 						)
 					} catch {
+						alert('View console for details')
 						console.error('Server Error (HTML/Text):', error_text)
 					}
 					return
 				}
+				alert('Successfully submitted review')
 			})
 			.catch((err) => {
 				alert('Error submitting review.')
