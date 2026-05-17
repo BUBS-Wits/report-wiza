@@ -198,6 +198,11 @@ export default function WorkerDashboard() {
 			}
 			const snap = await verify_worker_and_get_profile(user.uid)
 			const data = snap.data()
+			if (data.name) {
+				data.display_name = data.name
+			} else {
+				data.name = data.display_name
+			}
 			set_worker({
 				uid: user.uid,
 				name: data.name ?? 'Municipal Worker',
@@ -248,8 +253,9 @@ export default function WorkerDashboard() {
 						collection(db, 'service_requests'),
 						where('__name__', 'in', batch)
 					)
-					return onSnapshot(claimed_q, (snapshot) => {
-						snapshot.docChanges().forEach((change) => {
+					return onSnapshot(claimed_q, async (snapshot) => {
+						const doc_changes = snapshot.docChanges()
+						for (const change of doc_changes) {
 							const id = change.doc.id
 							const data = change.doc.data()
 
@@ -257,12 +263,19 @@ export default function WorkerDashboard() {
 								change.type === 'added' ||
 								change.type === 'modified'
 							) {
+								data.image = await get_signed_url(
+									id,
+									data.image,
+									data.image_expires_at
+										? new Date(data.image_expires_at)
+										: null
+								)
 								all_claimed_requests.set(id, { id, ...data })
 							}
 							if (change.type === 'removed') {
 								all_claimed_requests.delete(id)
 							}
-						})
+						}
 						const tmp = [...all_claimed_requests.values()]
 						set_claimed_requests(tmp)
 						set_stats(compute_worker_stats(tmp))
@@ -274,11 +287,20 @@ export default function WorkerDashboard() {
 					collection(db, 'service_requests'),
 					where('status', '==', STATUS.SUBMITTED)
 				),
-				(snapshot) => {
+				async (snapshot) => {
 					const data = snapshot.docs.map((doc) => ({
 						id: doc.id,
 						...doc.data(),
 					}))
+					for (let i = 0; i < data.length; i++) {
+						data[i].image = await get_signed_url(
+							data[i].id,
+							data[i].image,
+							data[i].image_expires_at
+								? new Date(data[i].image_expires_at)
+								: null
+						)
+					}
 					set_unclaimed_requests(data)
 				}
 			)

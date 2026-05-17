@@ -166,29 +166,26 @@ export function get_voting_district_info(longitude, latitude) {
 }
 
 export function get_location() {
-	return fetch(`https://ipapi.co/json/`)
-		.then(async (res) => {
-			const data = await res.json()
-			if (!data.longitude || !data.latitude || !res.ok) {
-				console.error(
-					'Failed to get longitude and latitude from response body'
-				)
-				return null
+	return new Promise((resolve, reject) => {
+		if (!('geolocation' in navigator)) {
+			console.error('Geolocation not supported by this browser.')
+			resolve(null)
+			return
+		}
+
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				resolve([position.coords.longitude, position.coords.latitude])
+			},
+			(err) => {
+				console.error('Geolocation error:', err.message)
+				resolve(null)
+			},
+			{
+				enableHighAccuracy: true,
+				timeout: 10000,
+				maximumAge: 60000,
 			}
-			return [data.longitude, data.latitude]
-		})
-		.catch((err) => {
-			console.error(err)
-			return null
-		})
-	/* Possible API Key Issue? (Source: https://stackoverflow.com/questions/61032115/unknown-error-acquiring-position-geolocationpositionerror-code-2-firefox-linux/61032116#61032116)
-  return new Promise((resolve, reject) => {
-	navigator.geolocation.getCurrentPosition(position => {
-	  resolve([position.coords.longitude, position.coords.latitude])
-	}, err => {
-	  alert('Failed to get current location');
-	  reject(err)
-	}, {timeout: 1 * 1000 * 1000, enableHighAccuracy: true})
-  })
-  */
+		)
+	})
 }

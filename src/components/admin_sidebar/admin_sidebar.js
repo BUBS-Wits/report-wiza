@@ -63,7 +63,7 @@ const nav_items = [
 						id: 'satisfaction',
 						label: 'Resident Satisfaction',
 						path: '/admin/analytics/satisfaction-report',
-						ready: false,
+						ready: true,
 					},
 
 					{

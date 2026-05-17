@@ -936,7 +936,7 @@ app.post('/api/submit-review', authenticate, async (req, res) => {
 				.json({ error: 'Failed to get requested service request.' })
 		}
 		data = data[0]
-		if (data.status !== STATUS.CLOSED) {
+		if (data.status !== STATUS.CLOSED && data.status !== STATUS.RESOLVED) {
 			return res.status(400).json({
 				error: 'Request selected has not been closed as complete.',
 				dd: data[0],

@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import './admin_worker_performance.css'
 import { fetch_aggregate_worker_performance } from '../../backend/admin_worker_performance_service.js'
-import TopBar from '../top_bar/top_bar.js'
-import Sidebar from '../admin_sidebar/admin_sidebar.js'
-
 /* ── helpers ── */
+import Sidebar from '../admin_sidebar/admin_sidebar.js'
+import TopBar from '../top_bar/top_bar.js'
 
 function get_initials(name = '') {
 	return name
@@ -450,106 +449,128 @@ export default function AdminWorkerPerformance() {
 	/* ── Loading state ── */
 	if (loading) {
 		return (
-			<div className="wp_state_wrapper">
-				<div className="wp_spinner" />
-				<p className="wp_state_text">
-					Loading worker performance data…
-				</p>
+			<div className="admin_page">
+				<Sidebar />
+				<div className="admin_main">
+					<TopBar active_section="worker_performance" />
+					<div className="admin_content">
+						<div className="wp_state_wrapper">
+							<div className="wp_spinner" />
+							<p className="wp_state_text">
+								Loading worker performance data…
+							</p>
+						</div>
+					</div>
+				</div>
 			</div>
 		)
 	}
 
-	/* ── Error state ── */
 	if (error) {
 		return (
-			<div className="wp_state_wrapper">
-				<p className="wp_error_text">{error}</p>
-				<button className="wp_retry_btn" onClick={load_data}>
-					Retry
-				</button>
+			<div className="admin_page">
+				<Sidebar />
+				<div className="admin_main">
+					<TopBar active_section="worker_performance" />
+					<div className="admin_content">
+						<div className="wp_state_wrapper">
+							<p className="wp_error_text">{error}</p>
+							<button
+								className="wp_retry_btn"
+								onClick={load_data}
+							>
+								Retry
+							</button>
+						</div>
+					</div>
+				</div>
 			</div>
 		)
 	}
 
 	return (
-		<div className="wp_page">
-			<TopBar />
+		<div className="admin_page">
 			<Sidebar />
-			{/* ── Header ── */}
-			<div className="wp_header">
-				<div className="wp_header_inner">
-					{/* Breadcrumb */}
-					<div className="wp_breadcrumb">
-						<span>Admin</span>
-						<span className="wp_breadcrumb_sep">›</span>
-						<span className="wp_breadcrumb_current">
-							Worker Performance
-						</span>
-					</div>
-
-					<div className="wp_header_row">
-						<div>
-							<h1 className="wp_title">Worker Performance</h1>
-							<p className="wp_subtitle">
-								{workers.length} field workers&nbsp;·&nbsp;
-								<span className="wp_subtitle_accent">
-									Generated {today}
-								</span>
-							</p>
+			<div className="admin_main">
+				<TopBar active_section="worker_performance" />
+				<div className="admin_content">
+					<div className="wp_page">
+						<div className="wp_header">
+							<div className="wp_header_inner">
+								<div className="wp_breadcrumb">
+									<span>Admin</span>
+									<span className="wp_breadcrumb_sep">›</span>
+									<span className="wp_breadcrumb_current">
+										Worker Performance
+									</span>
+								</div>
+								<div className="wp_header_row">
+									<div>
+										<h1 className="wp_title">
+											Worker Performance
+										</h1>
+										<p className="wp_subtitle">
+											{workers.length} field
+											workers&nbsp;·&nbsp;
+											<span className="wp_subtitle_accent">
+												Generated {today}
+											</span>
+										</p>
+									</div>
+								</div>
+								<div className="wp_controls">
+									<div className="wp_search_wrap">
+										<svg
+											className="wp_search_icon"
+											viewBox="0 0 20 20"
+											fill="currentColor"
+										>
+											<path
+												fillRule="evenodd"
+												d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+												clipRule="evenodd"
+											/>
+										</svg>
+										<input
+											className="wp_search_input"
+											type="text"
+											placeholder="Search by name or email…"
+											value={search}
+											onChange={(e) =>
+												set_search(e.target.value)
+											}
+										/>
+									</div>
+									<select
+										className="wp_sort_select"
+										value={sort_key}
+										onChange={(e) =>
+											set_sort_key(e.target.value)
+										}
+									>
+										{SORT_OPTIONS.map((o) => (
+											<option
+												key={o.value}
+												value={o.value}
+											>
+												{o.label}
+											</option>
+										))}
+									</select>
+								</div>
+							</div>
 						</div>
-					</div>
-
-					{/* Search + sort controls */}
-					<div className="wp_controls">
-						<div className="wp_search_wrap">
-							<svg
-								className="wp_search_icon"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fillRule="evenodd"
-									d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-									clipRule="evenodd"
-								/>
-							</svg>
-							<input
-								className="wp_search_input"
-								type="text"
-								placeholder="Search by name or email…"
-								value={search}
-								onChange={(e) => set_search(e.target.value)}
+						<div className="wp_main">
+							<SummaryCards workers={filtered_sorted} />
+							<PerformanceChart workers={filtered_sorted} />
+							<WorkerTable
+								workers={filtered_sorted}
+								sort_key={sort_key}
+								on_sort={handle_sort_toggle}
 							/>
 						</div>
-						<select
-							className="wp_sort_select"
-							value={sort_key}
-							onChange={(e) => set_sort_key(e.target.value)}
-						>
-							{SORT_OPTIONS.map((o) => (
-								<option key={o.value} value={o.value}>
-									{o.label}
-								</option>
-							))}
-						</select>
 					</div>
 				</div>
-			</div>
-
-			{/* ── Main content ── */}
-			<div className="wp_main">
-				{/* Summary cards */}
-				<SummaryCards workers={filtered_sorted} />
-
-				{/* Bar chart — top performers */}
-				<PerformanceChart workers={filtered_sorted} />
-
-				{/* Full worker table */}
-				<WorkerTable
-					workers={filtered_sorted}
-					sort_key={sort_key}
-					on_sort={handle_sort_toggle}
-				/>
 			</div>
 		</div>
 	)
