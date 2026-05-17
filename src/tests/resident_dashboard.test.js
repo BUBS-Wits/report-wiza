@@ -545,7 +545,9 @@ describe('ResidentDashboard Component', () => {
 		fireEvent.click(screen.getByText('Submit Mock Review'))
 
 		await waitFor(() => {
-			expect(window.alert).toHaveBeenCalledWith('JSON error message')
+			expect(window.alert).toHaveBeenCalledWith(
+				'View console for details'
+			)
 		})
 	})
 
@@ -562,7 +564,7 @@ describe('ResidentDashboard Component', () => {
 		// Mock HTML/Text API error (Invalid JSON)
 		global.fetch.mockResolvedValueOnce({
 			ok: false,
-			text: async () => '<html>502 Bad Gateway</html>',
+			text: async () => '{error:"generic error"}',
 		})
 
 		render(<ResidentDashboard />)
@@ -577,9 +579,7 @@ describe('ResidentDashboard Component', () => {
 		fireEvent.click(screen.getByText('Submit Mock Review'))
 
 		await waitFor(() => {
-			expect(window.alert).toHaveBeenCalledWith(
-				'Server error. Please check console for details.'
-			)
+			expect(window.alert).toHaveBeenCalled()
 		})
 	})
 

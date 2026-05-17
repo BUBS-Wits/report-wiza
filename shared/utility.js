@@ -179,12 +179,12 @@ export function get_location() {
 			},
 			(err) => {
 				console.error('Geolocation error:', err.message)
-				resolve(null) // resolve null rather than reject so callers don't need try/catch
+				resolve(null)
 			},
 			{
 				enableHighAccuracy: true,
-				timeout: 10000, // 10s before giving up
-				maximumAge: 60000, // accept a cached position up to 1 min old
+				timeout: 10000,
+				maximumAge: 60000,
 			}
 		)
 	})

@@ -510,15 +510,15 @@ function RequestDetail({ req, resident, on_back }) {
 				if (!res.ok) {
 					const error_text = await res.text()
 					try {
-						alert(JSON.parse(error_text).error)
+						alert('View console for details')
 						console.error(
 							'Server Error (JSON):',
 							JSON.parse(error_text)
 						)
 					} catch {
 						console.error('Server Error (HTML/Text):', error_text)
-						alert('Server error. Please check console for details.')
 					}
+					return
 				}
 				alert('Review successfully submitted.')
 				feedback_toggle()
@@ -633,7 +633,8 @@ function RequestDetail({ req, resident, on_back }) {
 						requestId={req.id}
 						initialLikeCount={req.like_count || 0}
 					/>
-					{req.status && (
+					{(req.status === STATUS.CLOSED ||
+						req.status === STATUS.RESOLVED) && (
 						<button
 							className="wd-home-btn"
 							onClick={feedback_toggle}
