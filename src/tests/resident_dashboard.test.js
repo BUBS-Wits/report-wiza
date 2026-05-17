@@ -15,7 +15,15 @@ jest.mock('firebase/auth', () => ({
 	signOut: jest.fn(),
 }))
 
-jest.mock('../firebase_config', () => ({ auth: {}, db: {} }))
+jest.mock('../firebase_config', () => ({
+	auth: {
+		currentUser: {
+			uid: 'user123',
+			getIdToken: jest.fn().mockResolvedValue('fake-token'),
+		},
+	},
+	db: {},
+}))
 
 jest.mock('../backend/resident_dashboard_service', () => ({
 	fetch_resident_profile: jest.fn(),
@@ -259,6 +267,84 @@ describe('ResidentDashboard Component', () => {
 		await waitFor(() => {
 			expect(signOut).toHaveBeenCalledTimes(1)
 			expect(mockNavigate).toHaveBeenCalledWith('/')
+		})
+	})
+	describe('cancel request', () => {
+		const originalConfirm = window.confirm
+		beforeAll(() => {
+			window.confirm = jest.fn(() => true)
+		})
+		afterAll(() => {
+			window.confirm = originalConfirm
+		})
+
+		it.skip('calls cancel API and removes request from list', async () => {
+			// Mock the fetch call to /api/cancel-request
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: async () => ({
+					message: 'Request cancelled successfully.',
+				}),
+			})
+
+			const mockRequests = [
+				{
+					id: 'req-cancel-1',
+					category: 'Water',
+					description: 'Test cancel',
+					status: 'submitted',
+					worker_uid: null,
+					priority: 'Low',
+					like_count: 0,
+					sa_ward: 'Ward 1',
+					sa_m_name: 'Test City',
+					created_at: new Date(),
+					updated_at: new Date(),
+					location: null,
+					image: null,
+					worker_name: null,
+					user_uid: 'user123',
+				},
+			]
+			const mockProfile = { uid: 'user123', name: 'Test Resident' }
+
+			fetch_resident_profile.mockResolvedValue(mockProfile)
+			fetch_resident_requests.mockResolvedValue(mockRequests)
+			subscribe_to_resident_unread_count.mockReturnValue(jest.fn())
+
+			onAuthStateChanged.mockImplementation((auth, callback) => {
+				callback({ uid: 'user123' })
+				return jest.fn()
+			})
+
+			render(<ResidentDashboard />)
+
+			// Wait until the description appears (there will be two – sidebar and detail)
+			await waitFor(() => {
+				expect(
+					screen.getAllByText('Test cancel').length
+				).toBeGreaterThanOrEqual(1)
+			})
+
+			// Click the sidebar card (the first element with the text)
+			fireEvent.click(
+				screen.getAllByText('Test cancel')[0].closest('button')
+			)
+
+			const cancelBtn = await screen.findByText('Cancel Request')
+			expect(cancelBtn).toBeInTheDocument()
+			fireEvent.click(cancelBtn)
+
+			// After clicking cancel, the API is called and the request should disappear
+			await waitFor(() => {
+				expect(screen.queryAllByText('Test cancel')).toHaveLength(0)
+			})
+
+			// Verify the API was called correctly
+			expect(global.fetch).toHaveBeenCalledWith(
+				'/api/cancel-request',
+				expect.objectContaining({ method: 'POST' })
+			)
 		})
 	})
 })

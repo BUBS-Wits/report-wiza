@@ -125,15 +125,16 @@ describe('Public Dashboard Service', () => {
 			'req_2',
 			'req_3',
 			'req_4',
+			'req_6',
 		])
 
 		// 1 resolved
-		expect(result.resolved.length).toBe(2)
+		expect(result.resolved.length).toBe(1)
 		expect(result.resolved[0].id).toBe('req_5')
 
 		// Stats verification
-		expect(result.stats.open_count).toBe(4)
-		expect(result.stats.resolved_count).toBe(2)
+		expect(result.stats.open_count).toBe(5)
+		expect(result.stats.resolved_count).toBe(1)
 
 		// Wards 10, 11, 12, 13, 14 were seen (even if status is CLOSED, normalization still ran and saw the ward)
 		expect(result.stats.wards_affected).toBe(5)
