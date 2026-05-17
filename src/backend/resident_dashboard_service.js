@@ -1,13 +1,14 @@
 //src/backend/resident_dashboard_service.js
 import {
+	doc,
+	getDoc,
+	updateDoc,
 	collection,
 	query,
 	where,
 	getDocs,
-	onSnapshot,
 	orderBy,
-	doc,
-	getDoc,
+	onSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 
@@ -136,4 +137,28 @@ export function subscribe_to_resident_unread_count(resident_uid, on_count) {
 				err
 			)
 	)
+}
+
+export const cancel_request = async (requestId, userId) => {
+	const requestRef = doc(db, 'service_requests', requestId)
+	const requestSnap = await getDoc(requestRef)
+	if (!requestSnap.exists()) {
+		throw new Error('Request not found.')
+	}
+	const data = requestSnap.data()
+	if (data.user_uid !== userId) {
+		throw new Error('Unauthorized.')
+	}
+	if (data.worker_uid) {
+		throw new Error('Cannot cancel an assigned request.')
+	}
+	const cancellableStatuses = ['SUBMITTED', 'PENDING'] // adjust as needed
+	if (!cancellableStatuses.includes(data.status)) {
+		throw new Error('Request cannot be cancelled at this stage.')
+	}
+	await updateDoc(requestRef, {
+		status: 'CANCELLED',
+		updated_at: new Date().toUTCString(),
+	})
+	return true
 }

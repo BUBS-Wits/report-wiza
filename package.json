@@ -47,7 +47,7 @@
 	},
 	"name": "report-wiza",
 	"private": true,
-	"proxy": "http://localhost:3000",
+	"proxy": "http://localhost:3001",
 	"scripts": {
 		"sync": "node scripts/sync_shared.js",
 		"build": "npm run sync && react-scripts build",

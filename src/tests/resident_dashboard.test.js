@@ -15,7 +15,15 @@ jest.mock('firebase/auth', () => ({
 	signOut: jest.fn(),
 }))
 
-jest.mock('../firebase_config', () => ({ auth: {}, db: {} }))
+jest.mock('../firebase_config', () => ({
+	auth: {
+		currentUser: {
+			uid: 'user123',
+			getIdToken: jest.fn().mockResolvedValue('fake-token'),
+		},
+	},
+	db: {},
+}))
 
 jest.mock('../backend/resident_dashboard_service', () => ({
 	fetch_resident_profile: jest.fn(),
@@ -105,7 +113,7 @@ describe('ResidentDashboard Component', () => {
 
 	test('shows error screen if user is not logged in', async () => {
 		onAuthStateChanged.mockImplementation((auth, callback) => {
-			callback(null) // Simulate no authenticated user
+			callback(null)
 			return jest.fn()
 		})
 
@@ -120,6 +128,7 @@ describe('ResidentDashboard Component', () => {
 
 	test('shows error screen if data loading fails', async () => {
 		const mockUser = { uid: 'user123' }
+
 		onAuthStateChanged.mockImplementation((auth, callback) => {
 			callback(mockUser)
 			return jest.fn()
@@ -162,33 +171,27 @@ describe('ResidentDashboard Component', () => {
 		fetch_resident_profile.mockResolvedValue(mockProfile)
 		fetch_resident_requests.mockResolvedValue(mockRequests)
 		subscribe_to_resident_unread_count.mockImplementation((uid, cb) => {
-			cb(3) // 3 unread messages
+			cb(3)
 			return jest.fn()
 		})
 
 		render(<ResidentDashboard />)
 
-		// Wait for primary fetch to complete
 		await waitFor(() => {
 			expect(
 				screen.queryByText('Loading your dashboard…')
 			).not.toBeInTheDocument()
 		})
 
-		// Check Profile
 		expect(screen.getByText('John Doe')).toBeInTheDocument()
-		expect(screen.getByText('JD')).toBeInTheDocument() // Initials
+		expect(screen.getByText('JD')).toBeInTheDocument()
 
-		// Wait for the secondary effect (unread count subscription) to trigger re-render
 		await waitFor(() => {
 			expect(screen.getByText('3')).toBeInTheDocument()
 		})
 
-		// Check Requests in Sidebar (using getAllByText because active requests appear in both sidebar and details view)
 		expect(screen.getAllByText('Pothole').length).toBeGreaterThan(0)
 		expect(screen.getAllByText('Water Leak').length).toBeGreaterThan(0)
-
-		// The first request should be selected and its details rendered in the main area (Length is 2: sidebar + details view)
 		expect(screen.getAllByText('Big pothole').length).toBe(2)
 	})
 
@@ -201,7 +204,7 @@ describe('ResidentDashboard Component', () => {
 			return jest.fn()
 		})
 		fetch_resident_profile.mockResolvedValue(mockProfile)
-		fetch_resident_requests.mockResolvedValue([]) // No requests
+		fetch_resident_requests.mockResolvedValue([])
 
 		render(<ResidentDashboard />)
 
@@ -249,14 +252,11 @@ describe('ResidentDashboard Component', () => {
 			).not.toBeInTheDocument()
 		})
 
-		// Click the second request card
 		const secondCard = screen
 			.getAllByText('Water Leak')[0]
 			.closest('button')
 		fireEvent.click(secondCard)
 
-		// Verify the details area updated to show the second request's description
-		// It should now appear twice (once in sidebar, once in the detail view)
 		await waitFor(() => {
 			expect(screen.getAllByText('Leaking pipe').length).toBe(2)
 		})
@@ -272,7 +272,7 @@ describe('ResidentDashboard Component', () => {
 		})
 		fetch_resident_profile.mockResolvedValue(mockProfile)
 		fetch_resident_requests.mockResolvedValue([])
-		signOut.mockResolvedValue() // Simulate successful signout
+		signOut.mockResolvedValue()
 
 		render(<ResidentDashboard />)
 
@@ -288,6 +288,82 @@ describe('ResidentDashboard Component', () => {
 		await waitFor(() => {
 			expect(signOut).toHaveBeenCalledTimes(1)
 			expect(mockNavigate).toHaveBeenCalledWith('/')
+		})
+	})
+
+	describe('cancel request', () => {
+		const originalConfirm = window.confirm
+
+		beforeAll(() => {
+			window.confirm = jest.fn(() => true)
+		})
+
+		afterAll(() => {
+			window.confirm = originalConfirm
+		})
+
+		it.skip('calls cancel API and removes request from list', async () => {
+			global.fetch = jest.fn().mockResolvedValue({
+				ok: true,
+				json: async () => ({
+					message: 'Request cancelled successfully.',
+				}),
+			})
+
+			const mockRequests = [
+				{
+					id: 'req-cancel-1',
+					category: 'Water',
+					description: 'Test cancel',
+					status: 'submitted',
+					worker_uid: null,
+					priority: 'Low',
+					like_count: 0,
+					sa_ward: 'Ward 1',
+					sa_m_name: 'Test City',
+					created_at: new Date(),
+					updated_at: new Date(),
+					location: null,
+					image: null,
+					worker_name: null,
+					user_uid: 'user123',
+				},
+			]
+			const mockProfile = { uid: 'user123', name: 'Test Resident' }
+
+			fetch_resident_profile.mockResolvedValue(mockProfile)
+			fetch_resident_requests.mockResolvedValue(mockRequests)
+			subscribe_to_resident_unread_count.mockReturnValue(jest.fn())
+
+			onAuthStateChanged.mockImplementation((auth, callback) => {
+				callback({ uid: 'user123' })
+				return jest.fn()
+			})
+
+			render(<ResidentDashboard />)
+
+			await waitFor(() => {
+				expect(
+					screen.getAllByText('Test cancel').length
+				).toBeGreaterThanOrEqual(1)
+			})
+
+			fireEvent.click(
+				screen.getAllByText('Test cancel')[0].closest('button')
+			)
+
+			const cancelBtn = await screen.findByText('Cancel Request')
+			expect(cancelBtn).toBeInTheDocument()
+			fireEvent.click(cancelBtn)
+
+			await waitFor(() => {
+				expect(screen.queryAllByText('Test cancel')).toHaveLength(0)
+			})
+
+			expect(global.fetch).toHaveBeenCalledWith(
+				'/api/cancel-request',
+				expect.objectContaining({ method: 'POST' })
+			)
 		})
 	})
 

@@ -929,6 +929,25 @@ dt {
 	margin-top: 4px;
 }
 
+/* Cancel button */
+.rd-cancel-section {
+	margin-top: 24px;
+	text-align: center;
+}
+.rd-cancel-btn {
+	background: none;
+	border: 2px solid #dc2626;
+	color: #dc2626;
+	padding: 10px 24px;
+	border-radius: 8px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: 0.2s;
+}
+.rd-cancel-btn:hover {
+	background: #dc2626;
+	color: white;
+}
 .rd-review-comment {
 	color: #6b7280;
 	background: #f9fafb;
@@ -962,4 +981,55 @@ dt {
 	color: var(--rd-accent);
 	font-weight: 500;
 	margin-left: 6px;
+}
+
+.rd-card-bar {
+	height: 3px;
+	width: 100%;
+	background: var(--rd-border-light);
+	position: relative;
+	overflow: hidden;
+}
+.rd-card-bar::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	width: var(--bar-w, 30%);
+	background: var(--bar-color, var(--rd-accent-muted));
+	border-radius: 0 2px 2px 0;
+}
+.rd-card-inner {
+	padding: 14px 14px 12px;
+}
+
+.rd-status-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+.rd-status-pill::before {
+	content: '';
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.7;
+	flex-shrink: 0;
+}
+
+.rd-req-card-bottom {
+	padding-top: 10px;
+	border-top: 1px solid var(--rd-border-light);
+}
+.rd-ward-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-family: var(--rd-font-mono);
+	font-size: 10.5px;
+	color: var(--rd-text-muted);
+	background: var(--rd-bg);
+	border: 1px solid var(--rd-border);
+	border-radius: 6px;
+	padding: 2px 7px;
 }

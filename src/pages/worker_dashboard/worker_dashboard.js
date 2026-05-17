@@ -203,6 +203,7 @@ export default function WorkerDashboard() {
 				name: data.name ?? 'Municipal Worker',
 				email: data.email ?? '',
 				role: data.role,
+				canMessage: data.canMessage,
 			})
 			set_loading(false)
 		})
@@ -547,7 +548,7 @@ function RequestDetailPanel({
 			: parse_date(req.created_at)
 
 	useEffect(() => {
-		if (req.status !== 'closed') {
+		if (req.status !== STATUS.CLOSED) {
 			set_close_reason(null)
 			return
 		}
@@ -621,7 +622,7 @@ function RequestDetailPanel({
 				<div className="wd-panel-header-left">
 					<span className="wd-panel-req-id">{req.id}</span>
 					<span
-						className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
+						className={`wd-badge ${STATUS_BADGE_CLASS[STATUS_DISPLAY[req.status]] ?? ''}`}
 					>
 						{STATUS_DISPLAY[req.status]}
 					</span>
@@ -695,7 +696,7 @@ function RequestDetailPanel({
 						{STATUS_DISPLAY[req.status]}
 					</dd>
 				</div>
-				{req.status === 'closed' && (
+				{req.status === STATUS.CLOSED && (
 					<div className="wd-panel-meta-row wd-panel-meta-row--full">
 						<dt className="wd-panel-meta-label">Close Reason</dt>
 						<dd className="wd-panel-meta-value wd-panel-meta-desc wd-close-reason">
@@ -726,10 +727,10 @@ function RequestDetailPanel({
 				<img src={req.image} alt="Report image" />
 			</div>
 
-			{active_section === 'queue' && req.status !== STATUS.CLOSED ? (
+			{active_section === 'queue' ? (
 				<>
 					{/* Status update — hidden for closed requests */}
-					{req.status !== 'closed' && (
+					{req.status !== STATUS.CLOSED ? (
 						<>
 							<div className="wd-panel-divider">
 								<span>Update Status</span>
@@ -749,8 +750,7 @@ function RequestDetailPanel({
 								))}
 							</div>
 						</>
-					)}
-					{req.status === 'closed' && (
+					) : (
 						<div className="wd-panel-divider">
 							<span>
 								This request has been closed by an admin and
@@ -805,10 +805,8 @@ function RequestDetailPanel({
 						</button>
 					</div>
 				</>
-			) : active_section !== 'queue' ? (
-				<ClaimBtn request_uid={req.id} post_claim={post_claim} />
 			) : (
-				<PublicComments comments={comments} />
+				<ClaimBtn request_uid={req.id} post_claim={post_claim} />
 			)}
 		</div>
 	)
@@ -852,20 +850,29 @@ function RequestRow({ req, is_selected, on_click }) {
 			aria-pressed={is_selected}
 			aria-label={`Open request ${req.id} — ${req.category}, ${STATUS_DISPLAY[req.status]}`}
 		>
-			<span className="wd-req-id">{req.id}</span>
-			<span className="wd-req-cat">{req.category}</span>
-			<span className="wd-req-desc">{req.description}</span>
-			<span
-				className={`wd-badge ${STATUS_BADGE_CLASS[req.status] ?? ''}`}
-			>
-				{STATUS_DISPLAY[req.status]}
-			</span>
-			<span className="wd-req-meta">
-				{req.sa_ward} · {display_date}
-			</span>
-			<span className="wd-req-chevron" aria-hidden="true">
-				›
-			</span>
+			<div className="wd-row-accent" />
+			<div className="wd-row-body">
+				<div className="wd-row-top-left">
+					<span className="wd-req-cat">{req.category}</span>
+					<span
+						className={`wd-badge ${STATUS_BADGE_CLASS[STATUS_DISPLAY[req.status]] ?? ''}`}
+					>
+						{STATUS_DISPLAY[req.status]}
+					</span>
+				</div>
+				<div className="wd-row-meta-cell">
+					<span className="wd-req-ward-chip">{req.sa_ward}</span>
+					<span className="wd-req-date">{display_date}</span>
+				</div>
+				<div className="wd-row-chevron-cell">
+					<span className="wd-req-chevron" aria-hidden="true">
+						›
+					</span>
+				</div>
+				<div className="wd-row-desc-cell">
+					<span className="wd-req-desc">{req.description}</span>
+				</div>
+			</div>
 		</button>
 	)
 }
