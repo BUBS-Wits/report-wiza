@@ -3,41 +3,53 @@ import { db } from '../firebase_config.js'
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { parseLocation } from '../utils/parse_location.js'
 
-// Statuses treated as "open" (active) on the public dashboard
+// Statuses treated as "open" / active on the public dashboard
 const ACTIVE_STATUSES = new Set([
-	'submitted',
-	'unassigned',
-	'assigned',
+	'SUBMITTED',
+	'UNASSIGNED',
+	'ASSIGNED',
+	'IN_PROGRESS',
+	'open',
+	'acknowledged',
 	'in_progress',
 ])
 
-// Max resolved requests to surface on the public dashboard
+const RESOLVED_STATUSES = new Set(['RESOLVED', 'resolved'])
+
 const RESOLVED_LIMIT = 20
 
+const normalise_status = (status) => {
+	if (status === undefined || status === null || status === '') {
+		return 'UNASSIGNED'
+	}
+
+	return status
+}
+
 /**
- * Normalises a raw Firestore request document into the shape
- * expected by the public dashboard and RequestCard component.
- *
- * @param {string} id - Firestore document ID
- * @param {object} data - Raw Firestore document data
- * @returns {object|null} Normalised request, or null if location is unparseable
+ * Normalises a raw Firestore request document into the shape expected by
+ * the public dashboard, request cards, filters, and map markers.
  */
 const normalise_request = (id, data) => {
 	const coords = parseLocation(data.location)
+
 	if (!coords) {
 		return null
-	} // skip requests with no valid location
+	}
+
+	const status = normalise_status(data.status)
+	const ward = data.sa_ward ?? data.ward ?? null
+	const municipality =
+		data.sa_m_name ?? data.municipality ?? 'Unknown Municipality'
 
 	return {
-		id, // string — Firestore doc ID
+		id,
 		category: data.category ?? 'Unknown',
-		// FIX 1: always lowercase so ACTIVE_STATUSES.has() and === 'resolved'
-		// comparisons work regardless of how Firestore stores the value
-		// (e.g. 'SUBMITTED', 'Submitted', 'submitted' all normalise the same way).
-		status: (data.status ?? 'unassigned').toLowerCase(),
-		ward: `Ward ${data.sa_ward ?? 'Unknown'}`,
-		sa_ward: data.sa_ward,
-		municipality: data.sa_m_name ?? 'Unknown Municipality',
+		status,
+		ward: ward ? `Ward ${ward}` : 'Ward Unknown',
+		sa_ward: ward,
+		municipality,
+		sa_m_name: municipality,
 		sa_m_code: data.sa_m_code ?? '',
 		sa_province: data.sa_province ?? '',
 		description: data.description ?? '',
@@ -50,20 +62,9 @@ const normalise_request = (id, data) => {
 	}
 }
 
-/**
- * Fetches all public dashboard data in a single call.
- * Returns separate arrays for active and resolved requests,
- * plus aggregate stats.
- *
- * @returns {{ active: object[], resolved: object[], stats: object }}
- */
 export const fetchPublicDashboardData = async () => {
-	const requests_ref = collection(db, 'requests')
+	const requests_ref = collection(db, 'service_requests')
 
-	// Fetch all requests ordered by most recently updated.
-	// A whereIn on status would require a composite index; a full
-	// fetch + client-side split is acceptable for the public dashboard
-	// volume and avoids extra index setup.
 	const q = query(requests_ref, orderBy('updated_at', 'desc'), limit(200))
 	const snapshot = await getDocs(q)
 
@@ -73,16 +74,16 @@ export const fetchPublicDashboardData = async () => {
 
 	snapshot.forEach((doc_snap) => {
 		const normalised = normalise_request(doc_snap.id, doc_snap.data())
+
 		if (!normalised) {
 			return
 		}
 
-		wards_seen.add(String(normalised.sa_ward))
+		if (normalised.sa_ward !== null && normalised.sa_ward !== undefined) {
+			wards_seen.add(String(normalised.sa_ward))
+		}
 
-		// FIX 2: only bucket 'resolved' into the resolved list.
-		// 'closed' is a terminal state that is intentionally excluded from the
-		// public dashboard surface — it should neither appear as active nor resolved.
-		if (normalised.status === 'resolved') {
+		if (RESOLVED_STATUSES.has(normalised.status)) {
 			if (resolved.length < RESOLVED_LIMIT) {
 				resolved.push(normalised)
 			}

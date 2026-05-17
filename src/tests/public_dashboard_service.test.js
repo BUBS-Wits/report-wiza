@@ -1,10 +1,6 @@
 import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js'
-import { getDocs } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { parseLocation } from '../utils/parse_location.js'
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Mocks
-───────────────────────────────────────────────────────────────────────────── */
 
 jest.mock('firebase/firestore', () => ({
 	collection: jest.fn(),
@@ -22,10 +18,6 @@ jest.mock('../utils/parse_location.js', () => ({
 	parseLocation: jest.fn(),
 }))
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Helpers & Fixtures
-───────────────────────────────────────────────────────────────────────────── */
-
 const createMockDoc = (id, data) => ({
 	id,
 	data: () => data,
@@ -35,15 +27,35 @@ describe('Public Dashboard Service', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 
-		// Default behavior: valid location for all requests
+		collection.mockReturnValue('service_requests_ref')
+		orderBy.mockReturnValue('updated_at_order')
+		limit.mockReturnValue('limit_200')
+		query.mockReturnValue('dashboard_query')
+
 		parseLocation.mockReturnValue({
 			latitude: -26.2041,
 			longitude: 28.0473,
 		})
 	})
 
+	test('fetches public dashboard data from the service_requests collection', async () => {
+		getDocs.mockResolvedValueOnce([])
+
+		await fetchPublicDashboardData()
+
+		expect(collection).toHaveBeenCalledWith({}, 'service_requests')
+		expect(orderBy).toHaveBeenCalledWith('updated_at', 'desc')
+		expect(limit).toHaveBeenCalledWith(200)
+		expect(query).toHaveBeenCalledWith(
+			'service_requests_ref',
+			'updated_at_order',
+			'limit_200'
+		)
+		expect(getDocs).toHaveBeenCalledWith('dashboard_query')
+	})
+
 	test('returns empty arrays and zeroed stats when no requests exist', async () => {
-		getDocs.mockResolvedValueOnce([]) // Empty snapshot iterable
+		getDocs.mockResolvedValueOnce([])
 
 		const result = await fetchPublicDashboardData()
 
@@ -60,8 +72,8 @@ describe('Public Dashboard Service', () => {
 
 	test('skips requests with unparseable locations', async () => {
 		parseLocation
-			.mockReturnValueOnce(null) // First request fails location parsing
-			.mockReturnValueOnce({ latitude: 10, longitude: 20 }) // Second succeeds
+			.mockReturnValueOnce(null)
+			.mockReturnValueOnce({ latitude: 10, longitude: 20 })
 
 		const mockSnapshot = [
 			createMockDoc('req_bad_loc', { status: 'SUBMITTED', sa_ward: '1' }),
@@ -77,13 +89,14 @@ describe('Public Dashboard Service', () => {
 
 		expect(result.active.length).toBe(1)
 		expect(result.active[0].id).toBe('req_good_loc')
+		expect(result.active[0].latitude).toBe(10)
+		expect(result.active[0].longitude).toBe(20)
 		expect(result.stats.open_count).toBe(1)
 	})
 
 	test('applies default values for missing fields during normalization', async () => {
 		const mockSnapshot = [
 			createMockDoc('req_minimal', {
-				// Only providing minimal data
 				status: 'UNASSIGNED',
 			}),
 		]
@@ -95,29 +108,71 @@ describe('Public Dashboard Service', () => {
 
 		expect(request.category).toBe('Unknown')
 		expect(request.ward).toBe('Ward Unknown')
-		expect(request.sa_ward).toBeUndefined() // Inherits undefined from raw data
+		expect(request.sa_ward).toBeNull()
 		expect(request.municipality).toBe('Unknown Municipality')
+		expect(request.sa_m_name).toBe('Unknown Municipality')
 		expect(request.description).toBe('')
 		expect(request.like_count).toBe(0)
 		expect(request.latitude).toBe(-26.2041)
+		expect(request.longitude).toBe(28.0473)
 	})
 
-	test('separates active and resolved statuses correctly and ignores unknown statuses', async () => {
+	test('normalises live service request fields for the public dashboard', async () => {
 		const mockSnapshot = [
-			createMockDoc('req_1', { status: 'submitted', sa_ward: '10' }),
-			createMockDoc('req_2', { status: 'unassigned', sa_ward: '11' }),
-			createMockDoc('req_3', { status: 'assigned', sa_ward: '10' }), // Duplicate ward
-			createMockDoc('req_4', { status: 'in_progress', sa_ward: '12' }),
-			createMockDoc('req_5', { status: 'resolved', sa_ward: '13' }),
-			createMockDoc('req_6', { status: 'closed', sa_ward: '14' }), // Should be ignored by active/resolved lists
+			createMockDoc('req_live', {
+				category: 'Water Leak',
+				description: 'Pipe leaking outside house',
+				status: 'SUBMITTED',
+				sa_ward: 10,
+				sa_m_name: 'Metro A',
+				sa_m_code: 'CPT',
+				sa_province: 'Western Cape',
+				location: 'SRID=4326;POINT(28.0473 -26.2041)',
+				like_count: 7,
+				created_at: 'created date',
+				updated_at: 'updated date',
+			}),
+		]
+
+		getDocs.mockResolvedValueOnce(mockSnapshot)
+
+		const result = await fetchPublicDashboardData()
+		const request = result.active[0]
+
+		expect(request).toEqual({
+			id: 'req_live',
+			category: 'Water Leak',
+			status: 'SUBMITTED',
+			ward: 'Ward 10',
+			sa_ward: 10,
+			municipality: 'Metro A',
+			sa_m_name: 'Metro A',
+			sa_m_code: 'CPT',
+			sa_province: 'Western Cape',
+			description: 'Pipe leaking outside house',
+			image: null,
+			like_count: 7,
+			created_at: 'created date',
+			updated_at: 'updated date',
+			latitude: -26.2041,
+			longitude: 28.0473,
+		})
+	})
+
+	test('separates active and resolved statuses correctly and ignores closed requests', async () => {
+		const mockSnapshot = [
+			createMockDoc('req_1', { status: 'SUBMITTED', sa_ward: '10' }),
+			createMockDoc('req_2', { status: 'UNASSIGNED', sa_ward: '11' }),
+			createMockDoc('req_3', { status: 'ASSIGNED', sa_ward: '10' }),
+			createMockDoc('req_4', { status: 'IN_PROGRESS', sa_ward: '12' }),
+			createMockDoc('req_5', { status: 'RESOLVED', sa_ward: '13' }),
+			createMockDoc('req_6', { status: 'CLOSED', sa_ward: '14' }),
 		]
 
 		getDocs.mockResolvedValueOnce(mockSnapshot)
 
 		const result = await fetchPublicDashboardData()
 
-		// 4 active statuses defined in ACTIVE_STATUSES
-		expect(result.active.length).toBe(4)
 		expect(result.active.map((r) => r.id)).toEqual([
 			'req_1',
 			'req_2',
@@ -125,20 +180,64 @@ describe('Public Dashboard Service', () => {
 			'req_4',
 		])
 
-		// 1 resolved
-		expect(result.resolved.length).toBe(1)
-		expect(result.resolved[0].id).toBe('req_5')
+		expect(result.resolved.map((r) => r.id)).toEqual(['req_5'])
 
-		// Stats verification
 		expect(result.stats.open_count).toBe(4)
 		expect(result.stats.resolved_count).toBe(1)
-
-		// Wards 10, 11, 12, 13, 14 were seen (even if status is CLOSED, normalization still ran and saw the ward)
 		expect(result.stats.wards_affected).toBe(5)
 	})
 
+	test('supports lowercase public dashboard statuses', async () => {
+		const mockSnapshot = [
+			createMockDoc('req_open', { status: 'open', sa_ward: '10' }),
+			createMockDoc('req_ack', {
+				status: 'acknowledged',
+				sa_ward: '11',
+			}),
+			createMockDoc('req_progress', {
+				status: 'in_progress',
+				sa_ward: '12',
+			}),
+			createMockDoc('req_resolved', {
+				status: 'resolved',
+				sa_ward: '13',
+			}),
+			createMockDoc('req_closed', { status: 'closed', sa_ward: '14' }),
+		]
+
+		getDocs.mockResolvedValueOnce(mockSnapshot)
+
+		const result = await fetchPublicDashboardData()
+
+		expect(result.active.map((r) => r.id)).toEqual([
+			'req_open',
+			'req_ack',
+			'req_progress',
+		])
+		expect(result.resolved.map((r) => r.id)).toEqual(['req_resolved'])
+		expect(result.stats.open_count).toBe(3)
+		expect(result.stats.resolved_count).toBe(1)
+		expect(result.stats.wards_affected).toBe(5)
+	})
+
+	test('uses UNASSIGNED as the default status when status is missing', async () => {
+		const mockSnapshot = [
+			createMockDoc('req_missing_status', {
+				category: 'Pothole',
+				sa_ward: '20',
+			}),
+		]
+
+		getDocs.mockResolvedValueOnce(mockSnapshot)
+
+		const result = await fetchPublicDashboardData()
+
+		expect(result.active.length).toBe(1)
+		expect(result.active[0].id).toBe('req_missing_status')
+		expect(result.active[0].status).toBe('UNASSIGNED')
+	})
+
 	test('strictly enforces the 20-item limit for resolved requests', async () => {
-		// Generate 25 resolved requests
 		const mockSnapshot = Array.from({ length: 25 }, (_, i) =>
 			createMockDoc(`req_${i}`, { status: 'RESOLVED', sa_ward: '5' })
 		)
@@ -147,31 +246,26 @@ describe('Public Dashboard Service', () => {
 
 		const result = await fetchPublicDashboardData()
 
-		// Should cap exactly at 20
 		expect(result.resolved.length).toBe(20)
 		expect(result.stats.resolved_count).toBe(20)
-
-		// Ensure no active requests accidentally leaked
 		expect(result.active.length).toBe(0)
 	})
 
-	test('calculates unique wards_affected accurately', async () => {
+	test('calculates unique wards_affected accurately and ignores missing wards', async () => {
 		const mockSnapshot = [
-			createMockDoc('req_1', { status: 'submitted', sa_ward: '99' }),
-			createMockDoc('req_2', { status: 'submitted', sa_ward: '99' }),
+			createMockDoc('req_1', { status: 'SUBMITTED', sa_ward: '99' }),
+			createMockDoc('req_2', { status: 'SUBMITTED', sa_ward: '99' }),
 			createMockDoc('req_3', { status: 'RESOLVED', sa_ward: '100' }),
 			createMockDoc('req_4', { status: 'RESOLVED', sa_ward: '100' }),
 			createMockDoc('req_5', { status: 'IN_PROGRESS', sa_ward: '101' }),
-			// Test how it handles undefined/null wards during String() coercion
-			createMockDoc('req_6', { status: 'submitted' }),
-			createMockDoc('req_7', { status: 'submitted' }),
+			createMockDoc('req_6', { status: 'SUBMITTED' }),
+			createMockDoc('req_7', { status: 'SUBMITTED', sa_ward: null }),
 		]
 
 		getDocs.mockResolvedValueOnce(mockSnapshot)
 
 		const result = await fetchPublicDashboardData()
 
-		// Wards seen: '99', '100', '101', and 'undefined'
-		expect(result.stats.wards_affected).toBe(4)
+		expect(result.stats.wards_affected).toBe(3)
 	})
 })
