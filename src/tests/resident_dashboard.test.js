@@ -173,7 +173,9 @@ describe('Resident Dashboard Service', () => {
 			getDocs
 				.mockResolvedValueOnce({
 					empty: false,
-					docs: [{ id: 'req_1', data: () => ({ status: 'ASSIGNED' }) }],
+					docs: [
+						{ id: 'req_1', data: () => ({ status: 'ASSIGNED' }) },
+					],
 				})
 				.mockResolvedValueOnce({
 					empty: false,
@@ -200,11 +202,7 @@ describe('Resident Dashboard Service', () => {
 				expect.anything(),
 				'service_requests'
 			)
-			expect(where).toHaveBeenCalledWith(
-				'user_uid',
-				'==',
-				'resident_456'
-			)
+			expect(where).toHaveBeenCalledWith('user_uid', '==', 'resident_456')
 			expect(orderBy).toHaveBeenCalledWith('created_at', 'desc')
 			expect(query).toHaveBeenCalled()
 		})
@@ -257,7 +255,10 @@ describe('Resident Dashboard Service', () => {
 				mockOnCount
 			)
 
-			expect(collection).toHaveBeenCalledWith(expect.anything(), 'messages')
+			expect(collection).toHaveBeenCalledWith(
+				expect.anything(),
+				'messages'
+			)
 			expect(where).toHaveBeenCalledWith(
 				'receiver_uid',
 				'==',
