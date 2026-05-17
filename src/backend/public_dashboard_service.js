@@ -15,10 +15,7 @@ const ACTIVE_STATUSES = new Set([
 	'pending',
 ])
 
-// Resolved / closed statuses
-const RESOLVED_STATUSES = new Set(['resolved', 'closed'])
-
-// Maximum resolved requests to show
+// Only 'resolved' goes to the resolved list; 'closed' is intentionally excluded
 const RESOLVED_LIMIT = 20
 
 /**
@@ -31,7 +28,8 @@ const normalise_request = (id, data) => {
 	return {
 		id,
 		category: data.category ?? 'Unknown',
-		status: data.status ?? 'UNASSIGNED',
+		// Normalise status to lowercase so all comparisons work
+		status: (data.status ?? 'unassigned').toLowerCase(),
 		ward: `Ward ${data.sa_ward ?? 'Unknown'}`,
 		sa_ward: data.sa_ward,
 		municipality: data.sa_m_name ?? 'Unknown Municipality',
@@ -67,14 +65,12 @@ export const fetchPublicDashboardData = async () => {
 
 		wards_seen.add(String(normalised.sa_ward))
 
-		// Convert to lowercase once for reliable comparison
-		const rawStatus = (normalised.status || '').toLowerCase().trim()
-
-		if (RESOLVED_STATUSES.has(rawStatus)) {
+		// Only 'resolved' goes to the resolved list
+		if (normalised.status === 'resolved') {
 			if (resolved.length < RESOLVED_LIMIT) {
 				resolved.push(normalised)
 			}
-		} else if (ACTIVE_STATUSES.has(rawStatus)) {
+		} else if (ACTIVE_STATUSES.has(normalised.status)) {
 			active.push(normalised)
 		} else {
 			// Any other status (e.g. 'escalated', 'blocked') still shows as active

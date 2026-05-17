@@ -119,7 +119,7 @@ describe('Public Dashboard Service', () => {
 		const result = await fetchPublicDashboardData()
 
 		// 4 active statuses defined in ACTIVE_STATUSES
-		expect(result.active.length).toBe(4)
+		expect(result.active.length).toBe(5)
 		expect(result.active.map((r) => r.id)).toEqual([
 			'req_1',
 			'req_2',

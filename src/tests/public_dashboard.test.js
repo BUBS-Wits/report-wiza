@@ -242,12 +242,12 @@ describe('PublicDashboard Component', () => {
 			).not.toBeInTheDocument()
 		})
 
-		// Check for empty state messages
+		// Check for empty state messages – updated to match filter‑aware messages
 		expect(
-			screen.getByText('No active requests at this time.')
+			screen.getByText('No active requests match the selected filters.')
 		).toBeInTheDocument()
 		expect(
-			screen.getByText('No resolved requests to show.')
+			screen.getByText('No resolved requests match the selected filters.')
 		).toBeInTheDocument()
 
 		// Check that stats are zero
