@@ -517,8 +517,8 @@ function RequestDetail({ req, resident, on_back }) {
 						)
 					} catch {
 						console.error('Server Error (HTML/Text):', error_text)
-						alert('Server error. Please check console for details.')
 					}
+					return
 				}
 				alert('Review successfully submitted.')
 				feedback_toggle()
@@ -633,7 +633,7 @@ function RequestDetail({ req, resident, on_back }) {
 						requestId={req.id}
 						initialLikeCount={req.like_count || 0}
 					/>
-					{req.status && (
+					{req.status == STATUS.CLOSED && (
 						<button
 							className="wd-home-btn"
 							onClick={feedback_toggle}
