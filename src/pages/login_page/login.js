@@ -1,6 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import {
+	doc,
+	setDoc,
+	getDoc,
+	getDocs,
+	collection,
+	serverTimestamp,
+} from 'firebase/firestore'
 import { auth, db } from '../../firebase_config.js'
 import { useNavigate } from 'react-router-dom'
 import './login.css'
@@ -17,6 +24,32 @@ function Login() {
 	const [error, set_error] = useState(null)
 	// Lets us redirect the user after login
 	const navigate = useNavigate()
+	// Live stats
+	const [stats, set_stats] = useState({
+		resolved: '...',
+		wards: '...',
+	})
+
+	useEffect(() => {
+		const fetch_stats = async () => {
+			try {
+				const snap = await getDocs(collection(db, 'service_requests'))
+				const all = snap.docs.map((d) => d.data())
+				const resolved = all.filter(
+					(r) => r.status === 'resolved'
+				).length
+				const wards = new Set(all.map((r) => r.sa_ward).filter(Boolean))
+					.size
+				set_stats({
+					resolved: resolved.toLocaleString(),
+					wards: wards.toString(),
+				})
+			} catch {
+				// Keep default values on error
+			}
+		}
+		fetch_stats()
+	}, [])
 
 	const handle_google_sign_in = async () => {
 		set_loading(true)
@@ -86,23 +119,20 @@ function Login() {
 
 					<div className="login_stats">
 						<div className="login_stat">
-							<span className="login_stat_val">2,841</span>
+							<span className="login_stat_val">
+								{stats.resolved}
+							</span>
 							<span className="login_stat_label">
 								Requests resolved
 							</span>
 						</div>
 						<div className="login_stat_divider" />
 						<div className="login_stat">
-							<span className="login_stat_val">48</span>
+							<span className="login_stat_val">
+								{stats.wards}
+							</span>
 							<span className="login_stat_label">
 								Wards covered
-							</span>
-						</div>
-						<div className="login_stat_divider" />
-						<div className="login_stat">
-							<span className="login_stat_val">4.1h</span>
-							<span className="login_stat_label">
-								Avg. response
 							</span>
 						</div>
 					</div>

@@ -1,6 +1,10 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import {
+	reopen_request,
+	assign_request,
+} from '../backend/admin_requests_service.js'
 
 jest.mock('../firebase_config.js', () => ({
 	auth: { currentUser: { uid: 'admin-uid' } },
@@ -25,6 +29,8 @@ jest.mock('../backend/admin_requests_service.js', () => ({
 	fetch_admin_requests: jest.fn(),
 	set_request_priority: jest.fn(),
 	close_request: jest.fn(),
+	reopen_request: jest.fn(),
+	assign_request: jest.fn(),
 	fetch_stale_requests: jest.fn(),
 	assign_stale_request: jest.fn(),
 	fetch_workers_for_assign: jest.fn(),
@@ -101,6 +107,133 @@ describe('AdminRequests', () => {
 			fetch_stale_requests.mockReturnValue(new Promise(() => {}))
 			render(<AdminRequests />)
 			expect(screen.getByText(/loading requests/i)).toBeInTheDocument()
+		})
+		describe('Given the status filter is used', () => {
+			it('Then it should show all requests by default', async () => {
+				setup()
+				await waitFor(() => {
+					expect(screen.getByText('Burst pipe')).toBeInTheDocument()
+					expect(screen.getByText('Pothole')).toBeInTheDocument()
+				})
+			})
+
+			it('Then clicking Closed filter should show only closed requests', async () => {
+				setup()
+				await waitFor(() => {
+					expect(screen.getByText('Burst pipe')).toBeInTheDocument()
+				})
+				fireEvent.click(
+					screen.getByRole('button', { name: /^Closed$/i })
+				)
+				await waitFor(() => {
+					expect(
+						screen.queryByText('Burst pipe')
+					).not.toBeInTheDocument()
+					expect(screen.getByText('Pothole')).toBeInTheDocument()
+				})
+			})
+
+			it('Then clicking Open filter should show only open requests', async () => {
+				setup()
+				await waitFor(() => {
+					expect(screen.getByText('Burst pipe')).toBeInTheDocument()
+				})
+				fireEvent.click(screen.getByRole('button', { name: /^Open$/i }))
+				await waitFor(() => {
+					expect(screen.getByText('Burst pipe')).toBeInTheDocument()
+					expect(
+						screen.queryByText('Pothole')
+					).not.toBeInTheDocument()
+				})
+			})
+		})
+
+		describe('Given a closed request exists', () => {
+			it('Then it should show a Reopen button', async () => {
+				setup()
+				await waitFor(() => {
+					expect(screen.getByText('Reopen')).toBeInTheDocument()
+				})
+			})
+
+			it('Then clicking Reopen should call reopen_request', async () => {
+				reopen_request.mockResolvedValueOnce({ success: true })
+				setup()
+				await waitFor(() => {
+					expect(screen.getByText('Reopen')).toBeInTheDocument()
+				})
+				fireEvent.click(screen.getByText('Reopen'))
+				await waitFor(() => {
+					expect(reopen_request).toHaveBeenCalledWith(
+						'req-002',
+						'admin-uid'
+					)
+				})
+			})
+		})
+
+		describe('Given the Assign Worker button is clicked', () => {
+			it('Then it should show the worker modal', async () => {
+				setup()
+				await waitFor(() => {
+					expect(
+						screen.getAllByText('Assign Worker').length
+					).toBeGreaterThan(0)
+				})
+				fireEvent.click(screen.getAllByText('Assign Worker')[0])
+				await waitFor(() => {
+					expect(
+						screen.getByText('Assign worker')
+					).toBeInTheDocument()
+				})
+			})
+
+			it('Then searching in the modal should filter workers', async () => {
+				setup()
+				await waitFor(() => {
+					expect(
+						screen.getAllByText('Assign Worker').length
+					).toBeGreaterThan(0)
+				})
+				fireEvent.click(screen.getAllByText('Assign Worker')[0])
+				await waitFor(() => {
+					expect(
+						screen.getByText('Thabo Mokoena')
+					).toBeInTheDocument()
+				})
+				fireEvent.change(
+					screen.getByPlaceholderText(/search by name/i),
+					{
+						target: { value: 'thabo' },
+					}
+				)
+				await waitFor(() => {
+					expect(
+						screen.getByText('Thabo Mokoena')
+					).toBeInTheDocument()
+				})
+			})
+
+			it('Then closing the modal should hide it', async () => {
+				setup()
+				await waitFor(() => {
+					expect(
+						screen.getAllByText('Assign Worker').length
+					).toBeGreaterThan(0)
+				})
+				fireEvent.click(screen.getAllByText('Assign Worker')[0])
+				await waitFor(() => {
+					expect(
+						screen.getByText('Assign worker')
+					).toBeInTheDocument()
+				})
+				fireEvent.click(screen.getByLabelText('Close'))
+				await waitFor(() => {
+					expect(
+						screen.queryByText('Assign worker')
+					).not.toBeInTheDocument()
+				})
+			})
 		})
 	})
 

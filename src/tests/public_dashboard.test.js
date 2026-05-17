@@ -2,6 +2,7 @@
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import { fetch_public_dashboard_visibility } from '../backend/public_dashboard_settings_service.js'
 
 import { onAuthStateChanged } from 'firebase/auth'
 
@@ -53,11 +54,18 @@ jest.mock('../backend/public_dashboard_service.js', () => ({
 	fetchPublicDashboardData: jest.fn(),
 }))
 
+jest.mock('../backend/public_dashboard_settings_service.js', () => ({
+	fetch_public_dashboard_visibility: jest.fn(),
+}))
+
 jest.mock('../components/request_card/request_card.js', () => {
-	return function DummyRequestCard({ request }) {
+	return function DummyRequestCard({ request, visibleFields }) {
 		return (
 			<div data-testid={`request-card-${request.id}`}>
-				{request.category}
+				<span>{request.category}</span>
+				{visibleFields?.description !== false && (
+					<span>{request.description}</span>
+				)}
 			</div>
 		)
 	}
@@ -142,6 +150,15 @@ const mockDashboardData = {
 	},
 }
 
+const defaultVisibility = {
+	category: true,
+	status: true,
+	ward: true,
+	municipality: true,
+	description: true,
+	likes: true,
+}
+
 const renderLoadedDashboard = async (data = mockDashboardData) => {
 	fetchPublicDashboardData.mockResolvedValue(data)
 
@@ -157,6 +174,8 @@ const renderLoadedDashboard = async (data = mockDashboardData) => {
 describe('PublicDashboard Component', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
+
+		fetch_public_dashboard_visibility.mockResolvedValue(defaultVisibility)
 
 		onAuthStateChanged.mockImplementation((auth, callback) => {
 			if (typeof callback === 'function') {
@@ -405,5 +424,37 @@ describe('PublicDashboard Component', () => {
 		).toBeInTheDocument()
 
 		expect(screen.getAllByTestId('marker').length).toBe(5)
+	})
+
+	test('loads public dashboard visibility settings and hides disabled fields', async () => {
+		fetchPublicDashboardData.mockResolvedValue(mockDashboardData)
+		fetch_public_dashboard_visibility.mockResolvedValue({
+			...defaultVisibility,
+			description: false,
+		})
+
+		render(<PublicDashboard />)
+
+		await waitFor(() => {
+			expect(
+				screen.queryByText('Loading service requests…')
+			).not.toBeInTheDocument()
+		})
+
+		expect(fetch_public_dashboard_visibility).toHaveBeenCalledTimes(1)
+
+		expect(screen.getByTestId('request-card-req_1')).toHaveTextContent(
+			'Pothole'
+		)
+
+		expect(
+			screen.queryByText('Large pothole near school')
+		).not.toBeInTheDocument()
+		expect(
+			screen.queryByText('Water leaking from pipe')
+		).not.toBeInTheDocument()
+		expect(
+			screen.queryByText('Streetlight repaired')
+		).not.toBeInTheDocument()
 	})
 })

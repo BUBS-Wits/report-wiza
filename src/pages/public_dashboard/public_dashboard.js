@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import RequestCard from '../../components/request_card/request_card.js'
 import { fetchPublicDashboardData } from '../../backend/public_dashboard_service.js'
+import { fetch_public_dashboard_visibility } from '../../backend/public_dashboard_settings_service.js'
 import './public_dashboard.css'
 import Navbar from '../../components/nav_bar/nav_bar.js'
 import * as esri from 'esri-leaflet'
@@ -179,6 +180,14 @@ function PublicDashboard() {
 		resolved_count: 0,
 		wards_affected: 0,
 	})
+	const [visibleFields, setVisibleFields] = useState({
+		category: true,
+		status: true,
+		ward: true,
+		municipality: true,
+		description: true,
+		likes: true,
+	})
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
 	const [categoryFilter, setCategoryFilter] = useState('All')
@@ -213,11 +222,15 @@ function PublicDashboard() {
 	}, [])
 
 	useEffect(() => {
-		fetchPublicDashboardData()
-			.then(({ active, resolved, stats }) => {
+		Promise.all([
+			fetchPublicDashboardData(),
+			fetch_public_dashboard_visibility(),
+		])
+			.then(([{ active, resolved, stats }, visibility]) => {
 				setActive(active)
 				setResolved(resolved)
 				setStats(stats)
+				setVisibleFields(visibility)
 			})
 			.catch((err) => {
 				console.error('Failed to load dashboard data:', err)
@@ -440,15 +453,35 @@ function PublicDashboard() {
 							>
 								<Popup>
 									<div>
-										<strong>{request.category}</strong>
-										<br />
-										Status: {getStatusLabel(request.status)}
-										<br />
-										{getRequestWard(request)}
-										<br />
-										{request.municipality}
-										<br />
-										{request.description}
+										{visibleFields.category && (
+											<>
+												<strong>
+													{request.category}
+												</strong>
+												<br />
+											</>
+										)}
+										{visibleFields.status && (
+											<>
+												Status:{' '}
+												{getStatusLabel(request.status)}
+												<br />
+											</>
+										)}
+										{visibleFields.ward && (
+											<>
+												{getRequestWard(request)}
+												<br />
+											</>
+										)}
+										{visibleFields.municipality && (
+											<>
+												{request.municipality}
+												<br />
+											</>
+										)}
+										{visibleFields.description &&
+											request.description}
 									</div>
 								</Popup>
 							</Marker>
@@ -481,7 +514,11 @@ function PublicDashboard() {
 				<div className="request_list">
 					{filteredActive.length > 0 ? (
 						filteredActive.map((request) => (
-							<RequestCard key={request.id} request={request} />
+							<RequestCard
+								key={request.id}
+								request={request}
+								visibleFields={visibleFields}
+							/>
 						))
 					) : (
 						<p className="empty_state">
@@ -501,7 +538,11 @@ function PublicDashboard() {
 				<div className="request_list">
 					{filteredResolved.length > 0 ? (
 						filteredResolved.map((request) => (
-							<RequestCard key={request.id} request={request} />
+							<RequestCard
+								key={request.id}
+								request={request}
+								visibleFields={visibleFields}
+							/>
 						))
 					) : (
 						<p className="empty_state">
