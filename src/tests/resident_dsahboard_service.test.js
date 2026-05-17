@@ -172,6 +172,66 @@ describe('Resident Dashboard Service', () => {
 			expect(requests[0].worker_name).toBe('Alice')
 			expect(requests[1].worker_name).toBe('Alice')
 		})
+
+		test('returns an empty array when the resident has no requests', async () => {
+			getDocs.mockResolvedValueOnce({
+				empty: true,
+				docs: [],
+			})
+
+			const requests = await fetch_resident_requests('resident_456')
+
+			expect(requests).toEqual([])
+			expect(getDocs).toHaveBeenCalledTimes(1)
+			expect(getDoc).not.toHaveBeenCalled()
+		})
+
+		test('does not fetch a worker profile when assignment has no worker uid', async () => {
+			getDocs
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [
+						{ id: 'req_1', data: () => ({ status: 'ASSIGNED' }) },
+					],
+				})
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [{ data: () => ({ worker_uid: null }) }],
+				})
+
+			const requests = await fetch_resident_requests('resident_456')
+
+			expect(getDocs).toHaveBeenCalledTimes(2)
+			expect(getDoc).not.toHaveBeenCalled()
+			expect(requests[0].worker_uid).toBeNull()
+			expect(requests[0].worker_name).toBeNull()
+		})
+
+		test('falls back to "Worker" when worker document exists without a name', async () => {
+			getDocs
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [
+						{ id: 'req_1', data: () => ({ status: 'ASSIGNED' }) },
+					],
+				})
+				.mockResolvedValueOnce({
+					empty: false,
+					docs: [
+						{ data: () => ({ worker_uid: 'worker_without_name' }) },
+					],
+				})
+
+			getDoc.mockResolvedValueOnce({
+				exists: () => true,
+				data: () => ({}),
+			})
+
+			const requests = await fetch_resident_requests('resident_456')
+
+			expect(getDoc).toHaveBeenCalledTimes(1)
+			expect(requests[0].worker_name).toBe('Worker')
+		})
 	})
 
 	describe('fetch_resident_profile', () => {
