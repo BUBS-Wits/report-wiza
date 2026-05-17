@@ -49,14 +49,13 @@ function RequestPage() {
 		return unsub
 	}, [])
 
-	/* ── Validation (no auth check — auth is optional) ────────────── */
 	async function valid_attempt(request) {
-		if (!request.loc_validate()) {
-			console.error('Location/ward info missing:', request.loc_info)
-			return false
-		}
 		if (!('geolocation' in window.navigator)) {
 			console.error('Geolocation not available.')
+			return false
+		}
+		if (!request.loc_validate()) {
+			console.error('Location/ward info missing:', request.loc_info)
 			return false
 		}
 		if (!request.input_validate()) {
