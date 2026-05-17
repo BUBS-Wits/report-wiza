@@ -62,9 +62,10 @@ const nav_items = [
 					{
 						id: 'satisfaction',
 						label: 'Resident Satisfaction',
-						path: '/admin/analytics/satisfaction',
-						ready: false,
+						path: '/admin/analytics/satisfaction-report',
+						ready: true,
 					},
+
 					{
 						id: 'custom_reports',
 						label: 'Custom Reports',

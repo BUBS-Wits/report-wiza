@@ -4,6 +4,7 @@ import Login from './pages/login_page/login.js'
 import LandingPage from './pages/landing_page/landing_page.js'
 import About from './pages/about_page/about.js'
 import Contact from './pages/contact_page/contact.js'
+import AdminSatisfactionReport from './pages/admin_satisfaction_report/admin_satisfaction_report.js'
 import PublicDashboard from './pages/public_dashboard/public_dashboard.js'
 import RequestPage from './pages/request/submit/request_page.js'
 import AdminDashboard from './pages/admin_dashboard/admin_dashboard.js'
@@ -111,6 +112,14 @@ function App() {
 					element={
 						<ProtectedRoute allowed_roles={['admin']}>
 							<CategoryReport />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin/analytics/satisfaction-report"
+					element={
+						<ProtectedRoute allowed_roles={['admin']}>
+							<AdminSatisfactionReport />
 						</ProtectedRoute>
 					}
 				/>

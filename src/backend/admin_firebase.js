@@ -4,6 +4,7 @@ import { auth, db } from '../firebase_config.js'
 import { sendSignInLinkToEmail } from 'firebase/auth'
 import {
 	doc,
+	getDoc,
 	setDoc,
 	updateDoc,
 	collection,
@@ -118,5 +119,18 @@ export const revoke_worker_role = async (uid) => {
 	} catch (error) {
 		console.error('Error revoking worker role:', error)
 		throw new Error('Could not revoke worker role. Try again.')
+	}
+}
+
+// ─── US050: Satisfaction Report ────────────────────────────────────────────
+export const fetch_rated_requests = async () => {
+	try {
+		const snapshot = await getDocs(collection(db, 'service_requests'))
+		return snapshot.docs
+			.map((d) => ({ id: d.id, ...d.data() }))
+			.filter((r) => r.rating !== undefined && r.rating !== null)
+	} catch (error) {
+		console.error('Error fetching rated requests:', error)
+		throw new Error('Could not load satisfaction data. Try again later.')
 	}
 }
