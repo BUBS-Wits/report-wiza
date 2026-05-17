@@ -100,6 +100,25 @@ describe('RequestCard', () => {
 		expect(screen.getByText('— · —')).toBeInTheDocument()
 	})
 
+	test('displays friendly ward label when request has an official ward code', () => {
+		render(
+			<RequestCard
+				request={{
+					id: 'req-ward-code',
+					category: 'Pothole',
+					status: 'SUBMITTED',
+					sa_ward: 79800057,
+					sa_m_name: 'Johannesburg',
+					description: 'Road damage reported',
+					like_count: 0,
+				}}
+			/>
+		)
+
+		expect(screen.getByText(/Ward 57/)).toBeInTheDocument()
+		expect(screen.queryByText(/Ward 79800057/)).not.toBeInTheDocument()
+	})
+
 	test('uses request status text when status is not in STATUS_DISPLAY', () => {
 		render(
 			<RequestCard

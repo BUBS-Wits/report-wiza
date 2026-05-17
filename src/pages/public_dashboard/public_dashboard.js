@@ -172,6 +172,25 @@ function getRequestWard(request) {
 	return request.sa_ward ?? request.ward
 }
 
+function getWardDisplayLabel(ward) {
+	if (ward === null || ward === undefined || ward === '') {
+		return 'Unknown Ward'
+	}
+
+	const wardString = String(ward)
+
+	if (/^\d{8}$/.test(wardString)) {
+		const shortWard = Number(wardString.slice(-3))
+		return `Ward ${shortWard}`
+	}
+
+	if (/^Ward\s/i.test(wardString)) {
+		return wardString
+	}
+
+	return `Ward ${wardString}`
+}
+
 function PublicDashboard() {
 	const [active, setActive] = useState([])
 	const [resolved, setResolved] = useState([])
@@ -251,12 +270,18 @@ function PublicDashboard() {
 	]
 
 	const wards = [
-		'All',
-		...new Set(
-			allRequests
-				.map((request) => getRequestWard(request))
-				.filter(Boolean)
-		),
+		{ value: 'All', label: 'All' },
+		...[
+			...new Set(
+				allRequests
+					.map((request) => getRequestWard(request))
+					.filter(Boolean)
+					.map(String)
+			),
+		].map((ward) => ({
+			value: ward,
+			label: getWardDisplayLabel(ward),
+		})),
 	]
 
 	const statuses = [
@@ -272,7 +297,8 @@ function PublicDashboard() {
 		const categoryMatches =
 			categoryFilter === 'All' || request.category === categoryFilter
 
-		const wardMatches = wardFilter === 'All' || requestWard === wardFilter
+		const wardMatches =
+			wardFilter === 'All' || String(requestWard) === String(wardFilter)
 
 		const statusMatches =
 			statusFilter === 'All' || request.status === statusFilter
@@ -399,8 +425,8 @@ function PublicDashboard() {
 							onChange={(e) => setWardFilter(e.target.value)}
 						>
 							{wards.map((ward) => (
-								<option key={ward} value={ward}>
-									{ward}
+								<option key={ward.value} value={ward.value}>
+									{ward.label}
 								</option>
 							))}
 						</select>
@@ -470,7 +496,9 @@ function PublicDashboard() {
 										)}
 										{visibleFields.ward && (
 											<>
-												{getRequestWard(request)}
+												{getWardDisplayLabel(
+													getRequestWard(request)
+												)}
 												<br />
 											</>
 										)}
