@@ -86,18 +86,20 @@ describe('Sidebar Component', () => {
 		expect(requests_link).toHaveAttribute('href', '/admin/requests')
 	})
 
-	test('disabled items render as buttons, not links', () => {
+	test('all analytics sub-items render as links', () => {
 		render_sidebar()
 
-		// Open the dropdown first
 		fireEvent.click(screen.getByRole('button', { name: /Analytics/i }))
 
-		// Use Resident Satisfaction here because Worker Performance is no longer disabled!
-		const disabled_button = screen.getByRole('button', {
+		// Resident Satisfaction is now a live link — verify it routes correctly
+		const satisfaction_link = screen.getByRole('link', {
 			name: /Resident Satisfaction/i,
 		})
-		expect(disabled_button).toBeDisabled()
-		expect(disabled_button.tagName).toBe('BUTTON')
+		expect(satisfaction_link).toBeInTheDocument()
+		expect(satisfaction_link).toHaveAttribute(
+			'href',
+			'/admin/analytics/satisfaction-report'
+		)
 	})
 
 	test('handles dropdown menus correctly (expands and collapses)', () => {
