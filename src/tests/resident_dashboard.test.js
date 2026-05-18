@@ -117,25 +117,25 @@ describe('ResidentDashboard Component', () => {
 	const originalConsoleError = console.error
 
 	beforeAll(() => {
-        global.fetch = jest.fn()
-        console.error = jest.fn() // Suppress expected error logs
-        // 1. Mock window.alert globally for this test suite
-        jest.spyOn(window, 'alert').mockImplementation(() => {})
-    })
+		global.fetch = jest.fn()
+		console.error = jest.fn() // Suppress expected error logs
+		// 1. Mock window.alert globally for this test suite
+		jest.spyOn(window, 'alert').mockImplementation(() => {})
+	})
 
 	afterAll(() => {
-        global.fetch = originalFetch
-        console.error = originalConsoleError
-        // 2. Restore all mocks, including window.alert
-        jest.restoreAllMocks()
-    })
+		global.fetch = originalFetch
+		console.error = originalConsoleError
+		// 2. Restore all mocks, including window.alert
+		jest.restoreAllMocks()
+	})
 
 	beforeEach(() => {
-        jest.clearAllMocks()
-        mockNavigate = jest.fn()
-        useNavigate.mockReturnValue(mockNavigate)
-        auth.currentUser = null
-    })
+		jest.clearAllMocks()
+		mockNavigate = jest.fn()
+		useNavigate.mockReturnValue(mockNavigate)
+		auth.currentUser = null
+	})
 
 	/* ── 1. Initialization and Error Handling ── */
 
