@@ -31,7 +31,11 @@ const normalise_request = (id, data) => {
 		// Normalise status to lowercase so all comparisons work
 		status: (data.status ?? 'unassigned').toLowerCase(),
 		ward: `Ward ${data.sa_ward ?? 'Unknown'}`,
-		sa_ward: data.sa_ward,
+		// Loose != null catches both null and undefined; avoids "undefined" string
+		sa_ward:
+			data.sa_ward !== null && data.sa_ward !== undefined
+				? String(data.sa_ward)
+				: data.sa_ward,
 		municipality: data.sa_m_name ?? 'Unknown Municipality',
 		sa_m_code: data.sa_m_code ?? '',
 		sa_province: data.sa_province ?? '',
