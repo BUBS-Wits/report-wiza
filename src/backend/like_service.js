@@ -28,12 +28,12 @@ async function getTotalResidentCount() {
 }
 
 export function computePriority(likeCount, totalResidents) {
-	if (totalResidents <= 0) return 'Low' // guard against empty DB
-	if (likeCount < 1) return 'Low'
+	if (totalResidents <= 0) {return 'Low'} // guard against empty DB
+	if (likeCount < 1) {return 'Low'}
 
-	if (likeCount >= PRIORITY_THRESHOLDS.CRITICAL) return 'Critical'
-	if (likeCount >= PRIORITY_THRESHOLDS.HIGH) return 'High'
-	if (likeCount >= PRIORITY_THRESHOLDS.MEDIUM) return 'Medium'
+	if (likeCount >= PRIORITY_THRESHOLDS.CRITICAL) {return 'Critical'}
+	if (likeCount >= PRIORITY_THRESHOLDS.HIGH) {return 'High'}
+	if (likeCount >= PRIORITY_THRESHOLDS.MEDIUM) {return 'Medium'}
 	return 'Low'
 }
 
