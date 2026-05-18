@@ -92,35 +92,40 @@ describe('Category Report Service', () => {
 	describe('build_category_stats', () => {
 		test('calculates totals, pending, in-progress, resolved, and avg hours correctly', () => {
 			const STATUS = Object.freeze({
-				SUBMITTED: 'open',
-				ASSIGNED: 'acknowledged',
-				IN_PROGRESS: 'in_progress',
-				RESOLVED: 'resolved',
-				CLOSED: 'closed',
+				SUBMITTED: 'SUBMITTED',
+				ASSIGNED: 'ACKNOWLEDGED',
+				IN_PROGRESS: 'IN_PROGRESS',
+				RESOLVED: 'RESOLVED',
+				CLOSED: 'CLOSED',
 			})
 			const mockRequests = [
 				{ category: 'Water', status: STATUS.ASSIGNED },
-				{ category: 'Water', status: STATUS.IN_PROGRESS }, // In progress
-				{ category: 'Water', status: STATUS.IN_PROGRESS }, // In progress
+				{ category: 'Water', status: STATUS.IN_PROGRESS },
+				{ category: 'Water', status: STATUS.IN_PROGRESS },
 				{
 					category: 'Water',
 					status: STATUS.RESOLVED,
 					created_at: mockTs(0),
-					updated_at: mockTs(5), // Took 5 hours
+					resolved_at: mockTs(5), // Took 5 hours
 				},
 				{
 					category: 'Water',
 					status: STATUS.RESOLVED,
 					created_at: mockTs(0),
-					updated_at: mockTs(15), // Took 15 hours
+					resolved_at: mockTs(15), // Took 15 hours
 				},
 				{ category: 'Roads', status: STATUS.ASSIGNED },
 				// Electricity has 0 requests
 			]
 
-			const stats = build_category_stats(mockRequests)
+			// Pass the active categories array as the second parameter now!
+			const stats = build_category_stats(mockRequests, [
+				'Water',
+				'Roads',
+				'Electricity',
+			])
 
-			expect(stats).toHaveLength(3) // Based on mocked REQUEST_CATEGORIES
+			expect(stats).toHaveLength(3)
 
 			// Check Water stats
 			const waterStats = stats.find((s) => s.category === 'Water')
@@ -145,32 +150,41 @@ describe('Category Report Service', () => {
 	describe('fetch_report_data', () => {
 		test('fetches all requests and returns calculated stats and totals', async () => {
 			const STATUS = Object.freeze({
-				SUBMITTED: 'open',
-				ASSIGNED: 'acknowledged',
-				IN_PROGRESS: 'in_progress',
-				RESOLVED: 'resolved',
-				CLOSED: 'closed',
+				SUBMITTED: 'SUBMITTED',
+				ASSIGNED: 'ACKNOWLEDGED',
+				IN_PROGRESS: 'IN_PROGRESS',
+				RESOLVED: 'RESOLVED',
+				CLOSED: 'CLOSED',
 			})
-			getDocs.mockResolvedValueOnce({
-				docs: [
-					{
-						id: '1',
-						data: () => ({
-							category: 'Water',
-							status: STATUS.ASSIGNED,
-						}),
-					},
-					{
-						id: '2',
-						data: () => ({
-							category: 'Roads',
-							status: 'resolved',
-							created_at: mockTs(0),
-							updated_at: mockTs(2),
-						}),
-					},
-				],
-			})
+
+			// Mock the two sequenced getDocs calls (1 for requests, 1 for categories)
+			getDocs
+				.mockResolvedValueOnce({
+					docs: [
+						{
+							id: '1',
+							data: () => ({
+								category: 'Water',
+								status: STATUS.ASSIGNED,
+							}),
+						},
+						{
+							id: '2',
+							data: () => ({
+								category: 'Roads',
+								status: STATUS.RESOLVED,
+								created_at: mockTs(0),
+								resolved_at: mockTs(2),
+							}),
+						},
+					],
+				})
+				.mockResolvedValueOnce({
+					docs: [
+						{ id: 'cat1', data: () => ({ name: 'Water' }) },
+						{ id: 'cat2', data: () => ({ name: 'Roads' }) },
+					],
+				})
 
 			const report = await fetch_report_data()
 
@@ -178,8 +192,13 @@ describe('Category Report Service', () => {
 				expect.anything(),
 				'service_requests'
 			)
+			expect(collection).toHaveBeenCalledWith(
+				expect.anything(),
+				'categories'
+			)
+
 			expect(report.total_requests).toBe(2)
-			expect(report.stats).toHaveLength(3)
+			expect(report.stats).toHaveLength(2)
 
 			const waterStat = report.stats.find((s) => s.category === 'Water')
 			expect(waterStat.pending).toBe(1)

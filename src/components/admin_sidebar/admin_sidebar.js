@@ -25,13 +25,6 @@ const nav_items = [
 				path: '/admin/messaging',
 				ready: true,
 			},
-
-			{
-				id: 'residents',
-				label: 'Residents',
-				path: '/admin/residents',
-				ready: true,
-			},
 			{
 				id: 'public_dashboard',
 				label: 'Public Dashboard',

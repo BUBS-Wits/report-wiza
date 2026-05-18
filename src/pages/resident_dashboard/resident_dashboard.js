@@ -554,15 +554,25 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 							JSON.parse(error_text)
 						)
 					} catch {
-						alert('View console for details')
+						addMessage({
+							text: 'View console for details',
+							type: 'error',
+						})
 						console.error('Server Error (HTML/Text):', error_text)
 					}
 					return
 				}
-				alert('Successfully submitted review')
+				addMessage({
+					text: 'Successfully submitted review',
+					type: 'success',
+				})
+				window.location.reload()
 			})
 			.catch((err) => {
-				alert('Error submitting review.')
+				addMessage({
+					text: 'Error submitting review.',
+					type: 'error',
+				})
 				console.error(err)
 			})
 	}
