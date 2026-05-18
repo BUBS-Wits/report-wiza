@@ -2,26 +2,27 @@ import React from 'react'
 import LikeButton from './like_button/like_button.js'
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 
-function getWardDisplayLabel(ward) {
-	if (ward === null || ward === undefined || ward === '') {
-		return '—'
-	}
-
-	const wardString = String(ward)
-
-	if (/^\d{8}$/.test(wardString)) {
-		const shortWard = Number(wardString.slice(-3))
-		return `Ward ${shortWard}`
-	}
-
-	if (/^Ward\s/i.test(wardString)) {
-		return wardString
-	}
-
-	return `Ward ${wardString}`
+const PRIORITY_META = {
+	Low: { label: 'Low', cls: 'priority--low' },
+	Medium: { label: 'Medium', cls: 'priority--medium' },
+	High: { label: 'High', cls: 'priority--high' },
+	Critical: { label: 'Critical', cls: 'priority--critical' },
 }
 
-function RequestCard({ request, visibleFields }) {
+function format_date(ts) {
+	if (!ts) {
+		return '—'
+	}
+	const d = ts.toDate ? ts.toDate() : new Date(ts)
+	return d.toLocaleDateString('en-ZA', {
+		day: 'numeric',
+		month: 'short',
+		year: 'numeric',
+	})
+}
+
+function RequestCard({ request, onLikeChange = () => {}, visibleFields }) {
+	// Merge default visibility with any admin overrides
 	const fields = {
 		category: true,
 		status: true,
@@ -32,37 +33,52 @@ function RequestCard({ request, visibleFields }) {
 		...visibleFields,
 	}
 
-	const statusText =
-		STATUS_DISPLAY[request.status] ?? request.status ?? 'unknown'
+	// Case‑insensitive status for reliable comparisons
+	const rawStatus = (request.status || '').toLowerCase().trim()
+	const isResolved =
+		rawStatus === STATUS.RESOLVED || rawStatus === STATUS.CLOSED
 
-	const showLikeButton =
-		fields.likes &&
-		request.status !== STATUS.RESOLVED &&
-		request.status !== STATUS.CLOSED
+	const showLikeButton = fields.likes && !isResolved
+	const showPriority = !isResolved
+	const showStatus = fields.status && !isResolved
+
+	const statusLabel = STATUS_DISPLAY[rawStatus] || request.status || 'Unknown'
+	const priorityMeta = PRIORITY_META[request.priority] ?? null
 
 	return (
 		<div className="request_card">
 			<div className="request_card_top">
 				{fields.category && <h3>{request.category}</h3>}
 
-				{fields.status && (
-					<span
-						className={`status_badge ${statusText
-							.toLowerCase()
-							.replace(/\s+/g, '_')}`}
-					>
-						{statusText}
-					</span>
-				)}
+				<div className="request_card_status_group">
+					{showStatus && (
+						<span
+							className={`status_badge ${statusLabel
+								.toLowerCase()
+								.replace(/\s+/g, '_')}`}
+						>
+							Status: {statusLabel}
+						</span>
+					)}
+
+					{showPriority && priorityMeta && (
+						<div className="request_priority_row">
+							<span
+								className={`priority_badge ${priorityMeta.cls}`}
+							>
+								Priority: {priorityMeta.label}
+							</span>
+						</div>
+					)}
+				</div>
 			</div>
 
 			{(fields.ward || fields.municipality) && (
 				<p className="request_location">
 					{fields.ward &&
-						getWardDisplayLabel(request.sa_ward ?? request.ward)}
+						(request.sa_ward ? `Ward ${request.sa_ward}` : '—')}
 					{fields.ward && fields.municipality && ' · '}
-					{fields.municipality &&
-						(request.sa_m_name || request.municipality || '—')}
+					{fields.municipality && (request.sa_m_name || '—')}
 				</p>
 			)}
 
@@ -70,11 +86,18 @@ function RequestCard({ request, visibleFields }) {
 				<p className="request_description">{request.description}</p>
 			)}
 
+			<div className="request_meta_row">
+				<span className="request_date">
+					{format_date(request.created_at)}
+				</span>
+			</div>
+
 			{showLikeButton && (
 				<div className="request_footer">
 					<LikeButton
 						requestId={request.id}
 						initialLikeCount={request.like_count || 0}
+						onLikeChange={onLikeChange}
 					/>
 				</div>
 			)}

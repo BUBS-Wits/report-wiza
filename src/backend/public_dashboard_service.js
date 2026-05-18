@@ -3,65 +3,53 @@ import { db } from '../firebase_config.js'
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { parseLocation } from '../utils/parse_location.js'
 
-// Statuses treated as "open" / active on the public dashboard
+// Statuses treated as "active" (Open Requests section)
+// All lowercase for case‑insensitive matching
 const ACTIVE_STATUSES = new Set([
-	'SUBMITTED',
-	'UNASSIGNED',
-	'ASSIGNED',
-	'IN_PROGRESS',
+	'submitted',
+	'unassigned',
+	'assigned',
+	'in_progress',
 	'open',
 	'acknowledged',
-	'in_progress',
+	'pending',
 ])
 
-const RESOLVED_STATUSES = new Set(['RESOLVED', 'resolved'])
-
+// Only 'resolved' goes to the resolved list; 'closed' is intentionally excluded
 const RESOLVED_LIMIT = 20
 
-const normalise_status = (status) => {
-	if (status === undefined || status === null || status === '') {
-		return 'UNASSIGNED'
-	}
-
-	return status
-}
-
 /**
- * Normalises a raw Firestore request document into the shape expected by
- * the public dashboard, request cards, filters, and map markers.
+ * Normalises a raw Firestore request document into the shape
+ * expected by the public dashboard and RequestCard component.
  */
 const normalise_request = (id, data) => {
 	const coords = parseLocation(data.location)
 
-	if (!coords) {
-		return null
-	}
-
-	const status = normalise_status(data.status)
-	const ward = data.sa_ward ?? data.ward ?? null
-	const municipality =
-		data.sa_m_name ?? data.municipality ?? 'Unknown Municipality'
-
 	return {
 		id,
 		category: data.category ?? 'Unknown',
-		status,
-		ward: ward ? `Ward ${ward}` : 'Ward Unknown',
-		sa_ward: ward,
-		municipality,
-		sa_m_name: municipality,
+		// Normalise status to lowercase so all comparisons work
+		status: (data.status ?? 'unassigned').toLowerCase(),
+		ward: `Ward ${data.sa_ward ?? 'Unknown'}`,
+		sa_ward: data.sa_ward,
+		municipality: data.sa_m_name ?? 'Unknown Municipality',
 		sa_m_code: data.sa_m_code ?? '',
 		sa_province: data.sa_province ?? '',
 		description: data.description ?? '',
 		image: data.image ?? null,
 		like_count: data.like_count ?? 0,
+		priority: data.priority ?? null,
+		user_uid: data.user_uid ?? null,
 		created_at: data.created_at ?? null,
 		updated_at: data.updated_at ?? null,
-		latitude: coords.latitude,
-		longitude: coords.longitude,
+		latitude: coords ? coords.latitude : null,
+		longitude: coords ? coords.longitude : null,
 	}
 }
 
+/**
+ * Fetches all public dashboard data: active, resolved, and stats.
+ */
 export const fetchPublicDashboardData = async () => {
 	const requests_ref = collection(db, 'service_requests')
 
@@ -75,19 +63,17 @@ export const fetchPublicDashboardData = async () => {
 	snapshot.forEach((doc_snap) => {
 		const normalised = normalise_request(doc_snap.id, doc_snap.data())
 
-		if (!normalised) {
-			return
-		}
+		wards_seen.add(String(normalised.sa_ward))
 
-		if (normalised.sa_ward !== null && normalised.sa_ward !== undefined) {
-			wards_seen.add(String(normalised.sa_ward))
-		}
-
-		if (RESOLVED_STATUSES.has(normalised.status)) {
+		// Only 'resolved' goes to the resolved list
+		if (normalised.status === 'resolved') {
 			if (resolved.length < RESOLVED_LIMIT) {
 				resolved.push(normalised)
 			}
 		} else if (ACTIVE_STATUSES.has(normalised.status)) {
+			active.push(normalised)
+		} else {
+			// Any other status (e.g. 'escalated', 'blocked') still shows as active
 			active.push(normalised)
 		}
 	})

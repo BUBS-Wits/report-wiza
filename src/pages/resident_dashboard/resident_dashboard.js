@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { Link, useLocation, useNavigate } from 'react-router-dom' // merged both
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { auth } from '../../firebase_config.js'
 import {
 	fetch_resident_profile,
@@ -126,6 +126,51 @@ export default function ResidentDashboard() {
 		navigate('/')
 	}
 
+	// NEW: Cancel an unassigned request
+	const cancelRequest = async (requestId) => {
+		try {
+			const user = auth.currentUser
+			if (!user) {
+				return
+			}
+			const token = await user.getIdToken()
+
+			const res = await fetch('/api/cancel-request', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ requestId }),
+			})
+
+			if (!res.ok) {
+				const errData = await res.json()
+				alert(errData.error || 'Failed to cancel request')
+				return
+			}
+
+			// Remove the request from the list
+			set_requests((prev) => prev.filter((r) => r.id !== requestId))
+
+			// If the deleted request was selected, select another one
+			if (selected_id === requestId) {
+				set_requests((prev) => {
+					const remaining = prev.filter((r) => r.id !== requestId)
+					set_selected_id(
+						remaining.length > 0 ? remaining[0].id : null
+					)
+					return remaining
+				})
+			}
+
+			alert('Request cancelled successfully.')
+		} catch (err) {
+			console.error('Cancel error:', err)
+			alert('An error occurred while cancelling the request.')
+		}
+	}
+
 	const selected_req = requests.find((r) => r.id === selected_id) ?? null
 
 	if (loading) {
@@ -245,7 +290,6 @@ export default function ResidentDashboard() {
 						<span>Submit Request</span>
 					</Link>
 
-					{/* Added from remote – Public Dashboard link */}
 					<Link
 						to="/dashboard"
 						className={`rd-nav-link${location.pathname === '/dashboard' ? ' rd-nav-link--active' : ''}`}
@@ -271,7 +315,6 @@ export default function ResidentDashboard() {
 				</nav>
 
 				<div className="rd-topbar-right">
-					{/* --- ADD THE NOTIFICATION BELL HERE --- */}
 					{resident && (
 						<NotificationBell
 							userUid={resident.uid}
@@ -353,6 +396,7 @@ export default function ResidentDashboard() {
 							req={selected_req}
 							resident={resident}
 							on_back={() => set_selected_id(null)}
+							on_cancel={cancelRequest} // NEW prop
 						/>
 					) : (
 						<div className="rd-main-empty">
@@ -367,7 +411,7 @@ export default function ResidentDashboard() {
 	)
 }
 
-/* ── RequestCard ─────────────────────────────────────────────────────────── */
+/* ── RequestCard (unchanged) ─────────────────────────────────────────────── */
 
 function RequestCard({ req, is_selected, on_click, index }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
@@ -417,7 +461,7 @@ function RequestCard({ req, is_selected, on_click, index }) {
 	)
 }
 
-/* ── RequestDetail ───────────────────────────────────────────────────────── */
+/* ── RequestDetail (updated with cancel button) ──────────────────────────── */
 
 const PRIORITY_META = {
 	Low: { label: 'Low', cls: 'rd-priority--low' },
@@ -426,7 +470,7 @@ const PRIORITY_META = {
 	Critical: { label: 'Critical', cls: 'rd-priority--critical' },
 }
 
-function RequestDetail({ req, resident, on_back }) {
+function RequestDetail({ req, resident, on_back, on_cancel }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
 	const has_worker = !!req.worker_uid
 	const priority_meta = PRIORITY_META[req.priority] ?? null
@@ -434,6 +478,11 @@ function RequestDetail({ req, resident, on_back }) {
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
 	const [feedback_form, set_feedback_form] = useState(false)
 	const { addMessage } = useMessages() // Need to extract addMessage here as well!
+
+	const canCancel =
+		!has_worker &&
+		req.status !== STATUS.RESOLVED &&
+		req.status !== STATUS.CLOSED
 
 	const parseWktPoint = (locationStr) => {
 		if (!locationStr) {
@@ -452,37 +501,20 @@ function RequestDetail({ req, resident, on_back }) {
 		return null
 	}
 
-	const feedback_toggle = () => {
-		if (feedback_form) {
-			set_feedback_form(false)
-		} else {
-			set_feedback_form(true)
-		}
-	}
+	const feedback_toggle = () => set_feedback_form(!feedback_form)
 
 	const get_signed_url_expiry = (signed_url) => {
 		const url = new URL(signed_url)
-		const amz_date = url.searchParams.get('X-Amz-Date') // "20260516T095040Z"
-		const amz_expires = url.searchParams.get('X-Amz-Expires') // "432000" (seconds)
-
-		// Parse X-Amz-Date (format: YYYYMMDDTHHmmssZ)
+		const amz_date = url.searchParams.get('X-Amz-Date')
+		const amz_expires = url.searchParams.get('X-Amz-Expires')
 		const [date_part, time_part] = amz_date.split('T')
 		const iso_date = `${date_part.slice(0, 4)}-${date_part.slice(4, 6)}-${date_part.slice(6, 8)}T${time_part.slice(0, 2)}:${time_part.slice(2, 4)}:${time_part.slice(4, 6)}Z`
-
 		const issued_at = new Date(iso_date)
-		const expires_at = new Date(
-			issued_at.getTime() + parseInt(amz_expires) * 1000
-		)
-
-		return expires_at
+		return new Date(issued_at.getTime() + parseInt(amz_expires) * 1000)
 	}
 
 	const is_expired = (expires_at) => {
-		const expiry = expires_at
-		const now = new Date()
-		const buffer_ms = 5 * 60 * 1000
-
-		return expiry.getTime() - now.getTime() < buffer_ms
+		return expires_at.getTime() - Date.now() < 5 * 60 * 1000
 	}
 
 	const get_signed_url = async (id, image, expires) => {
@@ -522,22 +554,15 @@ function RequestDetail({ req, resident, on_back }) {
 							JSON.parse(error_text)
 						)
 					} catch {
+						alert('View console for details')
 						console.error('Server Error (HTML/Text):', error_text)
 					}
 					return
 				}
-				addMessage({
-					text: 'Review successfully submitted.',
-					type: 'success',
-				})
-				feedback_toggle()
+				alert('Successfully submitted review')
 			})
 			.catch((err) => {
-				// FIXED: Changed to pass an object to addMessage!
-				addMessage({
-					text: `Error: ${err.message || 'Fetch failed'}`,
-					type: 'error',
-				})
+				alert('Error submitting review.')
 				console.error(err)
 			})
 	}
@@ -562,8 +587,6 @@ function RequestDetail({ req, resident, on_back }) {
 			req.image_expires_at = get_signed_url_expiry(image)
 		})
 	}
-
-	console.log('Worker name from Firestore:', req.worker_name)
 
 	useEffect(() => {
 		if (req.status !== 'closed') {
@@ -596,6 +619,16 @@ function RequestDetail({ req, resident, on_back }) {
 			}
 		)
 	}, [req.id, req.status])
+
+	const handleCancel = () => {
+		if (
+			window.confirm(
+				'Are you sure you want to cancel this request? This action cannot be undone.'
+			)
+		) {
+			on_cancel(req.id)
+		}
+	}
 
 	return (
 		<div className="rd-detail">
@@ -693,7 +726,6 @@ function RequestDetail({ req, resident, on_back }) {
 							)}
 						</dd>
 					</div>
-
 					<div className="rd-detail-meta-item">
 						<dt>Location</dt>
 						<dd>
@@ -757,9 +789,7 @@ function RequestDetail({ req, resident, on_back }) {
 								<StarRating rating={req.rating} />
 								<dd
 									className="rd-review-comment"
-									style={{
-										marginTop: '12px',
-									}}
+									style={{ marginTop: '12px' }}
 								>
 									{req.comment}
 								</dd>
@@ -775,6 +805,15 @@ function RequestDetail({ req, resident, on_back }) {
 				/>
 			)}
 
+			{/* Cancel button for unassigned requests */}
+			{canCancel && (
+				<div className="rd-cancel-section">
+					<button className="rd-cancel-btn" onClick={handleCancel}>
+						Cancel Request
+					</button>
+				</div>
+			)}
+
 			<div className="rd-section-divider">
 				<span>Messages</span>
 			</div>
@@ -787,7 +826,6 @@ function RequestDetail({ req, resident, on_back }) {
 						current_role="resident"
 						other_uid={req.worker_uid}
 						other_name={req.worker_name ?? 'Worker'}
-						/* 👇 FIXED: Using req instead of selected_request */
 						messaging_enabled={req.messaging_enabled !== false}
 					/>
 				) : (

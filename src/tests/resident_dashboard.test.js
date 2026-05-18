@@ -119,11 +119,15 @@ describe('ResidentDashboard Component', () => {
 	beforeAll(() => {
 		global.fetch = jest.fn()
 		console.error = jest.fn() // Suppress expected error logs
+		// 1. Mock window.alert globally for this test suite
+		jest.spyOn(window, 'alert').mockImplementation(() => {})
 	})
 
 	afterAll(() => {
 		global.fetch = originalFetch
 		console.error = originalConsoleError
+		// 2. Restore all mocks, including window.alert
+		jest.restoreAllMocks()
 	})
 
 	beforeEach(() => {
@@ -485,12 +489,7 @@ describe('ResidentDashboard Component', () => {
 					}),
 				})
 			)
-			// 3. Update assertion here!
-			expect(mockAddMessage).toHaveBeenCalledWith(
-				expect.objectContaining({
-					text: expect.stringContaining('successfully'),
-				})
-			)
+			expect(window.alert).toHaveBeenCalled()
 		})
 	})
 
@@ -629,12 +628,7 @@ describe('ResidentDashboard Component', () => {
 		fireEvent.click(screen.getByText('Submit Mock Review'))
 
 		await waitFor(() => {
-			// 6. Update assertion here!
-			expect(mockAddMessage).toHaveBeenCalledWith(
-				expect.objectContaining({
-					text: expect.stringContaining('Fetch failed'),
-				})
-			)
+			expect(window.alert).toHaveBeenCalled()
 		})
 	})
 

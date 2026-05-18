@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -114,13 +114,29 @@ function WardBoundaries() {
 function FitMapToRequests({ requests }) {
 	const map = useMap()
 	useEffect(() => {
-		if (!requests.length) {
+		if (!requests || !requests.length) {
 			return
 		}
-		const bounds = L.latLngBounds(
-			requests.map((r) => [r.latitude, r.longitude])
+		const validRequests = requests.filter(
+			(r) =>
+				typeof r.latitude === 'number' &&
+				isFinite(r.latitude) &&
+				typeof r.longitude === 'number' &&
+				isFinite(r.longitude)
 		)
-		map.fitBounds(bounds, { padding: [40, 40] })
+		if (!validRequests.length) {
+			return
+		}
+		try {
+			const bounds = L.latLngBounds(
+				validRequests.map((r) => [r.latitude, r.longitude])
+			)
+			if (bounds.isValid()) {
+				map.fitBounds(bounds, { padding: [40, 40] })
+			}
+		} catch (e) {
+			// ignore
+		}
 	}, [map, requests])
 	return null
 }
@@ -170,25 +186,6 @@ function getStatusLabel(status) {
 
 function getRequestWard(request) {
 	return request.sa_ward ?? request.ward
-}
-
-function getWardDisplayLabel(ward) {
-	if (ward === null || ward === undefined || ward === '') {
-		return 'Unknown Ward'
-	}
-
-	const wardString = String(ward)
-
-	if (/^\d{8}$/.test(wardString)) {
-		const shortWard = Number(wardString.slice(-3))
-		return `Ward ${shortWard}`
-	}
-
-	if (/^Ward\s/i.test(wardString)) {
-		return wardString
-	}
-
-	return `Ward ${wardString}`
 }
 
 function PublicDashboard() {
@@ -260,7 +257,26 @@ function PublicDashboard() {
 			.finally(() => setLoading(false))
 	}, [])
 
+	// NEW: function to refresh the whole dashboard after a like
+	const refreshDashboard = useCallback(async () => {
+		try {
+			const { active, resolved, stats } = await fetchPublicDashboardData()
+			setActive(active)
+			setResolved(resolved)
+			setStats(stats)
+		} catch (err) {
+			console.error('Failed to refresh dashboard data:', err)
+		}
+	}, [])
+
 	const allRequests = [...active, ...resolved]
+	const mapRequests = allRequests.filter(
+		(r) =>
+			typeof r.latitude === 'number' &&
+			isFinite(r.latitude) &&
+			typeof r.longitude === 'number' &&
+			isFinite(r.longitude)
+	)
 
 	const categories = [
 		'All',
@@ -270,18 +286,12 @@ function PublicDashboard() {
 	]
 
 	const wards = [
-		{ value: 'All', label: 'All' },
-		...[
-			...new Set(
-				allRequests
-					.map((request) => getRequestWard(request))
-					.filter(Boolean)
-					.map(String)
-			),
-		].map((ward) => ({
-			value: ward,
-			label: getWardDisplayLabel(ward),
-		})),
+		'All',
+		...new Set(
+			allRequests
+				.map((request) => getRequestWard(request))
+				.filter(Boolean)
+		),
 	]
 
 	const statuses = [
@@ -297,8 +307,7 @@ function PublicDashboard() {
 		const categoryMatches =
 			categoryFilter === 'All' || request.category === categoryFilter
 
-		const wardMatches =
-			wardFilter === 'All' || String(requestWard) === String(wardFilter)
+		const wardMatches = wardFilter === 'All' || requestWard === wardFilter
 
 		const statusMatches =
 			statusFilter === 'All' || request.status === statusFilter
@@ -309,6 +318,15 @@ function PublicDashboard() {
 	const filteredActive = active.filter(matchesFilters)
 	const filteredResolved = resolved.filter(matchesFilters)
 	const filteredRequests = [...filteredActive, ...filteredResolved]
+
+	// Map markers use filtered requests, but only those with valid coords
+	const filteredMapRequests = filteredRequests.filter(
+		(r) =>
+			typeof r.latitude === 'number' &&
+			isFinite(r.latitude) &&
+			typeof r.longitude === 'number' &&
+			isFinite(r.longitude)
+	)
 
 	const hasActiveFilters =
 		categoryFilter !== 'All' ||
@@ -390,6 +408,7 @@ function PublicDashboard() {
 				</div>
 			</section>
 
+			{/* Filter section from main */}
 			<section className="filter_section">
 				<div className="section_heading_row">
 					<h2>Filter Dashboard</h2>
@@ -425,8 +444,8 @@ function PublicDashboard() {
 							onChange={(e) => setWardFilter(e.target.value)}
 						>
 							{wards.map((ward) => (
-								<option key={ward.value} value={ward.value}>
-									{ward.label}
+								<option key={ward} value={ward}>
+									{ward}
 								</option>
 							))}
 						</select>
@@ -453,84 +472,90 @@ function PublicDashboard() {
 				</p>
 			</section>
 
-			<section className="map_section">
-				<div className="section_heading_row">
-					<h2>Ward Map Overview</h2>
-				</div>
-				<div className="map_container">
-					<MapContainer
-						center={[-26.2041, 28.0473]}
-						zoom={13}
-						scrollWheelZoom={true}
-						className="leaflet_map"
-					>
-						<FixMapSize />
-						<WardBoundaries />
-						<FitMapToRequests requests={filteredRequests} />
-						<TileLayer
-							attribution="&copy; OpenStreetMap contributors"
-							url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-						/>
-						{filteredRequests.map((request) => (
-							<Marker
-								key={request.id}
-								position={[request.latitude, request.longitude]}
-								icon={getStatusIcon(request.status)}
-							>
-								<Popup>
-									<div>
-										{visibleFields.category && (
-											<>
-												<strong>
-													{request.category}
-												</strong>
-												<br />
-											</>
-										)}
-										{visibleFields.status && (
-											<>
-												Status:{' '}
-												{getStatusLabel(request.status)}
-												<br />
-											</>
-										)}
-										{visibleFields.ward && (
-											<>
-												{getWardDisplayLabel(
-													getRequestWard(request)
-												)}
-												<br />
-											</>
-										)}
-										{visibleFields.municipality && (
-											<>
-												{request.municipality}
-												<br />
-											</>
-										)}
-										{visibleFields.description &&
-											request.description}
-									</div>
-								</Popup>
-							</Marker>
-						))}
-					</MapContainer>
-					<div className="map_legend">
-						<div className="legend_item">
-							<span className="legend_dot legend_open"></span>
-							<span>Open</span>
-						</div>
-						<div className="legend_item">
-							<span className="legend_dot legend_progress"></span>
-							<span>In Progress</span>
-						</div>
-						<div className="legend_item">
-							<span className="legend_dot legend_resolved"></span>
-							<span>Resolved</span>
+			{/* Map section – uses filtered markers with visibleFields, only if valid coords exist */}
+			{filteredMapRequests.length > 0 && (
+				<section className="map_section">
+					<div className="section_heading_row">
+						<h2>Ward Map Overview</h2>
+					</div>
+					<div className="map_container">
+						<MapContainer
+							center={[-26.2041, 28.0473]}
+							zoom={13}
+							scrollWheelZoom={true}
+							className="leaflet_map"
+						>
+							<FixMapSize />
+							<WardBoundaries />
+							<FitMapToRequests requests={filteredMapRequests} />
+							<TileLayer
+								attribution="&copy; OpenStreetMap contributors"
+								url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+							/>
+							{filteredMapRequests.map((request) => (
+								<Marker
+									key={request.id}
+									position={[
+										request.latitude,
+										request.longitude,
+									]}
+									icon={getStatusIcon(request.status)}
+								>
+									<Popup>
+										<div>
+											{visibleFields.category && (
+												<>
+													<strong>
+														{request.category}
+													</strong>
+													<br />
+												</>
+											)}
+											{visibleFields.status && (
+												<>
+													Status:{' '}
+													{getStatusLabel(
+														request.status
+													)}
+													<br />
+												</>
+											)}
+											{visibleFields.ward && (
+												<>
+													{getRequestWard(request)}
+													<br />
+												</>
+											)}
+											{visibleFields.municipality && (
+												<>
+													{request.municipality}
+													<br />
+												</>
+											)}
+											{visibleFields.description &&
+												request.description}
+										</div>
+									</Popup>
+								</Marker>
+							))}
+						</MapContainer>
+						<div className="map_legend">
+							<div className="legend_item">
+								<span className="legend_dot legend_open"></span>
+								<span>Open</span>
+							</div>
+							<div className="legend_item">
+								<span className="legend_dot legend_progress"></span>
+								<span>In Progress</span>
+							</div>
+							<div className="legend_item">
+								<span className="legend_dot legend_resolved"></span>
+								<span>Resolved</span>
+							</div>
 						</div>
 					</div>
-				</div>
-			</section>
+				</section>
+			)}
 
 			<section className="dashboard_section">
 				<div className="section_heading_row">
@@ -546,6 +571,7 @@ function PublicDashboard() {
 								key={request.id}
 								request={request}
 								visibleFields={visibleFields}
+								onLikeChange={refreshDashboard}
 							/>
 						))
 					) : (
@@ -570,6 +596,7 @@ function PublicDashboard() {
 								key={request.id}
 								request={request}
 								visibleFields={visibleFields}
+								onLikeChange={refreshDashboard}
 							/>
 						))
 					) : (
