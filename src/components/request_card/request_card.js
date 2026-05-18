@@ -23,7 +23,9 @@ const STATUS_LABEL_ALIASES = {
 }
 
 function format_date(ts) {
-	if (!ts) return '—'
+	if (!ts) {
+		return '—'
+	}
 	const d = ts.toDate ? ts.toDate() : new Date(ts)
 	return d.toLocaleDateString('en-ZA', {
 		day: 'numeric',
