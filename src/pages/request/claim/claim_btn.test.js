@@ -1,10 +1,24 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
+import ClaimBtn from './claim_btn.js'
+import { auth } from '../../../firebase_config.js'
 
 console.log = () => {}
 console.debug = () => {}
 console.error = () => {}
+
+// 1. Setup the mockAddMessage globally so all tests can see it
+const mockAddMessage = jest.fn()
+
+jest.mock('../../../components/message_modal/message_modal.js', () => ({
+	useMessages: () => ({
+		addMessage: mockAddMessage,
+		messages: [],
+		removeMessage: jest.fn(),
+		clearMessages: jest.fn(),
+	}),
+}))
 
 jest.mock('../../../firebase_config.js', () => ({
 	auth: {
@@ -42,9 +56,6 @@ jest.mock('react-router-dom', () => ({
 	useNavigate: () => mock_navigate,
 }))
 
-import ClaimBtn from './claim_btn.js'
-import { auth } from '../../../firebase_config.js'
-
 const mock_post_claim = jest.fn()
 
 function render_claim_btn(
@@ -72,7 +83,6 @@ function mock_fetch_fail(response = { error: 'Server error' }) {
 
 beforeEach(() => {
 	jest.clearAllMocks()
-	global.alert = jest.fn()
 	auth.currentUser = {
 		uid: 'worker-uid-1',
 		getIdToken: jest.fn().mockResolvedValue('mock-token'),
@@ -121,14 +131,12 @@ describe('Auth guard', () => {
 		auth.currentUser = null
 		render_claim_btn()
 		fireEvent.click(screen.getByTestId('yellow-btn'))
-		// stays as Claim, never goes to Loading
 		expect(screen.getByTestId('yellow-btn')).toHaveTextContent('Claim')
 	})
 })
 
 describe('Loading state', () => {
 	test('shows Loading while fetch is in flight', async () => {
-		// Never resolves — keeps component in loading state
 		global.fetch = jest.fn().mockReturnValue(new Promise(() => {}))
 		render_claim_btn()
 		fireEvent.click(screen.getByTestId('yellow-btn'))
@@ -199,8 +207,10 @@ describe('Successful claim', () => {
 		render_claim_btn()
 		fireEvent.click(screen.getByTestId('yellow-btn'))
 		await waitFor(() =>
-			expect(global.alert).toHaveBeenCalledWith(
-				'Request successfully claimed.'
+			expect(mockAddMessage).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: 'Request successfully claimed.',
+				})
 			)
 		)
 	})
@@ -231,8 +241,10 @@ describe('Failed fetch response', () => {
 		render_claim_btn()
 		fireEvent.click(screen.getByTestId('yellow-btn'))
 		await waitFor(() =>
-			expect(global.alert).toHaveBeenCalledWith(
-				'Failed to claim request. Browse console logs.'
+			expect(mockAddMessage).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: 'Failed to claim request. Browse console logs.',
+				})
 			)
 		)
 	})
@@ -252,8 +264,10 @@ describe('Failed fetch response', () => {
 		render_claim_btn()
 		fireEvent.click(screen.getByTestId('yellow-btn'))
 		await waitFor(() =>
-			expect(global.alert).not.toHaveBeenCalledWith(
-				'Request successfully claimed.'
+			expect(mockAddMessage).not.toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: 'Request successfully claimed.',
+				})
 			)
 		)
 	})
@@ -277,7 +291,7 @@ describe('Thrown errors', () => {
 		await waitFor(() =>
 			expect(screen.getByTestId('yellow-btn')).toHaveTextContent('Claim')
 		)
-		expect(global.alert).not.toHaveBeenCalled()
+		expect(mockAddMessage).not.toHaveBeenCalled()
 	})
 
 	test('does not throw when getIdToken rejects', async () => {

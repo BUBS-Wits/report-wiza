@@ -9,7 +9,8 @@ import Navbar from '../../../components/nav_bar/nav_bar.js'
 import RequestForm from '../../../components/request_form/request_form.js'
 import SubmitPromptModal from '../../../components/submit_prompt_modal/submit_prompt_modal.js'
 import './request_page.css'
-
+import MessageDisplay from '../../../components/message_modal/message_modal.js'
+import { useMessages } from '../../../components/message_modal/message_modal.js'
 function RequestPage() {
 	const navigate = useNavigate()
 
@@ -21,6 +22,7 @@ function RequestPage() {
 	const [show_modal, set_show_modal] = useState(false)
 	const [pending_req, set_pending_req] = useState(null)
 	const [homeRoute, set_homeRoute] = useState('/')
+	const { messages, addMessage, removeMessage, clearMessages } = useMessages()
 
 	// Resolve auth state ONCE on mount — never redirect, just observe
 	useEffect(() => {
@@ -87,14 +89,20 @@ function RequestPage() {
 			if (!res.ok) {
 				const error_text = await res.text()
 				try {
-					alert(JSON.parse(error_text).error)
+					addMessage({
+						text: JSON.parse(error_text).error,
+						type: 'error',
+					})
 					console.error(
 						'Server Error (JSON):',
 						JSON.parse(error_text)
 					)
 				} catch {
 					console.error('Server Error (HTML/Text):', error_text)
-					alert('Server error. Please check console for details.')
+					addMessage({
+						text: 'Server error. Please check console for details.',
+						type: 'error',
+					})
 				}
 			} else {
 				// ← navigate to the right dashboard instead of alert
