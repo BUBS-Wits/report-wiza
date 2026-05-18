@@ -6,12 +6,16 @@ import {
 	removeLike,
 } from '../../../backend/like_service.js'
 import './like_button.css'
+import MessageDisplay, {
+	useMessages,
+} from '../../message_modal/message_modal.js'
 
 const LikeButton = ({ requestId, initialLikeCount }) => {
 	const [likes, setLikes] = useState(initialLikeCount)
 	const [userLiked, setUserLiked] = useState(false)
 	const [loading, setLoading] = useState(false)
 	const currentUser = auth.currentUser
+	const { messages, addMessage, removeMessage, clearMessages } = useMessages()
 
 	useEffect(() => {
 		if (currentUser && requestId) {
@@ -43,7 +47,10 @@ const LikeButton = ({ requestId, initialLikeCount }) => {
 			}
 		} catch (error) {
 			console.error('Error updating like:', error)
-			alert('Something went wrong. Please try again.')
+			addMessage({
+				text: 'Something went wrong. Please try again.',
+				type: 'error',
+			})
 		}
 		setLoading(false)
 	}
