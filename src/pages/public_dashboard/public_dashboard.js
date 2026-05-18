@@ -142,17 +142,18 @@ function FitMapToRequests({ requests }) {
 }
 
 function getStatusIcon(status) {
-	switch ((status || '').toLowerCase()) {
-		case 'submitted':
-		case 'unassigned':
+	switch (status) {
+		case 'SUBMITTED':
+		case 'UNASSIGNED':
 		case 'open':
 			return openIcon
-		case 'assigned':
+		case 'ASSIGNED':
+		case 'IN_PROGRESS':
 		case 'acknowledged':
 		case 'in_progress':
 			return inProgressIcon
+		case 'RESOLVED':
 		case 'resolved':
-		case 'closed':
 			return resolvedIcon
 		default:
 			return inProgressIcon
@@ -160,19 +161,22 @@ function getStatusIcon(status) {
 }
 
 function getStatusLabel(status) {
-	switch ((status || '').toLowerCase()) {
-		case 'submitted':
+	switch (status) {
+		case 'SUBMITTED':
 		case 'open':
 			return 'Submitted'
-		case 'unassigned':
+		case 'UNASSIGNED':
 			return 'Unassigned'
-		case 'assigned':
+		case 'ASSIGNED':
 		case 'acknowledged':
 			return 'Assigned'
+		case 'IN_PROGRESS':
 		case 'in_progress':
 			return 'In Progress'
+		case 'RESOLVED':
 		case 'resolved':
 			return 'Resolved'
+		case 'CLOSED':
 		case 'closed':
 			return 'Closed'
 		default:
@@ -181,9 +185,9 @@ function getStatusLabel(status) {
 }
 
 function getRequestWard(request) {
-	const ward = request.sa_ward ?? request.ward
-	return ward !== null ? String(ward) : null
+	return request.sa_ward ?? request.ward
 }
+
 function PublicDashboard() {
 	const [active, setActive] = useState([])
 	const [resolved, setResolved] = useState([])

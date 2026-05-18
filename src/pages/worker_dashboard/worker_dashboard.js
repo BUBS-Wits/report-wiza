@@ -728,8 +728,7 @@ function RequestDetailPanel({
 						</dd>
 					</div>
 				)}
-				{(req.status === STATUS.CLOSED ||
-					req.status === STATUS.RESOLVED) &&
+				{req.status === STATUS.CLOSED &&
 					req.rating &&
 					typeof req.rating === 'number' &&
 					req.comment && (
