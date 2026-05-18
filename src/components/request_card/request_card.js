@@ -35,8 +35,7 @@ function RequestCard({ request, onLikeChange = () => {}, visibleFields }) {
 
 	// Case‑insensitive status for reliable comparisons
 	const rawStatus = (request.status || '').toLowerCase().trim()
-	const isResolved =
-		rawStatus === STATUS.RESOLVED || rawStatus === STATUS.CLOSED
+	const isResolved = rawStatus === 'resolved' || rawStatus === 'closed'
 
 	const showLikeButton = fields.likes && !isResolved
 	const showPriority = !isResolved
@@ -78,7 +77,7 @@ function RequestCard({ request, onLikeChange = () => {}, visibleFields }) {
 					{fields.ward &&
 						(request.sa_ward ? `Ward ${request.sa_ward}` : '—')}
 					{fields.ward && fields.municipality && ' · '}
-					{fields.municipality && (request.sa_m_name || '—')}
+					{fields.municipality && (request.municipality || request.sa_m_name || '—')}
 				</p>
 			)}
 

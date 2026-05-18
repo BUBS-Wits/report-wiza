@@ -23,28 +23,28 @@ const RESOLVED_LIMIT = 20
  * expected by the public dashboard and RequestCard component.
  */
 const normalise_request = (id, data) => {
-	const coords = parseLocation(data.location)
+    const coords = parseLocation(data.location)
 
-	return {
-		id,
-		category: data.category ?? 'Unknown',
-		// Normalise status to lowercase so all comparisons work
-		status: (data.status ?? 'unassigned').toLowerCase(),
-		ward: `Ward ${data.sa_ward ?? 'Unknown'}`,
-		sa_ward: data.sa_ward,
-		municipality: data.sa_m_name ?? 'Unknown Municipality',
-		sa_m_code: data.sa_m_code ?? '',
-		sa_province: data.sa_province ?? '',
-		description: data.description ?? '',
-		image: data.image ?? null,
-		like_count: data.like_count ?? 0,
-		priority: data.priority ?? null,
-		user_uid: data.user_uid ?? null,
-		created_at: data.created_at ?? null,
-		updated_at: data.updated_at ?? null,
-		latitude: coords ? coords.latitude : null,
-		longitude: coords ? coords.longitude : null,
-	}
+    return {
+        id,
+        category:     data.category ?? 'Unknown',
+        status:       (data.status ?? 'unassigned').toLowerCase(),
+        ward:         `Ward ${data.sa_ward ?? 'Unknown'}`,
+        sa_ward:      data.sa_ward != null ? String(data.sa_ward) : null,  // ← always a string
+        municipality: data.sa_m_name ?? 'Unknown Municipality',
+        sa_m_name:    data.sa_m_name ?? 'Unknown Municipality',            // ← keep both keys
+        sa_m_code:    data.sa_m_code ?? '',
+        sa_province:  data.sa_province ?? '',
+        description:  data.description ?? '',
+        image:        data.image ?? null,
+        like_count:   data.like_count ?? 0,
+        priority:     data.priority ?? null,
+        user_uid:     data.user_uid ?? null,
+        created_at:   data.created_at ?? null,
+        updated_at:   data.updated_at ?? null,
+        latitude:     coords ? coords.latitude : null,
+        longitude:    coords ? coords.longitude : null,
+    }
 }
 
 /**
@@ -65,15 +65,14 @@ export const fetchPublicDashboardData = async () => {
 
 		wards_seen.add(String(normalised.sa_ward))
 
-		// Only 'resolved' goes to the resolved list
-		if (normalised.status === 'resolved') {
+		if (normalised.status === 'resolved' || normalised.status === 'closed') {
 			if (resolved.length < RESOLVED_LIMIT) {
 				resolved.push(normalised)
 			}
 		} else if (ACTIVE_STATUSES.has(normalised.status)) {
 			active.push(normalised)
 		} else {
-			// Any other status (e.g. 'escalated', 'blocked') still shows as active
+			// Unknown status — treat as active
 			active.push(normalised)
 		}
 	})

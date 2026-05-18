@@ -185,9 +185,9 @@ function getStatusLabel(status) {
 }
 
 function getRequestWard(request) {
-	return request.sa_ward ?? request.ward
+    const ward = request.sa_ward ?? request.ward
+    return ward != null ? String(ward) : null
 }
-
 function PublicDashboard() {
 	const [active, setActive] = useState([])
 	const [resolved, setResolved] = useState([])
