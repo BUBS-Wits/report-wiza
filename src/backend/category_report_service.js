@@ -1,10 +1,27 @@
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
-import { REQUEST_CATEGORIES, STATUS } from '../constants.js'
 
 export const verify_admin = async (uid) => {
 	const user_doc = await getDoc(doc(db, 'users', uid))
 	return user_doc.exists() && user_doc.data().role === 'admin'
+}
+
+/**
+ * Safely converts any timestamp representation to milliseconds.
+ * Handles: Firestore Timestamp, ISO/RFC string, JS Date, raw number.
+ */
+const ts_to_ms = (ts) => {
+	if (!ts) {
+		return NaN
+	}
+	if (typeof ts.toMillis === 'function') {
+		return ts.toMillis()
+	} // Firestore Timestamp
+	if (ts instanceof Date) {
+		return ts.getTime()
+	}
+	const parsed = new Date(ts).getTime() // string or number
+	return parsed
 }
 
 const compute_avg_hours = (resolved_requests) => {
@@ -12,33 +29,50 @@ const compute_avg_hours = (resolved_requests) => {
 		return null
 	}
 
+	let valid_count = 0
 	const total_ms = resolved_requests.reduce((sum, r) => {
-		const created = r.created_at?.toMillis?.() ?? 0
-		const updated = r.updated_at?.toMillis?.() ?? 0
-		return sum + Math.max(0, updated - created)
+		const created_ms = ts_to_ms(r.created_at)
+		// Prefer resolved_at; fall back to updated_at
+		const resolved_ms = ts_to_ms(r.resolved_at ?? r.updated_at)
+
+		if (isNaN(created_ms) || isNaN(resolved_ms)) {
+			return sum
+		}
+
+		const diff = resolved_ms - created_ms
+		if (diff <= 0) {
+			return sum
+		} // guard against bad data
+
+		valid_count++
+		return sum + diff
 	}, 0)
 
-	return total_ms / resolved_requests.length / (1000 * 60 * 60)
+	if (valid_count === 0) {
+		return null
+	}
+	return total_ms / valid_count / (1000 * 60 * 60)
 }
 
-export const build_category_stats = (all_requests) => {
-	const STATUS = Object.freeze({
-		SUBMITTED: 'open',
-		ASSIGNED: 'acknowledged',
-		IN_PROGRESS: 'in_progress',
-		RESOLVED: 'resolved',
-		CLOSED: 'closed',
-	})
-	return REQUEST_CATEGORIES.map((category) => {
-		const cat_requests = all_requests.filter((r) => r.category === category)
+export const build_category_stats = (all_requests, active_categories) => {
+	return active_categories.map((category) => {
+		const cat_lower = category.toLowerCase()
+		const cat_requests = all_requests.filter(
+			(r) => (r.category || '').toLowerCase() === cat_lower
+		)
 
-		const pending = cat_requests.filter((r) => STATUS.ASSIGNED === r.status)
+		// Normalise status to uppercase before comparing
+		const pending = cat_requests.filter((r) => {
+			const s = (r.status || '').toUpperCase()
+			return s === 'SUBMITTED' || s === 'ACKNOWLEDGED'
+		})
 		const in_progress = cat_requests.filter(
-			(r) => STATUS.IN_PROGRESS === r.status
+			(r) => (r.status || '').toUpperCase() === 'IN_PROGRESS'
 		)
-		const resolved = cat_requests.filter(
-			(r) => STATUS.RESOLVED === r.status
-		)
+		const resolved = cat_requests.filter((r) => {
+			const s = (r.status || '').toUpperCase()
+			return s === 'RESOLVED' || s === 'CLOSED'
+		})
 
 		return {
 			category,
@@ -52,11 +86,32 @@ export const build_category_stats = (all_requests) => {
 }
 
 export const fetch_report_data = async () => {
-	const snapshot = await getDocs(collection(db, 'service_requests'))
-	const all_requests = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+	const req_snapshot = await getDocs(collection(db, 'service_requests'))
+	const all_requests = req_snapshot.docs.map((d) => ({
+		id: d.id,
+		...d.data(),
+	}))
+
+	const cat_snapshot = await getDocs(collection(db, 'categories'))
+	const db_categories = cat_snapshot.docs.map((d) => d.data().name || d.id)
+
+	const existing_categories = Array.from(
+		new Set(all_requests.map((r) => r.category).filter(Boolean))
+	)
+
+	// Deduplicate case-insensitively, preferring DB-defined names
+	const seen = new Set()
+	const final_categories = []
+	for (const cat of [...db_categories, ...existing_categories]) {
+		const key = cat.toLowerCase()
+		if (!seen.has(key)) {
+			seen.add(key)
+			final_categories.push(cat)
+		}
+	}
 
 	return {
-		stats: build_category_stats(all_requests),
+		stats: build_category_stats(all_requests, final_categories),
 		total_requests: all_requests.length,
 	}
 }
@@ -84,7 +139,7 @@ export const compute_summary = (stats) => {
 }
 
 export const format_resolution_time = (hours) => {
-	if (hours === null) {
+	if (hours === null || hours === undefined) {
 		return null
 	}
 	if (hours < 1) {
@@ -97,7 +152,7 @@ export const format_resolution_time = (hours) => {
 }
 
 export const get_resolution_class = (hours) => {
-	if (hours === null) {
+	if (hours === null || hours === undefined) {
 		return ''
 	}
 	if (hours <= 24) {

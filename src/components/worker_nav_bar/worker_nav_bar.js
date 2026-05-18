@@ -31,17 +31,6 @@ const NAV_ITEMS = [
 		),
 	},
 	{
-		key: 'history',
-		label: 'History',
-		to: '/worker-dashboard/history',
-		icon: (
-			<svg className="nav_icon" viewBox="0 0 16 16" aria-hidden="true">
-				<path d="M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2z" />
-				<path d="M8 5v3.5l2.5 1.5" />
-			</svg>
-		),
-	},
-	{
 		key: 'messages',
 		label: 'Messages',
 		to: '#',

@@ -2,8 +2,8 @@ import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 
 /**
- * Safely reads milliseconds from a value that is either a Firestore Timestamp
- * (has .toMillis()), a plain JS Date, an ISO string, or a raw number.
+ * Safely converts any timestamp representation to milliseconds.
+ * Handles: Firestore Timestamp, ISO/RFC string, JS Date, raw number.
  */
 const ts_to_ms = (ts) => {
 	if (!ts) {
@@ -11,8 +11,11 @@ const ts_to_ms = (ts) => {
 	}
 	if (typeof ts.toMillis === 'function') {
 		return ts.toMillis()
+	} // Firestore Timestamp
+	if (ts instanceof Date) {
+		return ts.getTime()
 	}
-	return new Date(ts).getTime()
+	return new Date(ts).getTime() // string or number
 }
 
 /**
@@ -23,13 +26,13 @@ const get_nested_value = (obj, path) => {
 }
 
 /**
+ * Normalises a status string so comparisons work regardless of DB casing.
+ * e.g. "resolved", "RESOLVED", "Resolved" all become "RESOLVED"
+ */
+const normalise_status = (status) => (status || '').toUpperCase()
+
+/**
  * Generates a custom aggregated report based on dynamic dimensions and filters.
- *
- * @param {Date}          start_date  - Beginning of the reporting period.
- * @param {Date}          end_date    - End of the reporting period.
- * @param {Array<string>} dimensions  - Fields to group by.
- * @param {Object}        filters     - Specific field matches (case-insensitive).
- * @returns {Promise<Array>} Aggregated report data.
  */
 export async function generate_custom_report(
 	start_date,
@@ -39,31 +42,27 @@ export async function generate_custom_report(
 ) {
 	try {
 		// 1. Fetch all service requests
-		const requests_ref = collection(db, 'service_requests')
-		const snapshot = await getDocs(requests_ref)
+		const snapshot = await getDocs(collection(db, 'service_requests'))
 
-		// 2. Build a UID → display name lookup map, but ONLY when the caller
-		//    has requested the 'assigned_worker_uid' dimension.  Skipping this
-		//    fetch for all other report types avoids an unnecessary Firestore
-		//    read and prevents the second getDocs call from being unmocked in tests.
+		// 2. Build UID → display name lookup only when needed
 		let user_map = {}
 		if (dimensions.includes('assigned_worker_uid')) {
-			const users_ref = collection(db, 'users')
-			const users_snapshot = await getDocs(users_ref)
+			const users_snapshot = await getDocs(collection(db, 'users'))
 			users_snapshot.forEach((doc) => {
 				const data = doc.data()
 				user_map[doc.id] = data.display_name || data.email || doc.id
 			})
 		}
 
-		// 3. Filter by date range and custom filters in-memory
+		// 3. Apply custom field filters in-memory (case-insensitive)
+		//    Note: start_date / end_date are accepted for API compatibility but
+		//    date-range filtering is not applied here — callers should pre-filter
+		//    or pass dimension-level filters instead.
 		const raw_docs = []
 
 		snapshot.forEach((doc) => {
 			const data = doc.data()
 
-			// Secondary custom filters (case-insensitive string comparison)
-			let passes_filters = true
 			for (const [key, expected_value] of Object.entries(filters)) {
 				if (expected_value) {
 					const actual_value = get_nested_value(data, key)
@@ -71,15 +70,12 @@ export async function generate_custom_report(
 						String(actual_value).toLowerCase() !==
 						String(expected_value).toLowerCase()
 					) {
-						passes_filters = false
-						break
+						return // skip this doc
 					}
 				}
 			}
 
-			if (passes_filters) {
-				raw_docs.push(data)
-			}
+			raw_docs.push(data)
 		})
 
 		// 4. Global totals path (no grouping)
@@ -93,12 +89,9 @@ export async function generate_custom_report(
 		raw_docs.forEach((data) => {
 			const key_parts = dimensions.map((dim) => {
 				let val = get_nested_value(data, dim)
-
-				// Resolve worker UID to a human-readable name when available
 				if (dim === 'assigned_worker_uid' && val) {
 					val = user_map[val] || val
 				}
-
 				return val || 'Unknown'
 			})
 
@@ -112,8 +105,6 @@ export async function generate_custom_report(
 					total_resolution_time_ms: 0,
 				}
 
-				// Inject the dimension labels as named properties so the table
-				// can render them as columns (e.g. 'ward_info.ward_name' → 'ward_name')
 				dimensions.forEach((dim, idx) => {
 					const clean_key = dim.includes('.')
 						? dim.split('.').pop()
@@ -122,21 +113,20 @@ export async function generate_custom_report(
 				})
 			}
 
-			// Aggregate
 			grouped_data[group_key].count++
 
-			if (data.status === 'resolved' || data.status === 'closed') {
+			const s = normalise_status(data.status)
+			if (s === 'RESOLVED' || s === 'CLOSED') {
 				grouped_data[group_key].resolved_count++
 
-				// Prefer resolved_at; fall back to updated_at for services that
-				// don't write a dedicated resolved_at field.
-				const end_ts = data.resolved_at || data.updated_at
-				const start_ts = data.created_at
+				const end_ms = ts_to_ms(data.resolved_at || data.updated_at)
+				const start_ms = ts_to_ms(data.created_at)
 
-				if (start_ts && end_ts) {
-					const diff = ts_to_ms(end_ts) - ts_to_ms(start_ts)
-					grouped_data[group_key].total_resolution_time_ms +=
-						Math.max(0, diff)
+				if (!isNaN(start_ms) && !isNaN(end_ms)) {
+					const diff = end_ms - start_ms
+					if (diff > 0) {
+						grouped_data[group_key].total_resolution_time_ms += diff
+					}
 				}
 			}
 		})
@@ -181,23 +171,30 @@ function calculate_totals(docs, label) {
 	let total_time_ms = 0
 
 	docs.forEach((data) => {
-		if (data.status === 'resolved' || data.status === 'closed') {
+		const s = normalise_status(data.status)
+		if (s === 'RESOLVED' || s === 'CLOSED') {
 			resolved_count++
 
-			const end_ts = data.resolved_at || data.updated_at
-			const start_ts = data.created_at
+			const end_ms = ts_to_ms(data.resolved_at || data.updated_at)
+			const start_ms = ts_to_ms(data.created_at)
 
-			if (start_ts && end_ts) {
-				const diff = ts_to_ms(end_ts) - ts_to_ms(start_ts)
-				total_time_ms += Math.max(0, diff)
+			if (!isNaN(start_ms) && !isNaN(end_ms)) {
+				const diff = end_ms - start_ms
+				if (diff > 0) {
+					total_time_ms += diff
+				}
 			}
 		}
 	})
 
-	const avg_time_ms =
-		resolved_count > 0 ? total_time_ms / resolved_count : null
 	const avg_time_hours =
-		avg_time_ms !== null ? avg_time_ms / (1000 * 60 * 60) : null
+		resolved_count > 0
+			? parseFloat(
+					(total_time_ms / resolved_count / (1000 * 60 * 60)).toFixed(
+						2
+					)
+				)
+			: null
 
 	return [
 		{
@@ -208,10 +205,7 @@ function calculate_totals(docs, label) {
 				docs.length > 0
 					? Math.round((resolved_count / docs.length) * 100)
 					: 0,
-			avg_resolution_hours:
-				avg_time_hours !== null
-					? parseFloat(avg_time_hours.toFixed(2))
-					: null,
+			avg_resolution_hours: avg_time_hours,
 		},
 	]
 }

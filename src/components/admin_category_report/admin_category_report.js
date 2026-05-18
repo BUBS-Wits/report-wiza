@@ -10,11 +10,14 @@ import {
 	get_resolution_class,
 } from '../../backend/category_report_service.js'
 
-// Import the layout components
 import Sidebar from '../admin_sidebar/admin_sidebar.js'
 import TopBar from '../top_bar/top_bar.js'
 
 import './admin_category_report.css'
+
+// Converts "Waste Management" → "waste_management" for CSS pill class lookup
+const to_css_key = (cat) =>
+	(cat || 'default').toLowerCase().replace(/\s+/g, '_')
 
 function CategoryReport() {
 	const navigate = useNavigate()
@@ -23,7 +26,6 @@ function CategoryReport() {
 	const [total_requests, set_total_requests] = useState(0)
 	const [loading, set_loading] = useState(true)
 	const [error, set_error] = useState(null)
-	const [generated_at] = useState(new Date())
 
 	useEffect(() => {
 		const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -37,12 +39,15 @@ function CategoryReport() {
 					navigate('/login')
 					return
 				}
-				const { stats, total_requests: total } =
+				const { stats = [], total_requests: total = 0 } =
 					await fetch_report_data()
-				set_report_data(stats)
+
+				const safe_stats = Array.isArray(stats) ? stats : []
+				set_report_data(safe_stats)
 				set_total_requests(total)
-				set_summary(compute_summary(stats))
+				set_summary(compute_summary(safe_stats))
 			} catch (err) {
+				console.error('Error fetching report data:', err)
 				set_error('Failed to load report data. Please try again.')
 			} finally {
 				set_loading(false)
@@ -51,9 +56,9 @@ function CategoryReport() {
 		return () => unsubscribe()
 	}, [navigate])
 
-	const max_total = Math.max(...report_data.map((r) => r.total ?? 0), 1)
+	// Safe fallback of 1 to avoid division-by-zero in bar width calculations
+	const max_total = Math.max(...report_data.map((r) => r?.total || 0), 1)
 
-	// Helper function to render the correct view based on state
 	const render_content = () => {
 		/* ── Loading state ── */
 		if (loading) {
@@ -80,7 +85,7 @@ function CategoryReport() {
 			)
 		}
 
-		/* ── Main Data View ── */
+		/* ── Main data view ── */
 		return (
 			<div className="report_page">
 				<main className="report_main">
@@ -97,14 +102,14 @@ function CategoryReport() {
 
 						<div className="summary_card summary_card_blue">
 							<span className="summary_value">
-								{summary?.total_pending ?? 0}
+								{summary?.total_pending || 0}
 							</span>
 							<span className="summary_label">Pending</span>
 						</div>
 
 						<div className="summary_card summary_card_green">
 							<span className="summary_value">
-								{summary?.total_resolved ?? 0}
+								{summary?.total_resolved || 0}
 							</span>
 							<span className="summary_label">Resolved</span>
 						</div>
@@ -141,51 +146,75 @@ function CategoryReport() {
 							Request Volume by Category
 						</h2>
 						<div className="bar_chart">
-							{report_data.map((row) => (
-								<div key={row.category} className="bar_row">
-									<span className="bar_label">
-										{row.category}
-									</span>
-									<div className="bar_track">
-										<div
-											className="bar_fill bar_fill_open"
-											style={{
-												width: `${((row.pending ?? 0) / max_total) * 100}%`,
-											}}
-											title={`Pending: ${row.pending ?? 0}`}
-										/>
-										<div
-											className="bar_fill bar_fill_in_progress"
-											style={{
-												width: `${((row.in_progress ?? 0) / max_total) * 100}%`,
-											}}
-											title={`In Progress: ${row.in_progress ?? 0}`}
-										/>
-										<div
-											className="bar_fill bar_fill_resolved"
-											style={{
-												width: `${((row.resolved ?? 0) / max_total) * 100}%`,
-											}}
-											title={`Resolved: ${row.resolved ?? 0}`}
-										/>
+							{report_data.map((row, idx) => {
+								const pending = row?.pending || 0
+								const in_progress = row?.in_progress || 0
+								const resolved = row?.resolved || 0
+								const total = row?.total || 0
+
+								// Each segment width is relative to the single largest category total
+								const pending_pct = (pending / max_total) * 100
+								const in_progress_pct =
+									(in_progress / max_total) * 100
+								const resolved_pct =
+									(resolved / max_total) * 100
+
+								return (
+									<div
+										key={row?.category || idx}
+										className="bar_row"
+									>
+										<span className="bar_label">
+											{row?.category || 'Unknown'}
+										</span>
+										<div className="bar_track">
+											{pending_pct > 0 && (
+												<div
+													className="bar_fill bar_fill_open"
+													style={{
+														width: `${pending_pct}%`,
+													}}
+													title={`Pending: ${pending}`}
+												/>
+											)}
+											{in_progress_pct > 0 && (
+												<div
+													className="bar_fill bar_fill_in_progress"
+													style={{
+														width: `${in_progress_pct}%`,
+													}}
+													title={`In Progress: ${in_progress}`}
+												/>
+											)}
+											{resolved_pct > 0 && (
+												<div
+													className="bar_fill bar_fill_resolved"
+													style={{
+														width: `${resolved_pct}%`,
+													}}
+													title={`Resolved: ${resolved}`}
+												/>
+											)}
+										</div>
+										<span className="bar_total">
+											{total}
+										</span>
 									</div>
-									<span className="bar_total">
-										{row.total}
-									</span>
-								</div>
-							))}
+								)
+							})}
+
 							<div className="bar_legend">
-								<span className="legend_dot legend_dot_open" />{' '}
+								<span className="legend_dot legend_dot_open" />
 								Pending
-								<span className="legend_dot legend_dot_in_progress" />{' '}
+								<span className="legend_dot legend_dot_in_progress" />
 								In Progress
-								<span className="legend_dot legend_dot_resolved" />{' '}
+								<span className="legend_dot legend_dot_resolved" />
 								Resolved
 							</div>
 						</div>
 					</section>
 
-					{/* ── Data table ── */}
+					{/* ── Detailed breakdown table ── */}
 					<section className="report_section">
 						<h2 className="section_heading">Detailed Breakdown</h2>
 						<div className="table_wrapper">
@@ -202,42 +231,48 @@ function CategoryReport() {
 									</tr>
 								</thead>
 								<tbody>
-									{report_data.map((row) => {
+									{report_data.map((row, idx) => {
+										const pending = row?.pending || 0
+										const in_progress =
+											row?.in_progress || 0
+										const resolved = row?.resolved || 0
+										const total = row?.total || 0
+
 										const resolution_rate =
-											row.total > 0
+											total > 0
 												? Math.round(
-														(row.resolved /
-															row.total) *
-															100
+														(resolved / total) * 100
 													)
 												: 0
+
 										return (
 											<tr
-												key={row.category}
+												key={row?.category || idx}
 												className={
-													row.pending > 5
+													pending > 5
 														? 'row_warn'
 														: ''
 												}
 											>
 												<td>
 													<span
-														className={`category_pill category_${row.category}`}
+														className={`category_pill category_${to_css_key(row?.category)}`}
 													>
-														{row.category}
+														{row?.category ||
+															'Unknown'}
 													</span>
 												</td>
 												<td className="td_num">
-													{row.total}
+													{total}
 												</td>
 												<td className="td_num td_open">
-													{row.pending}
+													{pending}
 												</td>
 												<td className="td_num td_in_progress">
-													{row.in_progress}
+													{in_progress}
 												</td>
 												<td className="td_num td_resolved">
-													{row.resolved}
+													{resolved}
 												</td>
 												<td>
 													<div className="rate_bar_wrapper">
@@ -255,7 +290,9 @@ function CategoryReport() {
 													</div>
 												</td>
 												<td>
-													{row.avg_hours !== null ? (
+													{row?.avg_hours !== null &&
+													row?.avg_hours !==
+														undefined ? (
 														<span
 															className={`resolution_chip ${get_resolution_class(row.avg_hours)}`}
 														>
@@ -286,7 +323,6 @@ function CategoryReport() {
 		)
 	}
 
-	// Wrap the rendered content in the global Admin layout
 	return (
 		<div className="admin_page">
 			<Sidebar />

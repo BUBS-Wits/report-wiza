@@ -86,14 +86,6 @@ function App() {
 					}
 				/>
 				<Route
-					path="/admin/residents"
-					element={
-						<ProtectedRoute allowed_roles={['admin']}>
-							<AdminDashboard section="residents" />
-						</ProtectedRoute>
-					}
-				/>
-				<Route
 					path="/admin/messaging"
 					element={
 						<ProtectedRoute allowed_roles={['admin']}>

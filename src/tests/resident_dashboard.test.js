@@ -489,7 +489,7 @@ describe('ResidentDashboard Component', () => {
 					}),
 				})
 			)
-			expect(window.alert).toHaveBeenCalled()
+			expect(mockAddMessage).toHaveBeenCalled()
 		})
 	})
 
@@ -628,7 +628,7 @@ describe('ResidentDashboard Component', () => {
 		fireEvent.click(screen.getByText('Submit Mock Review'))
 
 		await waitFor(() => {
-			expect(window.alert).toHaveBeenCalled()
+			expect(mockAddMessage).toHaveBeenCalled()
 		})
 	})
 
