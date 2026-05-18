@@ -13,6 +13,13 @@ import { auth } from '../firebase_config'
 
 /* ── Mocks ───────────────────────────────────────────────────────────────── */
 
+console.log = () => {}
+console.debug = () => {}
+console.error = () => {}
+
+// 1. Hoist the addMessage mock!
+const mockAddMessage = jest.fn()
+
 jest.mock('firebase/auth', () => ({
 	onAuthStateChanged: jest.fn(),
 	signOut: jest.fn(),
@@ -72,6 +79,16 @@ jest.mock(
 		}
 )
 
+// 2. Assign the mock here
+jest.mock('../components/message_modal/message_modal.js', () => ({
+	useMessages: () => ({
+		messages: [],
+		addMessage: mockAddMessage,
+		removeMessage: jest.fn(),
+		clearMessages: jest.fn(),
+	}),
+}))
+
 // Mock the feedback form to immediately simulate a submission/cancellation
 jest.mock(
 	'../components/feedback_form/feedback_form',
@@ -97,18 +114,15 @@ jest.mock(
 describe('ResidentDashboard Component', () => {
 	let mockNavigate
 	const originalFetch = global.fetch
-	const originalAlert = window.alert
 	const originalConsoleError = console.error
 
 	beforeAll(() => {
 		global.fetch = jest.fn()
-		window.alert = jest.fn()
 		console.error = jest.fn() // Suppress expected error logs
 	})
 
 	afterAll(() => {
 		global.fetch = originalFetch
-		window.alert = originalAlert
 		console.error = originalConsoleError
 	})
 
@@ -543,8 +557,11 @@ describe('ResidentDashboard Component', () => {
 		fireEvent.click(screen.getByText('Submit Mock Review'))
 
 		await waitFor(() => {
-			expect(window.alert).toHaveBeenCalledWith(
-				'View console for details'
+			// 4. Update assertion here!
+			expect(mockAddMessage).toHaveBeenCalledWith(
+				expect.objectContaining({
+					text: expect.stringContaining('console for details'),
+				})
 			)
 		})
 	})
@@ -577,7 +594,8 @@ describe('ResidentDashboard Component', () => {
 		fireEvent.click(screen.getByText('Submit Mock Review'))
 
 		await waitFor(() => {
-			expect(window.alert).toHaveBeenCalled()
+			// 5. Update assertion here!
+			expect(mockAddMessage).toHaveBeenCalled()
 		})
 	})
 

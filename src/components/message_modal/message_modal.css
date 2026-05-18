@@ -1,0 +1,178 @@
+/* ─── MessageDisplay.css ───────────────────────────────────────────────────── */
+
+/* Overlay: fixed, centered column of messages */
+.md-overlay {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	pointer-events: none; /* let clicks pass through to the page */
+	z-index: 9999;
+	padding: 20px;
+}
+
+/* Individual message card */
+.md-message {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 16px 20px;
+	min-width: 280px;
+	max-width: min(480px, 90vw);
+	border-radius: 14px;
+	border: 1px solid transparent;
+	box-shadow:
+		0 8px 32px rgba(0, 0, 0, 0.18),
+		0 2px 8px rgba(0, 0, 0, 0.1);
+	font-family: 'Georgia', 'Times New Roman', serif;
+	font-size: 15px;
+	line-height: 1.5;
+	letter-spacing: 0.01em;
+	pointer-events: all; /* messages themselves are interactive */
+	cursor: default;
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+
+	/* Enter/exit animation */
+	opacity: 0;
+	transform: translateY(12px) scale(0.96);
+	transition:
+		opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+		transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.md-message--visible {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+}
+
+.md-message--leaving {
+	opacity: 0;
+	transform: translateY(-10px) scale(0.95);
+}
+
+/* ── Type variants ── */
+
+.md-message--info {
+	background: rgba(240, 246, 255, 0.92);
+	border-color: rgba(100, 160, 240, 0.35);
+	color: #1a3a5c;
+}
+
+.md-message--success {
+	background: rgba(236, 253, 245, 0.92);
+	border-color: rgba(52, 199, 120, 0.35);
+	color: #0d4a28;
+}
+
+.md-message--warning {
+	background: rgba(255, 251, 235, 0.92);
+	border-color: rgba(245, 180, 0, 0.4);
+	color: #5a3a00;
+}
+
+.md-message--error {
+	background: rgba(255, 241, 241, 0.92);
+	border-color: rgba(220, 60, 60, 0.35);
+	color: #5a1010;
+}
+
+/* ── Icon ── */
+
+.md-message__icon {
+	flex-shrink: 0;
+	font-size: 20px;
+	line-height: 1;
+	width: 28px;
+	text-align: center;
+}
+
+.md-message--info .md-message__icon {
+	color: #3a80e0;
+}
+.md-message--success .md-message__icon {
+	color: #25a660;
+}
+.md-message--warning .md-message__icon {
+	color: #d48a00;
+}
+.md-message--error .md-message__icon {
+	color: #d63232;
+}
+
+/* ── Message text ── */
+
+.md-message__text {
+	flex: 1;
+	word-break: break-word;
+}
+
+/* ── Close button ── */
+
+.md-message__close {
+	flex-shrink: 0;
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 20px;
+	line-height: 1;
+	padding: 2px 4px;
+	border-radius: 6px;
+	opacity: 0.45;
+	color: inherit;
+	transition:
+		opacity 0.2s,
+		background 0.2s;
+}
+
+.md-message__close:hover {
+	opacity: 1;
+	background: rgba(0, 0, 0, 0.08);
+}
+
+.md-message__close:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 2px;
+	opacity: 1;
+}
+
+/* ── Dark mode support ── */
+
+@media (prefers-color-scheme: dark) {
+	.md-message--info {
+		background: rgba(18, 35, 60, 0.92);
+		border-color: rgba(80, 140, 230, 0.35);
+		color: #aac8f0;
+	}
+	.md-message--success {
+		background: rgba(10, 40, 25, 0.92);
+		border-color: rgba(40, 180, 100, 0.35);
+		color: #7fe0aa;
+	}
+	.md-message--warning {
+		background: rgba(45, 30, 5, 0.92);
+		border-color: rgba(220, 160, 0, 0.4);
+		color: #f0c84a;
+	}
+	.md-message--error {
+		background: rgba(50, 10, 10, 0.92);
+		border-color: rgba(210, 60, 60, 0.35);
+		color: #f09090;
+	}
+
+	.md-message__close:hover {
+		background: rgba(255, 255, 255, 0.08);
+	}
+}
+
+/* ── Reduced-motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+	.md-message {
+		transition: opacity 0.15s;
+		transform: none !important;
+	}
+}

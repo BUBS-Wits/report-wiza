@@ -3,10 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { collection, setDoc, getDoc, doc } from 'firebase/firestore'
 import { auth, db, storage } from '../../../firebase_config.js'
 import YellowBtn from '../../../components/buttons/yellow_btn.js'
+import MessageDisplay from '../../../components/message_modal/message_modal.js'
+// 1. Import the hook
+import { useMessages } from '../../../components/message_modal/message_modal.js'
 
 function ClaimBtn({ request_uid, post_claim }) {
 	const [claiming, set_claiming] = useState(0)
 	const navigate = useNavigate()
+
+	// 2. Destructure addMessage from the hook
+	const { addMessage } = useMessages()
 
 	async function on_claim() {
 		if (!auth || !auth.currentUser || !auth.currentUser.uid) {
@@ -26,11 +32,17 @@ function ClaimBtn({ request_uid, post_claim }) {
 				}
 			)
 			if (!req.ok) {
-				alert('Failed to claim request. Browse console logs.')
+				addMessage({
+					text: 'Failed to claim request. Browse console logs.',
+					type: 'error',
+				})
 				console.error('Failed:\n', await req.json())
 				return
 			}
-			alert('Request successfully claimed.')
+			addMessage({
+				text: 'Request successfully claimed.',
+				type: 'success',
+			})
 			console.log(await req.json())
 			post_claim()
 		} catch (err) {

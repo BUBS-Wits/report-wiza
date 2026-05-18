@@ -1,18 +1,18 @@
-# WardWatch — Municipal Service Delivery Reporting Portal
+# Report-Wiza — Municipal Service Delivery Reporting Portal
 
-[![codecov](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graph/badge.svg)](https://codecov.io/gh/BUBS-Wits/report-wiza)
+[![codecov](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graph/badge.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
 
-**Live Application:** [WardWatch on Azure](https://report-wiza-heeba2h0cbgacjc6.italynorth-01.azurewebsites.net)
-**Course:** COMS3009A — Software Design 2026, Wits University
-**Project Brief:** Project 5
+**Live Application:** [Report-Wiza on Azure](https://report-wiza-heeba2h0cbgacjc6.italynorth-01.azurewebsites.net)  
+**Course:** COMS3009A — Software Design 2026, Wits University  
+**Project Brief:** Project 5  
 
-![Codecov Sunburst](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graphs/sunburst.svg)
+[![Codecov Sunburst](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graphs/sunburst.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
 
 ---
 
 ## 📖 Overview
 
-WardWatch is a web-based service delivery reporting portal designed to bridge the gap between South African residents and local municipalities. Residents can seamlessly submit, track, and escalate service requests (such as potholes, water issues, electricity outages, and waste management) using ward-level geolocation. The platform also provides municipal workers and administrators with the tools needed to manage, resolve, and analyze these requests in an accountable and transparent manner.
+**Report-Wiza** is a web-based service delivery reporting portal designed to bridge the gap between South African residents and local municipalities. Residents can seamlessly submit, track, and escalate service requests (such as potholes, water issues, electricity outages, and waste management) using ward-level geolocation. The platform also provides municipal workers and administrators with the tools needed to manage, resolve, and analyze these requests in an accountable and transparent manner.
 
 ---
 
@@ -75,9 +75,7 @@ The backend must act as the secure data processor; aggregation should not happen
 
 ---
 
-## 👨‍💻 Team & Story Ownership
-
-This project is developed using the Scrum methodology across 3 sprints.
+## 📋 Course & Assessment Constraints
 
 | Member       | Role            | Focus Area (User Stories)                                       |
 | :----------- | :-------------- | :-------------------------------------------------------------- |

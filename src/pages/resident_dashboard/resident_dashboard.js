@@ -13,6 +13,8 @@ import './resident_dashboard.css'
 import LikeButton from '../../components/request_card/like_button/like_button.js'
 import FeedbackForm from '../../components/feedback_form/feedback_form.js'
 import NotificationBell from '../../components/notification_bell/notification_bell.js'
+import MessageDisplay from '../../components/message_modal/message_modal.js'
+import { useMessages } from '../../components/message_modal/message_modal.js'
 
 /* ── Status config ───────────────────────────────────────────────────────── */
 
@@ -67,7 +69,7 @@ function get_initials(name = '') {
 export default function ResidentDashboard() {
 	const location = useLocation()
 	const navigate = useNavigate()
-
+	const { messages, addMessage, removeMessage, clearMessages } = useMessages()
 	const [resident, set_resident] = useState(null)
 	const [requests, set_requests] = useState([])
 	const [selected_id, set_selected_id] = useState(null)
@@ -475,6 +477,7 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
 	const [feedback_form, set_feedback_form] = useState(false)
+	const { addMessage } = useMessages() // Need to extract addMessage here as well!
 
 	const canCancel =
 		!has_worker &&
@@ -542,7 +545,10 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 				if (!res.ok) {
 					const error_text = await res.text()
 					try {
-						alert('View console for details')
+						addMessage({
+							text: 'View console for details',
+							type: 'error',
+						})
 						console.error(
 							'Server Error (JSON):',
 							JSON.parse(error_text)

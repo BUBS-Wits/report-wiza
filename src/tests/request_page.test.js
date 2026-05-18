@@ -1,7 +1,6 @@
 /* global jest */
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
-// We need 'act' from RTL to wrap state-updating function calls
 import { act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
@@ -15,9 +14,21 @@ console.log = () => {}
 console.debug = () => {}
 console.error = () => {}
 
+// 1. Hoist the addMessage mock so we can assert on it in our tests!
+const mockAddMessage = jest.fn()
+
 jest.mock('../pages/request/submit/request_page.css', () => ({}))
 jest.mock('../firebase_config.js', () => ({ auth: {} }))
 jest.mock('../constants.js', () => ({ WARD_API: 'mock-api-url' }))
+
+jest.mock('../components/message_modal/message_modal.js', () => ({
+	useMessages: () => ({
+		messages: [],
+		addMessage: mockAddMessage, // 2. Assign it here
+		removeMessage: jest.fn(),
+		clearMessages: jest.fn(),
+	}),
+}))
 
 // Mock Auth
 jest.mock('firebase/auth', () => ({
@@ -151,7 +162,6 @@ describe('RequestPage Component', () => {
 			.spyOn(console, 'error')
 			.mockImplementation(() => {})
 
-		// FIX: Wrap the manual submit call in act() because it triggers state updates (set_submitting)
 		await act(async () => {
 			await capturedOnSubmit(mockRequest)
 		})
@@ -173,7 +183,6 @@ describe('RequestPage Component', () => {
 
 		render(<RequestPage />)
 
-		// FIX: Wrap the manual submit call in act() because it triggers state updates (set_show_modal)
 		await act(async () => {
 			await capturedOnSubmit(mockRequest)
 		})
@@ -191,7 +200,6 @@ describe('RequestPage Component', () => {
 
 		render(<RequestPage />)
 
-		// FIX: Wrap the manual submit call in act()
 		await act(async () => {
 			await capturedOnSubmit(mockRequest)
 		})
@@ -215,8 +223,8 @@ describe('RequestPage Component', () => {
 			})
 		)
 
-		// Verify success navigation
-		// expect(mockNavigate).toHaveBeenCalledWith('/')
+		// Example of how you can now test the success modal!
+		// expect(mockAddMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'success' }))
 	})
 
 	test('submits directly with auth token when logged-in user submits', async () => {
@@ -232,7 +240,6 @@ describe('RequestPage Component', () => {
 
 		render(<RequestPage />)
 
-		// FIX: Wrap the manual submit call in act()
 		await act(async () => {
 			await capturedOnSubmit(mockRequest)
 		})
