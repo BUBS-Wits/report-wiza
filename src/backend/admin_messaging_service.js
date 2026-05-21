@@ -11,10 +11,6 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase_config.js'
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   In-memory caches — avoids redundant Firestore reads within a session.
-   These are intentionally module-level so they survive re-renders.
-───────────────────────────────────────────────────────────────────────────── */
 const request_cache = new Map()
 const user_cache = new Map()
 
@@ -41,11 +37,6 @@ async function fetch_user(uid) {
 	return data
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Normalise sent_at → JS Date.
-   Messages are stored as UTC strings (e.g. "Mon, 12 May 2025 10:30:00 GMT"),
-   but older docs may have Firestore Timestamps — handle both defensively.
-───────────────────────────────────────────────────────────────────────────── */
 function to_date(sent_at) {
 	if (!sent_at) {
 		return null
@@ -57,31 +48,61 @@ function to_date(sent_at) {
 	return isNaN(d.getTime()) ? null : d
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   subscribe_to_admin_threads
-   ─────────────────────────────────────────────────────────────────────────────
-   Subscribes to ALL messages, groups them by request_uid, then enriches each
-   thread with data from service_requests and users.
+// ── NEW ──────────────────────────────────────────────────────────────────────
+// subscribe_to_request_lock
+// ─────────────────────────────────────────────────────────────────────────────
+// Real-time listener on a single service_request doc. Use this in every chat
+// UI (admin, worker, resident) to reactively disable the input the moment
+// messaging_enabled flips, without a page reload.
+//
+// Calls on_update with:
+// {
+//   messaging_enabled    {boolean}
+//   messaging_lock_reason {string|null}
+//   messaging_locked_by  {string|null}  — uid of the admin who locked it
+// }
+//
+// Also keeps request_cache in sync so subscribe_to_admin_threads doesn't
+// serve a stale messaging_enabled after a toggle.
+//
+// @param {string}   request_uid
+// @param {function} on_update
+// @param {function} on_error
+// @returns {function} unsubscribe
+// ─────────────────────────────────────────────────────────────────────────────
+export function subscribe_to_request_lock(request_uid, on_update, on_error) {
+	const ref = doc(db, 'service_requests', request_uid)
 
-   Each thread object in the on_update callback has shape:
-   {
-     id              {string}   — the request_uid (used as React key)
-     request_uid     {string}
-     request_id      {string}   — display ID from the request doc
-     category        {string}
-     status          {string}
-     messaging_enabled {boolean}
-     worker          { uid, name }
-     resident        { uid, name }
-     last_message    { text, sent_at: Date, sender_uid }
-     unread_count    {number}
-     message_count   {number}
-   }
+	const unsub = onSnapshot(
+		ref,
+		(snap) => {
+			if (!snap.exists()) {
+				return
+			}
 
-   @param {function} on_update  — called with thread[] on every change
-   @param {function} on_error   — called with Error on failure
-   @returns {function}          — unsubscribe (call on unmount)
-───────────────────────────────────────────────────────────────────────────── */
+			const data = snap.data()
+
+			// Keep cache fresh so thread list picks up the new value too
+			request_cache.set(request_uid, { id: snap.id, ...data })
+
+			on_update({
+				messaging_enabled: data.messaging_enabled !== false,
+				messaging_lock_reason: data.messaging_lock_reason ?? null,
+				messaging_locked_by: data.messaging_locked_by ?? null,
+			})
+		},
+		(err) => {
+			console.error('[admin_messaging_service] lock snapshot error:', err)
+			if (on_error) {
+				on_error(err)
+			}
+		}
+	)
+
+	return unsub
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function subscribe_to_admin_threads(on_update, on_error) {
 	const q = query(collection(db, 'messages'), orderBy('sent_at', 'asc'))
 
@@ -94,7 +115,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 					...d.data(),
 				}))
 
-				// ── Group by request_uid (tolerate both field names) ──────
 				const threads_map = new Map()
 				for (const msg of all_messages) {
 					const rid = msg.request_uid || msg.request_id
@@ -107,7 +127,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 					threads_map.get(rid).push(msg)
 				}
 
-				// ── Collect all UIDs we'll need to look up ────────────────
 				const all_uids = new Set()
 				const thread_entries = []
 
@@ -118,7 +137,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 							(to_date(b.sent_at)?.getTime() ?? 0)
 					)
 					const last = sorted[sorted.length - 1]
-
 					sorted.forEach((m) => {
 						if (m.sender_uid) {
 							all_uids.add(m.sender_uid)
@@ -127,17 +145,30 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 							all_uids.add(m.receiver_uid)
 						}
 					})
-
 					thread_entries.push({ rid, sorted, last })
 				}
 
-				// ── Parallel fetch: all service_requests + all users ──────
+				// ── FIX: bust each request's cache entry before re-fetching ──
+				// A messages snapshot won't re-fire when messaging_enabled changes
+				// on service_requests, so without this the thread list would show
+				// a stale lock state until the next message is sent.
+				// subscribe_to_request_lock already updates the cache on its own
+				// snapshot, but we defensively clear here too so any entry that
+				// wasn't covered by an active lock subscription gets a fresh read.
+				thread_entries.forEach(({ rid }) => {
+					// Only bust if the cache entry was NOT just updated by
+					// subscribe_to_request_lock (i.e. it predates the toggle).
+					// We identify staleness by the absence of messaging_updated_at
+					// matching what Firestore just wrote — simplest heuristic:
+					// always bust and let fetch_request re-populate.
+					request_cache.delete(rid)
+				})
+
 				await Promise.all([
 					...thread_entries.map(({ rid }) => fetch_request(rid)),
 					...[...all_uids].map((uid) => fetch_user(uid)),
 				])
 
-				// ── Build enriched thread objects ─────────────────────────
 				const threads = []
 
 				for (const { rid, sorted, last } of thread_entries) {
@@ -148,9 +179,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 
 					const resident_uid = request.user_uid ?? null
 
-					// FIX: Infer the worker's UID directly from the chat participants!
-					// Since WardWatch uses an assignments collection, the worker isn't on the request doc.
-					// The worker is simply the participant who is NOT the resident.
 					let worker_uid = null
 					for (const m of sorted) {
 						if (m.sender_uid && m.sender_uid !== resident_uid) {
@@ -165,8 +193,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 
 					const worker = user_cache.get(worker_uid) ?? null
 					const resident = user_cache.get(resident_uid) ?? null
-
-					// Unread = messages not yet read by their receiver
 					const unread_count = sorted.filter((m) => !m.read).length
 
 					threads.push({
@@ -175,7 +201,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 						request_id: request.id,
 						category: request.category ?? 'unknown',
 						status: request.status ?? 'unknown',
-						// Default true when field is absent (matches service_requests schema)
 						messaging_enabled: request.messaging_enabled !== false,
 						worker: {
 							uid: worker_uid ?? '',
@@ -201,7 +226,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 					})
 				}
 
-				// Sort: most recently active first
 				threads.sort(
 					(a, b) =>
 						(b.last_message?.sent_at?.getTime() ?? 0) -
@@ -227,29 +251,6 @@ export function subscribe_to_admin_threads(on_update, on_error) {
 	return unsub
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   subscribe_to_thread_messages
-   ─────────────────────────────────────────────────────────────────────────────
-   Subscribes to all messages belonging to a single thread (request_uid).
-   Calls on_update with a date-sorted array of message objects every time
-   Firestore emits a change.
-
-   Each message object has shape:
-   {
-     id          {string}
-     text        {string}
-     sender_uid  {string}
-     receiver_uid {string}
-     sent_at     {Date}
-     read        {boolean}
-     request_uid {string}
-   }
-
-   @param {string}   request_uid
-   @param {function} on_update   — called with message[] on every change
-   @param {function} on_error    — called with Error on failure
-   @returns {function}           — unsubscribe (call on unmount / thread change)
-───────────────────────────────────────────────────────────────────────────── */
 export function subscribe_to_thread_messages(request_uid, on_update, on_error) {
 	const q = query(
 		collection(db, 'messages'),
@@ -284,18 +285,6 @@ export function subscribe_to_thread_messages(request_uid, on_update, on_error) {
 	return unsub
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   admin_toggle_thread_messaging
-   ─────────────────────────────────────────────────────────────────────────────
-   Enables or disables messaging for a thread by updating the service_request
-   doc. Also invalidates the request cache so the next snapshot re-fetches the
-   updated messaging_enabled value.
-
-   @param {string}      thread_id   — the request_uid / service_request doc id
-   @param {boolean}     new_status  — true = enabled, false = locked
-   @param {string}      admin_uid   — uid of the admin performing the action
-   @param {string|null} reason      — optional reason stored on the doc
-───────────────────────────────────────────────────────────────────────────── */
 export async function admin_toggle_thread_messaging(
 	thread_id,
 	new_status,
@@ -311,15 +300,9 @@ export async function admin_toggle_thread_messaging(
 		messaging_updated_at: new Date().toISOString(),
 	})
 
-	// Bust the cache so the next thread-list snapshot picks up the new value
 	invalidate_request_cache(thread_id)
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   invalidate_request_cache
-   Call this after admin_toggle_thread_messaging so the next snapshot
-   re-fetches the updated messaging_enabled value from Firestore.
-───────────────────────────────────────────────────────────────────────────── */
 export function invalidate_request_cache(request_uid) {
 	request_cache.delete(request_uid)
 }

@@ -1,13 +1,9 @@
-// ─────────────────────────────────────────────
-// Main Page
-// ─────────────────────────────────────────────
-
-// src/components/admin_review_messages/AdminReviewMessages.js
 import React, { useState, useEffect } from 'react'
 import { auth } from '../../firebase_config.js'
 import {
 	subscribe_to_admin_threads,
 	subscribe_to_thread_messages,
+	subscribe_to_request_lock, // ← add
 	admin_toggle_thread_messaging,
 	invalidate_request_cache,
 } from '../../backend/admin_messaging_service.js'
@@ -20,6 +16,7 @@ export default function AdminMessagingReview() {
 	const [threads, set_threads] = useState([])
 	const [selected_thread, set_selected_thread] = useState(null)
 	const [messages, set_messages] = useState([])
+	const [thread_lock, set_thread_lock] = useState(null) // ← add: live lock state
 	const [search, set_search] = useState('')
 	const [filter_status, set_filter_status] = useState('all')
 	const [filter_category, set_filter_category] = useState('all')
@@ -41,10 +38,25 @@ export default function AdminMessagingReview() {
 			set_messages([])
 			return
 		}
-
 		const unsub = subscribe_to_thread_messages(
 			selected_thread.id,
 			(updated_messages) => set_messages(updated_messages),
+			(err) => show_action_msg(err.message, true)
+		)
+		return () => unsub()
+	}, [selected_thread?.id])
+
+	// ── Live lock state for the selected thread ───────────────────────
+	// Listens directly to the service_request doc so the lock/unlock
+	// toggle reflects immediately on all sides — even mid-message.
+	useEffect(() => {
+		if (!selected_thread) {
+			set_thread_lock(null)
+			return
+		}
+		const unsub = subscribe_to_request_lock(
+			selected_thread.id,
+			(lock_state) => set_thread_lock(lock_state),
 			(err) => show_action_msg(err.message, true)
 		)
 		return () => unsub()
@@ -70,13 +82,10 @@ export default function AdminMessagingReview() {
 			t.request_id.toLowerCase().includes(search_lower)
 		const matches_status =
 			filter_status === 'all' || t.status === filter_status
-
-		// Make sure the category filter handles the uppercase database values!
 		const matches_category =
 			filter_category === 'all' ||
 			(t.category &&
 				t.category.toLowerCase() === filter_category.toLowerCase())
-
 		return matches_search && matches_status && matches_category
 	})
 
@@ -97,6 +106,8 @@ export default function AdminMessagingReview() {
 				new_status ? null : 'Locked by admin via messaging review'
 			)
 
+			// Cache bust is already inside admin_toggle_thread_messaging,
+			// but calling it here too is harmless and defensive.
 			invalidate_request_cache(thread_id)
 
 			show_action_msg(
@@ -114,9 +125,15 @@ export default function AdminMessagingReview() {
 		setTimeout(() => set_action_msg(null), 3000)
 	}
 
+	// Merge live lock state into the thread object so MessageViewer always
+	// gets the freshest value, not whatever was cached when the thread loaded.
+	const viewer_thread =
+		selected_thread && thread_lock
+			? { ...selected_thread, ...thread_lock }
+			: selected_thread
+
 	return (
 		<div className="amr_page">
-			{/* Toast notification */}
 			{action_msg && (
 				<div
 					className={`amr_toast ${action_msg.is_error ? 'amr_toast_error' : 'amr_toast_success'}`}
@@ -127,7 +144,6 @@ export default function AdminMessagingReview() {
 				</div>
 			)}
 
-			{/* Page header */}
 			<div className="amr_header">
 				<div className="amr_header_inner">
 					<div className="amr_breadcrumb">
@@ -176,11 +192,8 @@ export default function AdminMessagingReview() {
 				</div>
 			</div>
 
-			{/* Body */}
 			<div className="amr_body">
-				{/* Left panel */}
 				<div className="amr_panel_left">
-					{/* Search & filters */}
 					<div className="amr_filters">
 						<div className="amr_search_wrap">
 							<svg
@@ -244,13 +257,11 @@ export default function AdminMessagingReview() {
 						</div>
 					</div>
 
-					{/* Thread count */}
 					<div className="amr_thread_count">
 						{filtered_threads.length} conversation
 						{filtered_threads.length !== 1 ? 's' : ''}
 					</div>
 
-					{/* Thread list */}
 					<div className="amr_thread_list">
 						{filtered_threads.length === 0 ? (
 							<div className="amr_no_results">
@@ -271,11 +282,10 @@ export default function AdminMessagingReview() {
 					</div>
 				</div>
 
-				{/* Right panel */}
 				<div className="amr_panel_right">
-					{selected_thread ? (
+					{viewer_thread ? (
 						<MessageViewer
-							thread={selected_thread}
+							thread={viewer_thread}
 							messages={messages}
 							on_toggle_chat={handle_toggle_chat}
 							is_locking={locking_id === selected_thread.id}

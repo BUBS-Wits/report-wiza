@@ -1,4 +1,10 @@
 /* global jest, describe, test, expect, beforeEach */
+
+// Polyfill setImmediate for jsdom (fixes @grpc/grpc-js ReferenceError)
+if (typeof global.setImmediate === 'undefined') {
+	global.setImmediate = setTimeout
+}
+
 import React from 'react'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom'

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import {
 	fetch_rated_requests,
 	fetch_assignments,
-	fetch_workers,
+	subscribe_to_workers,
 } from '../../backend/admin_firebase.js'
 import './admin_satisfaction_report.css'
 import Sidebar from '../admin_sidebar/admin_sidebar.js'
@@ -17,7 +17,7 @@ const CATEGORY_LABELS = {
 	other: 'Other',
 }
 
-function RatingBar({ avg, max = 4 }) {
+function RatingBar({ avg, max = 5 }) {
 	const pct = Math.round((avg / max) * 100)
 	const color = avg >= 3 ? '#f59e0b' : avg >= 2 ? '#d97706' : '#dc2626'
 	return (
@@ -87,64 +87,74 @@ function AdminSatisfactionReport() {
 	const [error, set_error] = useState(null)
 
 	useEffect(() => {
-		const load_report = async () => {
+		let rated_requests = []
+		let assignment_map = {}
+
+		const run_aggregation = (workers) => {
+			if (rated_requests.length === 0) {
+				set_by_category([])
+				set_by_worker([])
+				set_total_count(0)
+				set_overall_avg(null)
+				return
+			}
+
+			const worker_map = {}
+			workers.forEach((w) => {
+				worker_map[w.id] = w.display_name || w.email || 'Unknown'
+			})
+
+			const all_ratings = rated_requests.map((r) => r.rating)
+			const avg = parseFloat(
+				(
+					all_ratings.reduce((a, b) => a + b, 0) / all_ratings.length
+				).toFixed(1)
+			)
+
+			set_total_count(rated_requests.length)
+			set_overall_avg(avg)
+			set_by_category(aggregate_by_category(rated_requests))
+			set_by_worker(
+				aggregate_by_worker(rated_requests, assignment_map, worker_map)
+			)
+		}
+
+		// Fetch one-time data first, then start the live listener
+		const init = async () => {
 			try {
-				set_loading(true)
+				const [fetched_requests, assignments] = await Promise.all([
+					fetch_rated_requests(),
+					fetch_assignments(),
+				])
 
-				const [rated_requests, assignments, workers] =
-					await Promise.all([
-						fetch_rated_requests(),
-						fetch_assignments(),
-						fetch_workers(),
-					])
+				rated_requests = fetched_requests
 
-				if (rated_requests.length === 0) {
-					set_by_category([])
-					set_by_worker([])
-					set_total_count(0)
-					set_overall_avg(null)
-					return
-				}
-
-				// Build request_uid -> worker_uid lookup from assignments
-				const assignment_map = {}
+				assignment_map = {}
 				assignments.forEach((a) => {
 					assignment_map[a.request_uid] = a.worker_uid
 				})
-
-				// Build worker uid -> display_name lookup
-				const worker_map = {}
-				workers.forEach((w) => {
-					worker_map[w.id] = w.display_name || w.email || 'Unknown'
-				})
-
-				const all_ratings = rated_requests.map((r) => r.rating)
-				const avg = parseFloat(
-					(
-						all_ratings.reduce((a, b) => a + b, 0) /
-						all_ratings.length
-					).toFixed(1)
-				)
-
-				set_total_count(rated_requests.length)
-				set_overall_avg(avg)
-				set_by_category(aggregate_by_category(rated_requests))
-				set_by_worker(
-					aggregate_by_worker(
-						rated_requests,
-						assignment_map,
-						worker_map
-					)
-				)
 			} catch (err) {
 				console.error('Failed to load satisfaction report:', err)
 				set_error('Could not load report. Please try again.')
-			} finally {
 				set_loading(false)
 			}
 		}
 
-		load_report()
+		const unsubscribe = subscribe_to_workers(
+			(workers) => {
+				run_aggregation(workers)
+				set_loading(false)
+			},
+			(err) => {
+				console.error('Worker listener error:', err)
+				set_error('Could not load workers. Please try again.')
+				set_loading(false)
+			}
+		)
+
+		init()
+
+		return () => unsubscribe()
 	}, [])
 
 	if (loading) {

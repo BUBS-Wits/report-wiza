@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import {
-	fetch_workers,
+	subscribe_to_workers, // <-- UPDATED
 	revoke_worker_role,
 } from '../../backend/admin_firebase.js'
 import Sidebar from '../../components/admin_sidebar/admin_sidebar.js'
@@ -27,21 +27,24 @@ function AdminDashboard({ section = 'workers' }) {
 		set_active_section(section)
 	}, [section])
 
-	/* ── Load Workers ─────────────────────────────────────────────────── */
-	const load_workers = async () => {
-		set_workers_loading(true)
-		try {
-			const result = await fetch_workers()
-			set_workers(result)
-		} catch (err) {
-			console.error(err)
-		} finally {
-			set_workers_loading(false)
-		}
-	}
-
+	/* ── Live Load Workers ────────────────────────────────────────────── */
 	useEffect(() => {
-		load_workers()
+		set_workers_loading(true)
+
+		const unsubscribe = subscribe_to_workers(
+			(live_workers) => {
+				set_workers(live_workers)
+				set_workers_loading(false)
+			},
+			(err) => {
+				set_message(err.message)
+				set_is_error(true)
+				set_workers_loading(false)
+			}
+		)
+
+		// Cleanup listener when component unmounts
+		return () => unsubscribe()
 	}, [])
 
 	const handle_revoke = async (uid, email) => {
@@ -55,7 +58,8 @@ function AdminDashboard({ section = 'workers' }) {
 		set_revoking_uid(uid)
 		try {
 			await revoke_worker_role(uid)
-			set_workers((prev) => prev.filter((w) => w.id !== uid))
+			// Note: We no longer need to manually filter the array here!
+			// The live listener will instantly detect the role change and update the UI.
 			set_message(`Worker role revoked for ${email}`)
 			set_is_error(false)
 		} catch (err) {
@@ -78,7 +82,8 @@ function AdminDashboard({ section = 'workers' }) {
 							}
 							revoked={0}
 						/>
-						<RegisterWorker on_registered={load_workers} />
+						{/* We no longer need a manual on_registered callback because the live listener handles it! */}
+						<RegisterWorker />
 						<WorkersList
 							workers={workers}
 							loading={workers_loading}

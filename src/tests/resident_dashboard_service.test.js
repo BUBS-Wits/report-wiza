@@ -1,6 +1,6 @@
 /* global jest, describe, beforeEach, test, expect */
 import {
-	fetch_resident_requests,
+	subscribe_to_resident_requests, // <-- UPDATED
 	fetch_resident_profile,
 	subscribe_to_resident_unread_count,
 	cancel_request,
@@ -44,35 +44,44 @@ describe('Resident Dashboard Service', () => {
 		orderBy.mockReturnValue('mock-orderBy')
 	})
 
-	describe('fetch_resident_requests', () => {
-		test('fetches requests and resolves worker names successfully', async () => {
-			getDocs
-				.mockResolvedValueOnce({
-					empty: false,
+	describe('subscribe_to_resident_requests', () => {
+		test('fetches requests via snapshot and resolves worker names successfully', async () => {
+			// 1. Mock the onSnapshot callback instantly firing
+			onSnapshot.mockImplementationOnce((q, cb) => {
+				cb({
 					docs: [
 						{ id: 'req_1', data: () => ({ status: 'ASSIGNED' }) },
 						{ id: 'req_2', data: () => ({ status: 'SUBMITTED' }) },
 					],
 				})
+				return jest.fn() // mock unsubscribe
+			})
+
+			// 2. Mock the internal getDocs (Assignments lookup)
+			getDocs
 				.mockResolvedValueOnce({
 					empty: false,
 					docs: [{ data: () => ({ worker_uid: 'worker_123' }) }],
 				})
-				.mockResolvedValueOnce({
-					empty: true,
-					docs: [],
-				})
+				.mockResolvedValueOnce({ empty: true, docs: [] })
 
+			// 3. Mock the internal getDoc (User lookup)
 			getDoc.mockResolvedValueOnce({
 				exists: () => true,
 				data: () => ({ name: 'John Plumber' }),
 			})
 
-			const requests = await fetch_resident_requests('resident_456')
+			const mock_on_update = jest.fn()
+			subscribe_to_resident_requests('resident_456', mock_on_update)
 
-			expect(getDocs).toHaveBeenCalledTimes(3)
+			// Wait for all the async internal promises to resolve
+			await new Promise((resolve) => setTimeout(resolve, 0))
+
+			expect(getDocs).toHaveBeenCalledTimes(2)
 			expect(getDoc).toHaveBeenCalledTimes(1)
+			expect(mock_on_update).toHaveBeenCalledTimes(1)
 
+			const requests = mock_on_update.mock.calls[0][0]
 			expect(requests).toHaveLength(2)
 
 			expect(requests[0].id).toBe('req_1')
@@ -85,55 +94,62 @@ describe('Resident Dashboard Service', () => {
 		})
 
 		test('falls back to Worker if the worker document exists without a name', async () => {
-			getDocs
-				.mockResolvedValueOnce({
-					empty: false,
-					docs: [{ id: 'req_1', data: () => ({}) }],
-				})
-				.mockResolvedValueOnce({
-					empty: false,
-					docs: [{ data: () => ({ worker_uid: 'worker_123' }) }],
-				})
+			onSnapshot.mockImplementationOnce((q, cb) => {
+				cb({ docs: [{ id: 'req_1', data: () => ({}) }] })
+				return jest.fn()
+			})
 
+			getDocs.mockResolvedValueOnce({
+				empty: false,
+				docs: [{ data: () => ({ worker_uid: 'worker_123' }) }],
+			})
 			getDoc.mockResolvedValueOnce({
 				exists: () => true,
 				data: () => ({}),
 			})
 
-			const requests = await fetch_resident_requests('resident_456')
+			const mock_on_update = jest.fn()
+			subscribe_to_resident_requests('resident_456', mock_on_update)
+			await new Promise((resolve) => setTimeout(resolve, 0))
 
+			const requests = mock_on_update.mock.calls[0][0]
 			expect(requests[0].worker_uid).toBe('worker_123')
 			expect(requests[0].worker_name).toBe('Worker')
 		})
 
 		test('falls back to Worker if fetching the worker document throws an error', async () => {
-			getDocs
-				.mockResolvedValueOnce({
-					empty: false,
-					docs: [{ id: 'req_1', data: () => ({}) }],
-				})
-				.mockResolvedValueOnce({
-					empty: false,
-					docs: [{ data: () => ({ worker_uid: 'error_worker' }) }],
-				})
+			onSnapshot.mockImplementationOnce((q, cb) => {
+				cb({ docs: [{ id: 'req_1', data: () => ({}) }] })
+				return jest.fn()
+			})
 
+			getDocs.mockResolvedValueOnce({
+				empty: false,
+				docs: [{ data: () => ({ worker_uid: 'error_worker' }) }],
+			})
 			getDoc.mockRejectedValueOnce(new Error('Network failure'))
 
-			const requests = await fetch_resident_requests('resident_456')
+			const mock_on_update = jest.fn()
+			subscribe_to_resident_requests('resident_456', mock_on_update)
+			await new Promise((resolve) => setTimeout(resolve, 0))
 
+			const requests = mock_on_update.mock.calls[0][0]
 			expect(requests[0].worker_uid).toBe('error_worker')
 			expect(requests[0].worker_name).toBe('Worker')
 		})
 
 		test('deduplicates worker fetches and only fetches a worker uid once', async () => {
-			getDocs
-				.mockResolvedValueOnce({
-					empty: false,
+			onSnapshot.mockImplementationOnce((q, cb) => {
+				cb({
 					docs: [
 						{ id: 'req_1', data: () => ({}) },
 						{ id: 'req_2', data: () => ({}) },
 					],
 				})
+				return jest.fn()
+			})
+
+			getDocs
 				.mockResolvedValueOnce({
 					empty: false,
 					docs: [{ data: () => ({ worker_uid: 'worker_1' }) }],
@@ -148,55 +164,63 @@ describe('Resident Dashboard Service', () => {
 				data: () => ({ name: 'Alice' }),
 			})
 
-			const requests = await fetch_resident_requests('resident_456')
+			const mock_on_update = jest.fn()
+			subscribe_to_resident_requests('resident_456', mock_on_update)
+			await new Promise((resolve) => setTimeout(resolve, 0))
 
-			expect(getDocs).toHaveBeenCalledTimes(3)
-			expect(getDoc).toHaveBeenCalledTimes(1)
+			expect(getDocs).toHaveBeenCalledTimes(2) // 2 requests = 2 assignment checks
+			expect(getDoc).toHaveBeenCalledTimes(1) // only 1 user fetch due to deduplication
+
+			const requests = mock_on_update.mock.calls[0][0]
 			expect(requests[0].worker_name).toBe('Alice')
 			expect(requests[1].worker_name).toBe('Alice')
 		})
 
 		test('returns an empty array when the resident has no requests', async () => {
-			getDocs.mockResolvedValueOnce({
-				empty: true,
-				docs: [],
+			onSnapshot.mockImplementationOnce((q, cb) => {
+				cb({ docs: [] })
+				return jest.fn()
 			})
 
-			const requests = await fetch_resident_requests('resident_456')
+			const mock_on_update = jest.fn()
+			subscribe_to_resident_requests('resident_456', mock_on_update)
+			await new Promise((resolve) => setTimeout(resolve, 0))
 
+			const requests = mock_on_update.mock.calls[0][0]
 			expect(requests).toEqual([])
-			expect(getDocs).toHaveBeenCalledTimes(1)
+			expect(getDocs).not.toHaveBeenCalled()
 			expect(getDoc).not.toHaveBeenCalled()
 		})
 
 		test('does not fetch a worker profile when assignment has no worker uid', async () => {
-			getDocs
-				.mockResolvedValueOnce({
-					empty: false,
+			onSnapshot.mockImplementationOnce((q, cb) => {
+				cb({
 					docs: [
 						{ id: 'req_1', data: () => ({ status: 'ASSIGNED' }) },
 					],
 				})
-				.mockResolvedValueOnce({
-					empty: false,
-					docs: [{ data: () => ({ worker_uid: null }) }],
-				})
+				return jest.fn()
+			})
 
-			const requests = await fetch_resident_requests('resident_456')
+			getDocs.mockResolvedValueOnce({
+				empty: false,
+				docs: [{ data: () => ({ worker_uid: null }) }],
+			})
 
-			expect(getDocs).toHaveBeenCalledTimes(2)
-			expect(getDoc).not.toHaveBeenCalled()
+			const mock_on_update = jest.fn()
+			subscribe_to_resident_requests('resident_456', mock_on_update)
+			await new Promise((resolve) => setTimeout(resolve, 0))
+
+			expect(getDocs).toHaveBeenCalledTimes(1) // Assignment fetched
+			expect(getDoc).not.toHaveBeenCalled() // No user fetched
+
+			const requests = mock_on_update.mock.calls[0][0]
 			expect(requests[0].worker_uid).toBeNull()
 			expect(requests[0].worker_name).toBeNull()
 		})
 
 		test('queries resident requests using service_requests collection and created_at ordering', async () => {
-			getDocs.mockResolvedValueOnce({
-				empty: true,
-				docs: [],
-			})
-
-			await fetch_resident_requests('resident_456')
+			subscribe_to_resident_requests('resident_456', jest.fn())
 
 			expect(collection).toHaveBeenCalledWith(
 				expect.anything(),
@@ -205,6 +229,7 @@ describe('Resident Dashboard Service', () => {
 			expect(where).toHaveBeenCalledWith('user_uid', '==', 'resident_456')
 			expect(orderBy).toHaveBeenCalledWith('created_at', 'desc')
 			expect(query).toHaveBeenCalled()
+			expect(onSnapshot).toHaveBeenCalled()
 		})
 	})
 

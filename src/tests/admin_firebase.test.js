@@ -2,7 +2,7 @@
 import {
 	register_worker_email,
 	confirm_worker_role,
-	fetch_workers,
+	subscribe_to_workers, // <-- UPDATED
 	revoke_worker_role,
 } from '../backend/admin_firebase.js'
 import { sendSignInLinkToEmail } from 'firebase/auth'
@@ -15,6 +15,7 @@ import {
 	where,
 	getDocs,
 	serverTimestamp,
+	onSnapshot, // <-- ADDED
 } from 'firebase/firestore'
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -34,6 +35,7 @@ jest.mock('firebase/firestore', () => ({
 	where: jest.fn(),
 	getDocs: jest.fn(),
 	serverTimestamp: jest.fn(),
+	onSnapshot: jest.fn(), // <-- ADDED
 }))
 
 jest.mock('../firebase_config.js', () => ({
@@ -182,31 +184,54 @@ describe('Admin Firebase Service', () => {
 		})
 	})
 
-	describe('fetch_workers', () => {
-		test('fetches and maps all user documents with role == worker', async () => {
+	describe('subscribe_to_workers', () => {
+		test('calls on_update with mapped user documents with role == worker', () => {
 			const mockDocs = [
 				{ id: 'worker_1', data: () => ({ name: 'Alice' }) },
 				{ id: 'worker_2', data: () => ({ name: 'Bob' }) },
 			]
-			getDocs.mockResolvedValue({ docs: mockDocs })
 
-			const workers = await fetch_workers()
+			const mockUnsubscribe = jest.fn()
+
+			// Instantly trigger the listener with mock data
+			onSnapshot.mockImplementationOnce((q, onNext, onError) => {
+				onNext({ docs: mockDocs })
+				return mockUnsubscribe
+			})
+
+			const on_update = jest.fn()
+			const on_error = jest.fn()
+
+			const unsub = subscribe_to_workers(on_update, on_error)
 
 			expect(collection).toHaveBeenCalledWith(expect.anything(), 'users')
 			expect(where).toHaveBeenCalledWith('role', '==', 'worker')
-			expect(getDocs).toHaveBeenCalledTimes(1)
+			expect(onSnapshot).toHaveBeenCalledTimes(1)
 
-			expect(workers).toEqual([
+			expect(on_update).toHaveBeenCalledWith([
 				{ id: 'worker_1', name: 'Alice' },
 				{ id: 'worker_2', name: 'Bob' },
 			])
+			expect(on_error).not.toHaveBeenCalled()
+			expect(unsub).toBe(mockUnsubscribe)
 		})
 
-		test('throws an error if fetching fails', async () => {
-			getDocs.mockRejectedValue(new Error('Network error'))
+		test('calls on_error if snapshot fails', () => {
+			// Instantly trigger the listener error callback
+			onSnapshot.mockImplementationOnce((q, onNext, onError) => {
+				onError(new Error('Network error'))
+				return jest.fn()
+			})
 
-			await expect(fetch_workers()).rejects.toThrow(
-				'Could not load workers. Try again later.'
+			const on_update = jest.fn()
+			const on_error = jest.fn()
+
+			subscribe_to_workers(on_update, on_error)
+
+			expect(on_error).toHaveBeenCalledWith(
+				expect.objectContaining({
+					message: 'Could not load workers. Try again later.',
+				})
 			)
 			expect(consoleErrorSpy).toHaveBeenCalled()
 		})

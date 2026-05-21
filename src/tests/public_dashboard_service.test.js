@@ -1,5 +1,5 @@
-import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js'
-import { getDocs } from 'firebase/firestore'
+import { subscribe_to_public_dashboard } from '../backend/public_dashboard_service.js'
+import { onSnapshot } from 'firebase/firestore'
 import { parseLocation } from '../utils/parse_location.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -11,7 +11,8 @@ jest.mock('firebase/firestore', () => ({
 	query: jest.fn(),
 	orderBy: jest.fn(),
 	limit: jest.fn(),
-	getDocs: jest.fn(),
+	// onSnapshot replaces getDocs for the live-listener architecture
+	onSnapshot: jest.fn(),
 }))
 
 jest.mock('../firebase_config.js', () => ({
@@ -23,7 +24,7 @@ jest.mock('../utils/parse_location.js', () => ({
 }))
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Helpers & Fixtures
+   Helpers
 ───────────────────────────────────────────────────────────────────────────── */
 
 const createMockDoc = (id, data) => ({
@@ -31,21 +32,51 @@ const createMockDoc = (id, data) => ({
 	data: () => data,
 })
 
+/**
+ * Builds a mock Firestore snapshot whose forEach iterates over mockDocs,
+ * then wires onSnapshot to call the success callback with it immediately
+ * and return a no-op unsubscribe function.
+ */
+const mockSnapshot = (mockDocs) => {
+	const snapshot = {
+		forEach: (fn) => mockDocs.forEach(fn),
+	}
+	onSnapshot.mockImplementationOnce((_query, successCb, _errorCb) => {
+		successCb(snapshot)
+		return jest.fn() // unsubscribe
+	})
+}
+
+/**
+ * Wires onSnapshot to fire the error callback immediately.
+ */
+const mockSnapshotError = (error) => {
+	onSnapshot.mockImplementationOnce((_query, _successCb, errorCb) => {
+		errorCb(error)
+		return jest.fn()
+	})
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Tests
+───────────────────────────────────────────────────────────────────────────── */
+
 describe('Public Dashboard Service', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-
-		// Default behavior: valid location for all requests
 		parseLocation.mockReturnValue({
 			latitude: -26.2041,
 			longitude: 28.0473,
 		})
 	})
 
-	test('returns empty arrays and zeroed stats when no requests exist', async () => {
-		getDocs.mockResolvedValueOnce([]) // Empty snapshot iterable
+	test('returns empty arrays and zeroed stats when no requests exist', () => {
+		mockSnapshot([])
 
-		const result = await fetchPublicDashboardData()
+		let result
+		subscribe_to_public_dashboard((data) => {
+			result = data
+		})
 
 		expect(result).toEqual({
 			active: [],
@@ -58,22 +89,25 @@ describe('Public Dashboard Service', () => {
 		})
 	})
 
-	test('skips requests with unparseable locations', async () => {
+	test('skips requests with unparseable locations but still includes them', () => {
+		// Requests without coords are still included; the map simply won't render them.
+		// This mirrors the backend behaviour: normalise always runs, null coords are kept.
 		parseLocation
-			.mockReturnValueOnce(null) // First request fails location parsing
-			.mockReturnValueOnce({ latitude: 10, longitude: 20 }) // Second succeeds
+			.mockReturnValueOnce(null)
+			.mockReturnValueOnce({ latitude: 10, longitude: 20 })
 
-		const mockSnapshot = [
+		mockSnapshot([
 			createMockDoc('req_bad_loc', { status: 'SUBMITTED', sa_ward: '1' }),
 			createMockDoc('req_good_loc', {
 				status: 'SUBMITTED',
 				sa_ward: '1',
 			}),
-		]
+		])
 
-		getDocs.mockResolvedValueOnce(mockSnapshot)
-
-		const result = await fetchPublicDashboardData()
+		let result
+		subscribe_to_public_dashboard((data) => {
+			result = data
+		})
 
 		expect(result.active.length).toBe(2)
 		expect(result.active.map((r) => r.id)).toEqual(
@@ -82,43 +116,41 @@ describe('Public Dashboard Service', () => {
 		expect(result.stats.open_count).toBe(2)
 	})
 
-	test('applies default values for missing fields during normalization', async () => {
-		const mockSnapshot = [
-			createMockDoc('req_minimal', {
-				// Only providing minimal data
-				status: 'UNASSIGNED',
-			}),
-		]
+	test('applies default values for missing fields during normalization', () => {
+		mockSnapshot([createMockDoc('req_minimal', { status: 'UNASSIGNED' })])
 
-		getDocs.mockResolvedValueOnce(mockSnapshot)
+		let result
+		subscribe_to_public_dashboard((data) => {
+			result = data
+		})
 
-		const result = await fetchPublicDashboardData()
 		const request = result.active[0]
 
 		expect(request.category).toBe('Unknown')
 		expect(request.ward).toBe('Ward Unknown')
-		expect(request.sa_ward).toBeUndefined() // Inherits undefined from raw data
+		expect(request.sa_ward).toBeUndefined() // raw data has no sa_ward
 		expect(request.municipality).toBe('Unknown Municipality')
 		expect(request.description).toBe('')
 		expect(request.like_count).toBe(0)
 		expect(request.latitude).toBe(-26.2041)
 	})
 
-	test('separates active and resolved statuses correctly and ignores unknown statuses', async () => {
-		const mockSnapshot = [
+	test('separates active and resolved statuses correctly and includes unknown statuses as active', () => {
+		mockSnapshot([
 			createMockDoc('req_1', { status: 'SUBMITTED', sa_ward: '10' }),
 			createMockDoc('req_2', { status: 'UNASSIGNED', sa_ward: '11' }),
-			createMockDoc('req_3', { status: 'ASSIGNED', sa_ward: '10' }), // Duplicate ward
+			createMockDoc('req_3', { status: 'ASSIGNED', sa_ward: '10' }),
 			createMockDoc('req_4', { status: 'IN_PROGRESS', sa_ward: '12' }),
 			createMockDoc('req_5', { status: 'RESOLVED', sa_ward: '13' }),
-			createMockDoc('req_6', { status: 'CLOSED', sa_ward: '14' }), // Should be ignored by active/resolved lists
-		]
+			// CLOSED is not in ACTIVE_STATUSES nor RESOLVED → falls through to active
+			createMockDoc('req_6', { status: 'CLOSED', sa_ward: '14' }),
+		])
 
-		getDocs.mockResolvedValueOnce(mockSnapshot)
+		let result
+		subscribe_to_public_dashboard((data) => {
+			result = data
+		})
 
-		const result = await fetchPublicDashboardData()
-
-		// 4 active statuses defined in ACTIVE_STATUSES
 		expect(result.active.length).toBe(5)
 		expect(result.active.map((r) => r.id)).toEqual([
 			'req_1',
@@ -128,53 +160,69 @@ describe('Public Dashboard Service', () => {
 			'req_6',
 		])
 
-		// 1 resolved
 		expect(result.resolved.length).toBe(1)
 		expect(result.resolved[0].id).toBe('req_5')
 
-		// Stats verification
 		expect(result.stats.open_count).toBe(5)
 		expect(result.stats.resolved_count).toBe(1)
-
-		// Wards 10, 11, 12, 13, 14 were seen (even if status is CLOSED, normalization still ran and saw the ward)
 		expect(result.stats.wards_affected).toBe(5)
 	})
 
-	test('strictly enforces the 20-item limit for resolved requests', async () => {
-		// Generate 25 resolved requests
-		const mockSnapshot = Array.from({ length: 25 }, (_, i) =>
-			createMockDoc(`req_${i}`, { status: 'RESOLVED', sa_ward: '5' })
+	test('strictly enforces the 20-item limit for resolved requests', () => {
+		mockSnapshot(
+			Array.from({ length: 25 }, (_, i) =>
+				createMockDoc(`req_${i}`, { status: 'RESOLVED', sa_ward: '5' })
+			)
 		)
 
-		getDocs.mockResolvedValueOnce(mockSnapshot)
+		let result
+		subscribe_to_public_dashboard((data) => {
+			result = data
+		})
 
-		const result = await fetchPublicDashboardData()
-
-		// Should cap exactly at 20
 		expect(result.resolved.length).toBe(20)
 		expect(result.stats.resolved_count).toBe(20)
-
-		// Ensure no active requests accidentally leaked
 		expect(result.active.length).toBe(0)
 	})
 
-	test('calculates unique wards_affected accurately', async () => {
-		const mockSnapshot = [
+	test('calculates unique wards_affected accurately', () => {
+		mockSnapshot([
 			createMockDoc('req_1', { status: 'SUBMITTED', sa_ward: '99' }),
 			createMockDoc('req_2', { status: 'SUBMITTED', sa_ward: '99' }),
 			createMockDoc('req_3', { status: 'RESOLVED', sa_ward: '100' }),
 			createMockDoc('req_4', { status: 'RESOLVED', sa_ward: '100' }),
 			createMockDoc('req_5', { status: 'IN_PROGRESS', sa_ward: '101' }),
-			// Test how it handles undefined/null wards during String() coercion
-			createMockDoc('req_6', { status: 'SUBMITTED' }),
+			createMockDoc('req_6', { status: 'SUBMITTED' }), // no sa_ward → 'undefined'
 			createMockDoc('req_7', { status: 'SUBMITTED' }),
-		]
+		])
 
-		getDocs.mockResolvedValueOnce(mockSnapshot)
+		let result
+		subscribe_to_public_dashboard((data) => {
+			result = data
+		})
 
-		const result = await fetchPublicDashboardData()
-
-		// Wards seen: '99', '100', '101', and 'undefined'
+		// Wards seen: '99', '100', '101', 'undefined'
 		expect(result.stats.wards_affected).toBe(4)
+	})
+
+	test('calls on_error when the Firestore listener fires an error', () => {
+		const testError = new Error('Firestore unavailable')
+		mockSnapshotError(testError)
+
+		const on_error = jest.fn()
+		subscribe_to_public_dashboard(jest.fn(), on_error)
+
+		expect(on_error).toHaveBeenCalledWith(testError)
+	})
+
+	test('returns an unsubscribe function that can be called on unmount', () => {
+		const mockUnsub = jest.fn()
+		onSnapshot.mockReturnValueOnce(mockUnsub)
+
+		const unsub = subscribe_to_public_dashboard(jest.fn(), jest.fn())
+
+		expect(typeof unsub).toBe('function')
+		unsub()
+		expect(mockUnsub).toHaveBeenCalledTimes(1)
 	})
 })

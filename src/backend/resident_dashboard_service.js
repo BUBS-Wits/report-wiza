@@ -31,72 +31,95 @@ import { db } from '../firebase_config.js'
  * worker_uid           {string|null}  — resolved from assignments collection
  * worker_name          {string|null}  — resolved from users collection
  *
+/**
+ * LIVE LISTENER: Subscribe to all service requests submitted by the resident.
+ * Fires the callback whenever a request is created, updated, or changes status.
+ *
  * @param {string} resident_uid
- * @returns {Promise<Array>}
+ * @param {function} on_update - Callback function that receives the array of live requests
+ * @returns {function} - Unsubscribe function to clean up the listener
  */
-export async function fetch_resident_requests(resident_uid) {
+export function subscribe_to_resident_requests(resident_uid, on_update) {
 	const q = query(
 		collection(db, 'service_requests'),
 		where('user_uid', '==', resident_uid),
 		orderBy('created_at', 'desc')
 	)
 
-	const snap = await getDocs(q)
-	const requests = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+	// onSnapshot fires immediately on load, and then again on any changes
+	const unsubscribe = onSnapshot(
+		q,
+		async (snap) => {
+			const requests = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
 
-	if (requests.length === 0) {
-		return []
-	}
+			if (requests.length === 0) {
+				on_update([])
+				return
+			}
 
-	// 1. Look up the `assignments` collection to find if these requests have a worker assigned
-	const assignments_map = {} // maps request.id -> worker_uid
-	const worker_uid_set = new Set()
+			// 1. Look up the `assignments` collection to find if these requests have a worker assigned
+			const assignments_map = {} // maps request.id -> worker_uid
+			const worker_uid_set = new Set()
 
-	await Promise.all(
-		requests.map(async (req) => {
-			const assignment_q = query(
-				collection(db, 'assignments'),
-				where('request_uid', '==', req.id)
+			await Promise.all(
+				requests.map(async (req) => {
+					const assignment_q = query(
+						collection(db, 'assignments'),
+						where('request_uid', '==', req.id)
+					)
+					const assignment_snap = await getDocs(assignment_q)
+
+					if (!assignment_snap.empty) {
+						const worker_uid =
+							assignment_snap.docs[0].data().worker_uid
+						assignments_map[req.id] = worker_uid
+						if (worker_uid) {
+							worker_uid_set.add(worker_uid)
+						}
+					}
+				})
 			)
-			const assignment_snap = await getDocs(assignment_q)
 
-			if (!assignment_snap.empty) {
-				// Assuming one assignment per request
-				const worker_uid = assignment_snap.docs[0].data().worker_uid
-				assignments_map[req.id] = worker_uid
-				if (worker_uid) {
-					worker_uid_set.add(worker_uid)
+			// 2. Resolve the worker names from the `users` collection
+			const worker_names = {}
+			await Promise.all(
+				[...worker_uid_set].map(async (uid) => {
+					try {
+						const user_doc = await getDoc(doc(db, 'users', uid))
+						if (user_doc.exists()) {
+							worker_names[uid] = user_doc.data().name ?? 'Worker'
+						}
+					} catch {
+						worker_names[uid] = 'Worker'
+					}
+				})
+			)
+
+			// 3. Stitch everything together
+			const live_data = requests.map((r) => {
+				const worker_uid = assignments_map[r.id] || null
+				return {
+					...r,
+					worker_uid: worker_uid,
+					worker_name: worker_uid
+						? (worker_names[worker_uid] ?? 'Worker')
+						: null,
 				}
-			}
-		})
-	)
+			})
 
-	// 2. Resolve the worker names from the `users` collection
-	const worker_names = {}
-	await Promise.all(
-		[...worker_uid_set].map(async (uid) => {
-			try {
-				const user_doc = await getDoc(doc(db, 'users', uid))
-				if (user_doc.exists()) {
-					worker_names[uid] = user_doc.data().name ?? 'Worker'
-				}
-			} catch {
-				worker_names[uid] = 'Worker'
-			}
-		})
-	)
-
-	// 3. Stitch everything together
-	return requests.map((r) => {
-		const worker_uid = assignments_map[r.id] || null
-		return {
-			...r,
-			worker_uid: worker_uid,
-			worker_name: worker_uid
-				? (worker_names[worker_uid] ?? 'Worker')
-				: null,
+			// 4. Push the fully stitched live data to the React component
+			on_update(live_data)
+		},
+		(error) => {
+			console.error(
+				'[resident_dashboard_service] requests listener error:',
+				error
+			)
+			on_update([]) // Fail gracefully by returning empty or handling error
 		}
-	})
+	)
+
+	return unsubscribe
 }
 
 /**

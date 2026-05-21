@@ -6,7 +6,7 @@ import AdminSatisfactionReport from '../components/admin_satisfaction_report/adm
 import {
 	fetch_rated_requests,
 	fetch_assignments,
-	fetch_workers,
+	subscribe_to_workers,
 } from '../backend/admin_firebase.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ import {
 jest.mock('../backend/admin_firebase.js', () => ({
 	fetch_rated_requests: jest.fn(),
 	fetch_assignments: jest.fn(),
-	fetch_workers: jest.fn(),
+	subscribe_to_workers: jest.fn(),
 }))
 
 jest.mock('../firebase_config.js', () => ({
@@ -87,7 +87,8 @@ describe('AdminSatisfactionReport', () => {
 			it('Then it should display the loading message', () => {
 				fetch_rated_requests.mockReturnValue(new Promise(() => {}))
 				fetch_assignments.mockReturnValue(new Promise(() => {}))
-				fetch_workers.mockReturnValue(new Promise(() => {}))
+				// Listener never fires — simulates waiting for Firestore snapshot
+				subscribe_to_workers.mockImplementation(() => jest.fn())
 
 				render(<AdminSatisfactionReport />)
 
@@ -106,7 +107,10 @@ describe('AdminSatisfactionReport', () => {
 			it('Then it should display the empty state message', async () => {
 				fetch_rated_requests.mockResolvedValue([])
 				fetch_assignments.mockResolvedValue([])
-				fetch_workers.mockResolvedValue([])
+				subscribe_to_workers.mockImplementation((on_update) => {
+					on_update([])
+					return jest.fn()
+				})
 
 				render(<AdminSatisfactionReport />)
 
@@ -125,7 +129,11 @@ describe('AdminSatisfactionReport', () => {
 			beforeEach(() => {
 				fetch_rated_requests.mockResolvedValue(mock_rated_requests)
 				fetch_assignments.mockResolvedValue(mock_assignments)
-				fetch_workers.mockResolvedValue(mock_workers)
+				subscribe_to_workers.mockImplementation((on_update) => {
+					// Defer so init() has time to resolve first
+					setTimeout(() => on_update(mock_workers), 0)
+					return jest.fn()
+				})
 			})
 
 			it('Then it should display the report title', async () => {
@@ -224,8 +232,6 @@ describe('AdminSatisfactionReport', () => {
 					expect(screen.getByText('Water')).toBeInTheDocument()
 				})
 
-				const rows = screen.getAllByRole('row')
-				// thead row + worker rows + category thead row + first category data row
 				const category_section = screen.getByText('By Category')
 				const category_table = category_section
 					.closest('section')
@@ -243,7 +249,10 @@ describe('AdminSatisfactionReport', () => {
 			it('Then it should show the empty worker message', async () => {
 				fetch_rated_requests.mockResolvedValue(mock_rated_requests)
 				fetch_assignments.mockResolvedValue([])
-				fetch_workers.mockResolvedValue(mock_workers)
+				subscribe_to_workers.mockImplementation((on_update) => {
+					setTimeout(() => on_update(mock_workers), 0)
+					return jest.fn()
+				})
 
 				render(<AdminSatisfactionReport />)
 
@@ -268,7 +277,7 @@ describe('AdminSatisfactionReport', () => {
 					new Error('Firestore error')
 				)
 				fetch_assignments.mockResolvedValue([])
-				fetch_workers.mockResolvedValue([])
+				subscribe_to_workers.mockImplementation(() => jest.fn()) // silent
 
 				render(<AdminSatisfactionReport />)
 
