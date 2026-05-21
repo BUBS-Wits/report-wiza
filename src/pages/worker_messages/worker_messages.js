@@ -133,21 +133,21 @@ export default function WorkerMessages({ worker, requests = [] }) {
 	const [lock_reason, set_lock_reason] = useState(null)
 
 	useEffect(() => {
-    if (!selected_id) {
-        set_messaging_enabled(true)
-        set_lock_reason(null)
-        return
-    }
-    const unsub = subscribe_to_request_lock(
-        selected_id,
-        ({ messaging_enabled, messaging_lock_reason }) => {
-            set_messaging_enabled(messaging_enabled)
-            set_lock_reason(messaging_lock_reason)
-        },
-        (err) => console.error('[worker lock listener]', err)
-    )
-    return unsub
-}, [selected_id])
+		if (!selected_id) {
+			set_messaging_enabled(true)
+			set_lock_reason(null)
+			return
+		}
+		const unsub = subscribe_to_request_lock(
+			selected_id,
+			({ messaging_enabled, messaging_lock_reason }) => {
+				set_messaging_enabled(messaging_enabled)
+				set_lock_reason(messaging_lock_reason)
+			},
+			(err) => console.error('[worker lock listener]', err)
+		)
+		return unsub
+	}, [selected_id])
 
 	/* ── Build lookup map from passed requests ────────────────────────── */
 	useEffect(() => {

@@ -204,7 +204,9 @@ describe('PublicDashboard Component', () => {
 		fetch_public_dashboard_visibility.mockResolvedValue(defaultVisibility)
 
 		onAuthStateChanged.mockImplementation((auth, callback) => {
-			if (typeof callback === 'function') callback(null)
+			if (typeof callback === 'function') {
+				callback(null)
+			}
 			return jest.fn()
 		})
 	})

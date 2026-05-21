@@ -64,7 +64,10 @@ const mockSnapshotError = (error) => {
 describe('Public Dashboard Service', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
-		parseLocation.mockReturnValue({ latitude: -26.2041, longitude: 28.0473 })
+		parseLocation.mockReturnValue({
+			latitude: -26.2041,
+			longitude: 28.0473,
+		})
 	})
 
 	test('returns empty arrays and zeroed stats when no requests exist', () => {
@@ -95,7 +98,10 @@ describe('Public Dashboard Service', () => {
 
 		mockSnapshot([
 			createMockDoc('req_bad_loc', { status: 'SUBMITTED', sa_ward: '1' }),
-			createMockDoc('req_good_loc', { status: 'SUBMITTED', sa_ward: '1' }),
+			createMockDoc('req_good_loc', {
+				status: 'SUBMITTED',
+				sa_ward: '1',
+			}),
 		])
 
 		let result
@@ -111,9 +117,7 @@ describe('Public Dashboard Service', () => {
 	})
 
 	test('applies default values for missing fields during normalization', () => {
-		mockSnapshot([
-			createMockDoc('req_minimal', { status: 'UNASSIGNED' }),
-		])
+		mockSnapshot([createMockDoc('req_minimal', { status: 'UNASSIGNED' })])
 
 		let result
 		subscribe_to_public_dashboard((data) => {
