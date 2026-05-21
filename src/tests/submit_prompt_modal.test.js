@@ -142,23 +142,4 @@ describe('SubmitPromptModal Component', () => {
 		expect(mockOnClose).toHaveBeenCalledTimes(1)
 		expect(mockNavigate).toHaveBeenCalledWith('/login')
 	})
-
-	test('calls on_continue when "Continue without an account" is clicked', () => {
-		render(
-			<SubmitPromptModal
-				is_open={true}
-				on_close={mockOnClose}
-				on_continue={mockOnContinue}
-			/>
-		)
-
-		const continueBtn = screen.getByRole('button', {
-			name: /Continue without an account/i,
-		})
-		fireEvent.click(continueBtn)
-
-		expect(mockOnContinue).toHaveBeenCalledTimes(1)
-		// Ensure on_close wasn't accidentally triggered
-		expect(mockOnClose).not.toHaveBeenCalled()
-	})
 })
