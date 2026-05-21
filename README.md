@@ -1,12 +1,12 @@
 # Report-Wiza — Municipal Service Delivery Reporting Portal
 
-[![codecov](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graph/badge.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
+[![codecov](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/main/graph/badge.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
 
 **Live Application:** [Report-Wiza on Azure](https://report-wiza-heeba2h0cbgacjc6.italynorth-01.azurewebsites.net)  
 **Course:** COMS3009A — Software Design 2026, Wits University  
 **Project Brief:** Project 5  
 
-[![Codecov Sunburst](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graphs/sunburst.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
+[![Codecov Sunburst](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/main/graphs/sunburst.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
 
 ---
 
@@ -33,7 +33,7 @@ The system supports 3 authenticated roles (via Google/Microsoft SSO) and 1 unaut
 - **Backend:** Node.js (Express v5 API)
 - **Database:** Firebase Firestore (NoSQL)
 - **Authentication:** Firebase Auth (Google & Microsoft SSO integration)
-- **Storage:** Firebase Storage (for request photo attachments)
+- **Storage:** Backblaze Storage (for request photo attachments)
 - **CI/CD Pipeline:** GitHub Actions
 - **Deployment Environment:** Azure Static Web Apps (via MSDeploy/ZipDeploy)
 - **Testing:** Jest for unit testing and code coverage tracking (Codecov)
@@ -44,7 +44,7 @@ The system supports 3 authenticated roles (via Google/Microsoft SSO) and 1 unaut
 
 To meet the strict regional rubric requirements, WardWatch integrates real South African geographic datasets:
 
-- **Source:** StatsSA GeoJSON boundary dataset.
+- **Source:** StatsSA GeoJSON boundary dataset and ward data from the [Electoral Commission of South Africa](https://gisapi.elections.org.za/IECGIS_VSFinder)
 - **Functionality:** Every submitted service request is automatically tagged to the correct municipal ward and municipality based entirely on the user's GPS coordinates.
 - **Visualization:** Real ward boundaries are natively rendered on both the submission map and the public viewing dashboard.
 
@@ -52,15 +52,15 @@ To meet the strict regional rubric requirements, WardWatch integrates real South
 
 ## 🏗 Developer Guidelines & Architecture Rules
 
-For any developer contributing to the codebase, the following architectural boundaries and rules are strictly enforced to prevent Azure deployment failures:
+For any developer contributing to the codebase, the following architectural boundaries and rules must be adhered to to prevent Azure deployment failures:
 
 ### 1. API Architecture Flow
 
-The backend must act as the secure data processor; aggregation should not happen on the client.
+The backend must act as the secure data processor.
 
 1.  React frontend components call a local service.
 2.  The service retrieves the Firebase Auth token and issues an HTTP `fetch()` to the backend.
-3.  The Express `server.js` endpoint authenticates the token, queries Firestore securely, performs data aggregations, and returns the final JSON payload.
+3.  The Express `server.js` endpoint authenticates the token, queries Firestore securely, performs data operations, and returns the final JSON payload.
 
 ### 2. The "100% No-Nos" in `server.js`
 
