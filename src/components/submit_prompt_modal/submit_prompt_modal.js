@@ -228,21 +228,6 @@ function SubmitPromptModal({ is_open, on_close, on_continue }) {
 							</svg>
 							Google
 						</div>
-						<div className="spm_provider_badge">
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 23 23"
-								xmlns="http://www.w3.org/2000/svg"
-							>
-								<path fill="#f3f3f3" d="M0 0h23v23H0z" />
-								<path fill="#f35325" d="M1 1h10v10H1z" />
-								<path fill="#81bc06" d="M12 1h10v10H12z" />
-								<path fill="#05a6f0" d="M1 12h10v10H1z" />
-								<path fill="#ffba08" d="M12 12h10v10H12z" />
-							</svg>
-							Microsoft
-						</div>
 					</div>
 				</div>
 
@@ -254,16 +239,7 @@ function SubmitPromptModal({ is_open, on_close, on_continue }) {
 					>
 						Create Account / Sign In
 					</button>
-					<button className="spm_btn_ghost" onClick={on_continue}>
-						Continue without an account
-					</button>
 				</div>
-
-				{/* ── Fine print ── */}
-				<p className="spm_footnote">
-					Anonymous submissions are accepted but cannot be tracked or
-					updated after submission.
-				</p>
 			</div>
 		</div>
 	)
