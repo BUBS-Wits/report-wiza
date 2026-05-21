@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -7,7 +7,8 @@ import { auth, db } from '../../firebase_config.js'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import RequestCard from '../../components/request_card/request_card.js'
-import { fetchPublicDashboardData } from '../../backend/public_dashboard_service.js'
+// ✅ Replaced fetchPublicDashboardData with the live-listener export
+import { subscribe_to_public_dashboard } from '../../backend/public_dashboard_service.js'
 import { fetch_public_dashboard_visibility } from '../../backend/public_dashboard_settings_service.js'
 import './public_dashboard.css'
 import Navbar from '../../components/nav_bar/nav_bar.js'
@@ -237,37 +238,45 @@ function PublicDashboard() {
 		return () => unsub()
 	}, [])
 
+	// ✅ Live listener: replaces the Promise.all one-time fetch.
+	// subscribe_to_public_dashboard returns an unsubscribe function which
+	// React calls automatically when the component unmounts, tearing down
+	// the Firestore listener and preventing memory leaks.
 	useEffect(() => {
-		Promise.all([
-			fetchPublicDashboardData(),
-			fetch_public_dashboard_visibility(),
-		])
-			.then(([{ active, resolved, stats }, visibility]) => {
+		// Kick off the visibility fetch in parallel; it's still a one-time call
+		// because visibility settings don't change in real time.
+		fetch_public_dashboard_visibility()
+			.then((visibility) => setVisibleFields(visibility))
+			.catch((err) =>
+				console.error('Failed to load visibility settings:', err)
+			)
+
+		const unsubscribe = subscribe_to_public_dashboard(
+			// on_update — called immediately with the first snapshot, then on
+			// every subsequent Firestore change.
+			({ active, resolved, stats }) => {
 				setActive(active)
 				setResolved(resolved)
 				setStats(stats)
-				setVisibleFields(visibility)
-			})
-			.catch((err) => {
-				console.error('Failed to load dashboard data:', err)
+				setLoading(false)
+			},
+			// on_error — surface Firestore errors to the UI.
+			(err) => {
+				console.error('Live dashboard error:', err)
 				setError(
 					'Failed to load service requests. Please try again later.'
 				)
-			})
-			.finally(() => setLoading(false))
+				setLoading(false)
+			}
+		)
+
+		// Return the Firestore unsubscribe so the listener is torn down when
+		// the component unmounts (navigation away, HMR reload, etc.).
+		return () => unsubscribe()
 	}, [])
 
-	// NEW: function to refresh the whole dashboard after a like
-	const refreshDashboard = useCallback(async () => {
-		try {
-			const { active, resolved, stats } = await fetchPublicDashboardData()
-			setActive(active)
-			setResolved(resolved)
-			setStats(stats)
-		} catch (err) {
-			console.error('Failed to refresh dashboard data:', err)
-		}
-	}, [])
+	// ✅ refreshDashboard removed — the live listener keeps all state current
+	// automatically, so RequestCard no longer needs an onLikeChange callback.
 
 	const allRequests = [...active, ...resolved]
 	const mapRequests = allRequests.filter(
@@ -408,7 +417,7 @@ function PublicDashboard() {
 				</div>
 			</section>
 
-			{/* Filter section from main */}
+			{/* Filter section */}
 			<section className="filter_section">
 				<div className="section_heading_row">
 					<h2>Filter Dashboard</h2>
@@ -571,7 +580,7 @@ function PublicDashboard() {
 								key={request.id}
 								request={request}
 								visibleFields={visibleFields}
-								onLikeChange={refreshDashboard}
+								// ✅ onLikeChange removed — live listener handles updates
 							/>
 						))
 					) : (
@@ -596,7 +605,7 @@ function PublicDashboard() {
 								key={request.id}
 								request={request}
 								visibleFields={visibleFields}
-								onLikeChange={refreshDashboard}
+								// ✅ onLikeChange removed — live listener handles updates
 							/>
 						))
 					) : (

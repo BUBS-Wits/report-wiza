@@ -4,9 +4,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { auth } from '../../firebase_config.js'
 import {
 	fetch_resident_profile,
-	fetch_resident_requests,
+	subscribe_to_resident_requests,
 	subscribe_to_resident_unread_count,
 } from '../../backend/resident_dashboard_service.js'
+import { subscribe_to_request_lock } from '../../backend/admin_messaging_service.js'   // ← add
 import { STATUS, STATUS_DISPLAY } from '../../constants.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import './resident_dashboard.css'
@@ -84,7 +85,7 @@ export default function ResidentDashboard() {
 		try {
 			const [profile, reqs] = await Promise.all([
 				fetch_resident_profile(uid),
-				fetch_resident_requests(uid),
+				subscribe_to_resident_requests(uid, set_requests),
 			])
 			set_resident(profile)
 			set_requests(reqs)
@@ -98,17 +99,63 @@ export default function ResidentDashboard() {
 		}
 	}, [])
 
-	useEffect(() => {
-		const unsub = onAuthStateChanged(auth, (user) => {
-			if (!user) {
-				set_error('You are not logged in.')
-				set_loading(false)
-				return
-			}
-			load(user.uid)
-		})
-		return unsub
-	}, [load])
+useEffect(() => {
+        let unsubscribe_requests = null;
+
+        const unsub_auth = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                set_error('You are not logged in.');
+                set_loading(false);
+                if (unsubscribe_requests) unsubscribe_requests();
+                return;
+            }
+
+            set_loading(true);
+            set_error(null);
+
+            try {
+                // 1. Fetch the static profile data once
+                const profile = await fetch_resident_profile(user.uid);
+                set_resident(profile);
+
+                // 2. Start the live listener for requests
+                unsubscribe_requests = subscribe_to_resident_requests(user.uid, (live_reqs) => {
+                    set_requests(live_reqs);
+                    
+                    // Auto-select the first request if nothing is selected yet
+                    set_selected_id((prev_selected) => {
+                        if (!prev_selected && live_reqs.length > 0) {
+                            return live_reqs[0].id;
+                        }
+                        return prev_selected;
+                    });
+
+                    set_loading(false); // Stop loading once the first live snapshot arrives
+                });
+
+            } catch (err) {
+                console.error(err);
+                set_error(err.message || 'Failed to load your dashboard.');
+                set_loading(false);
+            }
+        });
+
+        // 3. Cleanup function when component unmounts
+        return () => {
+            unsub_auth(); // Stop listening to Auth
+            if (unsubscribe_requests) unsubscribe_requests(); // Stop listening to Firestore
+        };
+    }, []); // Empty dependency array so this setup only runs once on mount
+
+
+    // Keep your unread messages useEffect just below it:
+    useEffect(() => {
+        if (!resident) return;
+        return subscribe_to_resident_unread_count(
+            resident.uid,
+            set_unread_total
+        );
+    }, [resident]);
 
 	useEffect(() => {
 		if (!resident) {
@@ -149,9 +196,6 @@ export default function ResidentDashboard() {
 				alert(errData.error || 'Failed to cancel request')
 				return
 			}
-
-			// Remove the request from the list
-			set_requests((prev) => prev.filter((r) => r.id !== requestId))
 
 			// If the deleted request was selected, select another one
 			if (selected_id === requestId) {
@@ -471,13 +515,17 @@ const PRIORITY_META = {
 }
 
 function RequestDetail({ req, resident, on_back, on_cancel }) {
-	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
-	const has_worker = !!req.worker_uid
-	const priority_meta = PRIORITY_META[req.priority] ?? null
-	const [close_reason, set_close_reason] = useState(null)
-	const [close_reason_loading, set_close_reason_loading] = useState(false)
-	const [feedback_form, set_feedback_form] = useState(false)
-	const { addMessage } = useMessages() // Need to extract addMessage here as well!
+    const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
+    const has_worker = !!req.worker_uid
+    const priority_meta = PRIORITY_META[req.priority] ?? null
+    const [close_reason, set_close_reason] = useState(null)
+    const [close_reason_loading, set_close_reason_loading] = useState(false)
+    const [feedback_form, set_feedback_form] = useState(false)
+    const { addMessage } = useMessages()
+    const [messaging_enabled, set_messaging_enabled] = useState(
+        req.messaging_enabled !== false   // initialise from request data so there's no flicker
+    )
+    const [lock_reason, set_lock_reason] = useState(null)
 
 	const canCancel =
 		!has_worker &&
@@ -597,6 +645,19 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 			req.image_expires_at = get_signed_url_expiry(image)
 		})
 	}
+
+	    useEffect(() => {
+        if (!req.id) return
+        const unsub = subscribe_to_request_lock(
+            req.id,
+            ({ messaging_enabled, messaging_lock_reason }) => {
+                set_messaging_enabled(messaging_enabled)
+                set_lock_reason(messaging_lock_reason)
+            },
+            (err) => console.error('[resident lock listener]', err)
+        )
+        return unsub
+    }, [req.id])
 
 	useEffect(() => {
 		if (req.status !== 'closed') {
@@ -836,7 +897,8 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 						current_role="resident"
 						other_uid={req.worker_uid}
 						other_name={req.worker_name ?? 'Worker'}
-						messaging_enabled={req.messaging_enabled !== false}
+						messaging_enabled={messaging_enabled} 
+						lock_reason={lock_reason}
 					/>
 				) : (
 					<div className="rd-no-worker">

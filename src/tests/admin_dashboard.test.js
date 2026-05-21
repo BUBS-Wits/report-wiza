@@ -6,334 +6,275 @@ import AdminDashboard from '../pages/admin_dashboard/admin_dashboard.js'
 // ---------------------------------------------------------------------------
 // Global Mocks
 // ---------------------------------------------------------------------------
-// Bypass the JSDOM window.confirm error by automatically clicking "Yes"
 window.confirm = jest.fn(() => true)
 
 // ---------------------------------------------------------------------------
 // Module Mocks
 // ---------------------------------------------------------------------------
-import { fetch_workers, revoke_worker_role } from '../backend/admin_firebase.js'
+import { subscribe_to_workers, revoke_worker_role } from '../backend/admin_firebase.js'
 
 jest.mock('../backend/admin_firebase.js', () => ({
-	fetch_workers: jest.fn(),
-	revoke_worker_role: jest.fn(),
+    subscribe_to_workers: jest.fn(),
+    revoke_worker_role: jest.fn(),
 }))
 
-// Prevent the messaging component from crashing the test by mocking its backend
 jest.mock('../backend/admin_messaging_service.js', () => ({
-	subscribe_to_admin_threads: jest.fn(() => jest.fn()),
-	subscribe_to_thread_messages: jest.fn(() => jest.fn()),
-	admin_toggle_thread_messaging: jest.fn(),
-	invalidate_request_cache: jest.fn(),
+    subscribe_to_admin_threads: jest.fn(() => jest.fn()),
+    subscribe_to_thread_messages: jest.fn(() => jest.fn()),
+    admin_toggle_thread_messaging: jest.fn(),
+    invalidate_request_cache: jest.fn(),
 }))
 
 jest.mock('../pages/admin_dashboard/admin_dashboard.css', () => ({}))
 
 jest.mock('../components/top_bar/top_bar.js', () => {
-	return function MockTopBar() {
-		return <div data-testid="mock-top-bar" />
-	}
+    return function MockTopBar() { return <div data-testid="mock-top-bar" /> }
 })
 
 jest.mock('../components/stat_cards/stat_cards.js', () => {
-	return function MockStatCards({ total }) {
-		return <div data-testid="mock-stat-cards">Total: {total}</div>
-	}
+    return function MockStatCards({ total }) {
+        return <div data-testid="mock-stat-cards">Total: {total}</div>
+    }
 })
 
 jest.mock('../components/register_worker/register_worker.js', () => {
-	return function MockRegisterWorker({ on_registered }) {
-		return (
-			<button data-testid="mock-register-btn" onClick={on_registered}>
-				Simulate Registration
-			</button>
-		)
-	}
+    return function MockRegisterWorker() {
+        return <button data-testid="mock-register-btn">Simulate Registration</button>
+    }
 })
 
 jest.mock('../components/workers_list/workers_list.js', () => {
-	return function MockWorkersList({ workers, on_revoke }) {
-		return (
-			<div data-testid="mock-workers-list">
-				{workers.map((w) => (
-					<button
-						key={w.id}
-						data-testid={`revoke-btn-${w.id}`}
-						onClick={() => on_revoke(w.id, w.email)}
-					>
-						Revoke {w.email}
-					</button>
-				))}
-			</div>
-		)
-	}
+    return function MockWorkersList({ workers, on_revoke }) {
+        return (
+            <div data-testid="mock-workers-list">
+                {workers.map((w) => (
+                    <button
+                        key={w.id}
+                        data-testid={`revoke-btn-${w.id}`}
+                        onClick={() => on_revoke(w.id, w.email)}
+                    >
+                        Revoke {w.email}
+                    </button>
+                ))}
+            </div>
+        )
+    }
 })
 
 jest.mock('../components/admin_sidebar/admin_sidebar.js', () => {
-	return function MockSidebar({ on_change }) {
-		return (
-			<div data-testid="mock-sidebar">
-				<button onClick={() => on_change('workers')}>Workers</button>
-				<button onClick={() => on_change('requests')}>Requests</button>
-				<button onClick={() => on_change('messaging')}>
-					Messaging
-				</button>
-				<button onClick={() => on_change('residents')}>
-					Residents
-				</button>
-				<button onClick={() => on_change('analytics')}>
-					Analytics
-				</button>
-				<button onClick={() => on_change('settings')}>Settings</button>
-				<button onClick={() => on_change('unknown_section')}>
-					Unknown
-				</button>
-			</div>
-		)
-	}
+    return function MockSidebar({ on_change }) {
+        return (
+            <div data-testid="mock-sidebar">
+                <button onClick={() => on_change('workers')}>Workers</button>
+                <button onClick={() => on_change('requests')}>Requests</button>
+                <button onClick={() => on_change('messaging')}>Messaging</button>
+                <button onClick={() => on_change('residents')}>Residents</button>
+                <button onClick={() => on_change('analytics')}>Analytics</button>
+                <button onClick={() => on_change('settings')}>Settings</button>
+                <button onClick={() => on_change('unknown_section')}>Unknown</button>
+            </div>
+        )
+    }
 })
 
 jest.mock('../components/admin_requests/admin_requests.js', () => {
-	return function MockAdminRequests() {
-		return <div>Requests section — coming soon</div>
-	}
+    return function MockAdminRequests() { return <div>Requests section — coming soon</div> }
 })
 
-jest.mock(
-	'../components/admin_public_dashboard_settings/admin_public_dashboard_settings.js',
-	() => {
-		function MockAdminPublicDashboardSettings() {
-			return <div>Public dashboard field visibility</div>
-		}
-		return MockAdminPublicDashboardSettings
-	}
-)
+jest.mock('../components/admin_public_dashboard_settings/admin_public_dashboard_settings.js', () => {
+    return function MockAdminPublicDashboardSettings() { return <div>Public dashboard field visibility</div> }
+})
 
 // ---------------------------------------------------------------------------
 // Test Suite
 // ---------------------------------------------------------------------------
 describe('AdminDashboard', () => {
-	const mock_worker_data = [
-		{ id: 'w1', email: 'worker1@city.gov' },
-		{ id: 'w2', email: 'worker2@city.gov' },
-	]
+    const mock_worker_data = [
+        { id: 'w1', email: 'worker1@city.gov' },
+        { id: 'w2', email: 'worker2@city.gov' },
+    ]
+    let simulate_worker_update; // We will use this to push live updates to the UI
 
-	beforeEach(() => {
-		jest.clearAllMocks()
-		// 1. Properly mock the browser's confirm popup so it doesn't crash JSDOM
-		jest.spyOn(window, 'confirm').mockImplementation(() => true)
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.spyOn(window, 'confirm').mockImplementation(() => true)
 
-		// 2. Prevent the Messaging tab from crashing when it mounts
-		const {
-			subscribe_to_admin_threads,
-			subscribe_to_thread_messages,
-		} = require('../backend/admin_messaging_service.js')
-		subscribe_to_admin_threads.mockImplementation(() => jest.fn())
-		subscribe_to_thread_messages.mockImplementation(() => jest.fn())
+        const {
+            subscribe_to_admin_threads,
+            subscribe_to_thread_messages,
+        } = require('../backend/admin_messaging_service.js')
+        subscribe_to_admin_threads.mockImplementation(() => jest.fn())
+        subscribe_to_thread_messages.mockImplementation(() => jest.fn())
 
-		fetch_workers.mockResolvedValue(mock_worker_data)
-	})
+        // By default, instantly call the React callback with the mock data
+        subscribe_to_workers.mockImplementation((on_update, on_error) => {
+            simulate_worker_update = on_update;
+            on_update(mock_worker_data);
+            return jest.fn(); // mock unsubscribe
+        })
+    })
 
-	// Helper to ensure tests wait for the initial async load to finish
-	const wait_for_initial_load = async () => {
-		await waitFor(() => {
-			expect(screen.getByTestId('mock-stat-cards')).toHaveTextContent(
-				'Total: 2'
-			)
-		})
-	}
+    const wait_for_initial_load = async () => {
+        await waitFor(() => {
+            expect(screen.getByTestId('mock-stat-cards')).toHaveTextContent('Total: 2')
+        })
+    }
 
-	// -----------------------------------------------------------------------
-	// 1. Initial Mount & Data Fetching
-	// -----------------------------------------------------------------------
-	describe('Given the AdminDashboard is mounted', () => {
-		describe('When the component initializes successfully', () => {
-			it('Then it should fetch workers and render the workers section by default', async () => {
-				render(<AdminDashboard />)
+    // -----------------------------------------------------------------------
+    // 1. Initial Mount & Data Fetching
+    // -----------------------------------------------------------------------
+    describe('Given the AdminDashboard is mounted', () => {
+        describe('When the component initializes successfully', () => {
+            it('Then it should setup listener and render the workers section by default', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-				// Wait for DOM to reflect the fetched data
-				await wait_for_initial_load()
+                expect(subscribe_to_workers).toHaveBeenCalledTimes(1)
+                expect(screen.getByTestId('mock-top-bar')).toBeInTheDocument()
+                expect(screen.getByTestId('mock-sidebar')).toBeInTheDocument()
+                expect(screen.getByTestId('revoke-btn-w1')).toBeInTheDocument()
+            })
+        })
 
-				expect(fetch_workers).toHaveBeenCalledTimes(1)
-				expect(screen.getByTestId('mock-top-bar')).toBeInTheDocument()
-				expect(screen.getByTestId('mock-sidebar')).toBeInTheDocument()
-				expect(screen.getByTestId('revoke-btn-w1')).toBeInTheDocument()
-			})
-		})
+        describe('When the live listener throws an error', () => {
+            it('Then it should catch the error and display an error toast', async () => {
+                subscribe_to_workers.mockImplementationOnce((on_update, on_error) => {
+                    on_error(new Error('Firebase Live Listener Error'))
+                    return jest.fn()
+                })
 
-		describe('When the worker fetch request fails', () => {
-			it('Then it should catch the error and log it to the console', async () => {
-				const console_spy = jest
-					.spyOn(console, 'error')
-					.mockImplementation(() => {})
-				fetch_workers.mockRejectedValueOnce(new Error('Firebase Error'))
+                render(<AdminDashboard />)
 
-				render(<AdminDashboard />)
+                await waitFor(() => {
+                    expect(screen.getByText('Firebase Live Listener Error')).toBeInTheDocument()
+                })
+            })
+        })
+    })
 
-				await waitFor(() => {
-					expect(console_spy).toHaveBeenCalledWith(expect.any(Error))
-				})
+    // -----------------------------------------------------------------------
+    // 2. Child Component Interactions
+    // -----------------------------------------------------------------------
+    describe('Given the Workers section is active', () => {
+        describe('When the register button is rendered', () => {
+            it('Then it is available for interaction (registration UI handled by internal live listeners)', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
+                expect(screen.getByTestId('mock-register-btn')).toBeInTheDocument()
+            })
+        })
+    })
 
-				console_spy.mockRestore()
-			})
-		})
-	})
+    // -----------------------------------------------------------------------
+    // 3. Worker Revocation Logic
+    // -----------------------------------------------------------------------
+    describe('Given the AdminDashboard is loaded with workers', () => {
+        describe('When the admin successfully revokes a worker role', () => {
+            it('Then it should display a success message and update when Firestore syncs', async () => {
+                revoke_worker_role.mockResolvedValueOnce()
 
-	// -----------------------------------------------------------------------
-	// 2. Child Component Interactions
-	// -----------------------------------------------------------------------
-	describe('Given the Workers section is active', () => {
-		describe('When a new worker is successfully registered', () => {
-			it('Then it should trigger a reload of the workers list', async () => {
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-				fireEvent.click(screen.getByTestId('mock-register-btn'))
+                fireEvent.click(screen.getByTestId('revoke-btn-w1'))
 
-				await waitFor(() => {
-					expect(fetch_workers).toHaveBeenCalledTimes(2)
-				})
-			})
-		})
-	})
+                // Verify the backend call was made
+                await waitFor(() => {
+                    expect(revoke_worker_role).toHaveBeenCalledWith('w1')
+                })
 
-	// -----------------------------------------------------------------------
-	// 3. Worker Revocation Logic
-	// -----------------------------------------------------------------------
-	describe('Given the AdminDashboard is loaded with workers', () => {
-		describe('When the admin successfully revokes a worker role', () => {
-			it('Then it should remove the worker from the list and show a success message', async () => {
-				revoke_worker_role.mockResolvedValueOnce()
+                // Simulate Firestore instantly pushing the updated data back down to React
+                simulate_worker_update([{ id: 'w2', email: 'worker2@city.gov' }])
 
-				// Mount with 2 workers, then reload with 1 worker after revoke!
-				fetch_workers
-					.mockResolvedValueOnce(mock_worker_data)
-					.mockResolvedValueOnce([
-						{ id: 'w2', email: 'worker2@city.gov' },
-					])
+                await waitFor(() => {
+                    expect(screen.queryByTestId('revoke-btn-w1')).not.toBeInTheDocument()
+                })
 
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
+                expect(screen.getByTestId('revoke-btn-w2')).toBeInTheDocument()
+                const message_div = screen.getByText('Worker role revoked for worker1@city.gov')
+                expect(message_div).toBeInTheDocument()
+            })
+        })
 
-				fireEvent.click(screen.getByTestId('revoke-btn-w1'))
+        describe('When revoking a worker role fails', () => {
+            it('Then it should display an error message', async () => {
+                revoke_worker_role.mockRejectedValueOnce(new Error('Permission Denied'))
 
-				await waitFor(() => {
-					expect(
-						screen.queryByTestId('revoke-btn-w1')
-					).not.toBeInTheDocument()
-				})
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-				expect(revoke_worker_role).toHaveBeenCalledWith('w1')
-				expect(screen.getByTestId('revoke-btn-w2')).toBeInTheDocument()
+                fireEvent.click(screen.getByTestId('revoke-btn-w2'))
 
-				const message_div = screen.getByText(
-					'Worker role revoked for worker1@city.gov'
-				)
-				expect(message_div).toBeInTheDocument()
-			})
-		})
+                const message_div = await screen.findByText(/Permission Denied/i)
+                expect(message_div).toBeInTheDocument()
+            })
+        })
+    })
 
-		describe('When revoking a worker role fails', () => {
-			it('Then it should display an error message', async () => {
-				revoke_worker_role.mockRejectedValueOnce(
-					new Error('Permission Denied')
-				)
+    // -----------------------------------------------------------------------
+    // 4. Sidebar Navigation & Rendering
+    // -----------------------------------------------------------------------
+    describe('Given the Sidebar is rendered', () => {
+        describe('When the Requests section is clicked', () => {
+            it('Then it should render the requests placeholder', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load() 
 
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
+                fireEvent.click(screen.getByText('Requests'))
+                expect(screen.getByText('Requests section — coming soon')).toBeInTheDocument()
+            })
+        })
 
-				fireEvent.click(screen.getByTestId('revoke-btn-w2'))
+        describe('When the Messaging section is clicked', () => {
+            it('Then it should render the messaging placeholder', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-				const message_div =
-					await screen.findByText(/Permission Denied/i)
-				expect(message_div).toBeInTheDocument()
-			})
-		})
-	})
+                fireEvent.click(screen.getByText('Messaging'))
+                expect(screen.getByText('Monitor all conversations between workers and residents')).toBeInTheDocument()
+            })
+        })
 
-	// -----------------------------------------------------------------------
-	// 4. Sidebar Navigation & Rendering
-	// -----------------------------------------------------------------------
-	describe('Given the Sidebar is rendered', () => {
-		describe('When the Requests section is clicked', () => {
-			it('Then it should render the requests placeholder', async () => {
-				render(<AdminDashboard />)
-				await wait_for_initial_load() // Wait to prevent act warnings
+        describe('When the Residents section is clicked', () => {
+            it('Then it should render the residents placeholder', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-				fireEvent.click(screen.getByText('Requests'))
-				expect(
-					screen.getByText('Requests section — coming soon')
-				).toBeInTheDocument()
-			})
-		})
+                fireEvent.click(screen.getByText('Residents'))
+                expect(screen.getByText('Residents Management')).toBeInTheDocument()
+            })
+        })
 
-		describe('When the Messaging section is clicked', () => {
-			it('Then it should render the messaging placeholder', async () => {
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
+        describe('When the Analytics section is clicked', () => {
+            it('Then it should render the analytics placeholder', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-				fireEvent.click(screen.getByText('Messaging'))
+                fireEvent.click(screen.getByText('Analytics'))
+                expect(screen.getByText('Analytics Overview')).toBeInTheDocument()
+            })
+        })
 
-				// Check for the unique subtitle instead of the title to avoid "Found multiple elements" error
-				expect(
-					screen.getByText(
-						'Monitor all conversations between workers and residents'
-					)
-				).toBeInTheDocument()
-			})
-		})
+        describe('When the Settings section is clicked', () => {
+            it('Then it should render the public dashboard settings component', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-		describe('When the Residents section is clicked', () => {
-			it('Then it should render the residents placeholder', async () => {
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
+                fireEvent.click(screen.getByText('Settings'))
+                expect(screen.getByText('Public dashboard field visibility')).toBeInTheDocument()
+            })
+        })
 
-				fireEvent.click(screen.getByText('Residents'))
-				expect(
-					screen.getByText('Residents Management')
-				).toBeInTheDocument()
-			})
-		})
+        describe('When an unknown section is passed to the state', () => {
+            it('Then it should return null for the content area safely', async () => {
+                render(<AdminDashboard />)
+                await wait_for_initial_load()
 
-		describe('When the Analytics section is clicked', () => {
-			it('Then it should render the analytics placeholder', async () => {
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
+                fireEvent.click(screen.getByText('Unknown'))
 
-				fireEvent.click(screen.getByText('Analytics'))
-				expect(
-					screen.getByText('Analytics Overview')
-				).toBeInTheDocument()
-			})
-		})
-
-		describe('When the Settings section is clicked', () => {
-			it('Then it should render the public dashboard settings component', async () => {
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
-
-				fireEvent.click(screen.getByText('Settings'))
-
-				expect(
-					screen.getByText('Public dashboard field visibility')
-				).toBeInTheDocument()
-			})
-		})
-
-		describe('When an unknown section is passed to the state', () => {
-			it('Then it should return null for the content area safely', async () => {
-				render(<AdminDashboard />)
-				await wait_for_initial_load()
-
-				fireEvent.click(screen.getByText('Unknown'))
-
-				expect(
-					screen.queryByTestId('mock-workers-list')
-				).not.toBeInTheDocument()
-				expect(
-					screen.queryByText(/coming soon/i)
-				).not.toBeInTheDocument()
-			})
-		})
-	})
+                expect(screen.queryByTestId('mock-workers-list')).not.toBeInTheDocument()
+                expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument()
+            })
+        })
+    })
 })

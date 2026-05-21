@@ -12,6 +12,7 @@ import {
 	where,
 	getDocs,
 	serverTimestamp,
+	onSnapshot
 } from 'firebase/firestore'
 
 // Email link settings — tells Firebase where to redirect
@@ -98,15 +99,18 @@ export const confirm_worker_role = async (uid, email, personal_details) => {
 }
 
 // Fetches all users with role 'worker' from Firestore
-export const fetch_workers = async () => {
-	try {
-		const q = query(collection(db, 'users'), where('role', '==', 'worker'))
-		const snapshot = await getDocs(q)
-		return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-	} catch (error) {
-		console.error('Error fetching workers:', error)
-		throw new Error('Could not load workers. Try again later.')
-	}
+export const subscribe_to_workers = (on_update, on_error) => {
+    const q = query(collection(db, 'users'), where('role', '==', 'worker'))
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const workers = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        on_update(workers)
+    }, (error) => {
+        console.error('Error fetching workers:', error)
+        if (on_error) on_error(new Error('Could not load workers. Try again later.'))
+    })
+
+    return unsubscribe;
 }
 
 // Revokes worker role by setting their role back to resident

@@ -1,54 +1,45 @@
 /* global jest */
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { fetch_public_dashboard_visibility } from '../backend/public_dashboard_settings_service.js'
-
-// 🔥 Import the auth function so we can control its mock in beforeEach
 import { onAuthStateChanged } from 'firebase/auth'
-
-// Updated import paths with .js extensions
 import PublicDashboard from '../pages/public_dashboard/public_dashboard.js'
-import { fetchPublicDashboardData } from '../backend/public_dashboard_service.js'
+// ✅ Import the live-listener export, not the old one-shot fetch
+import { subscribe_to_public_dashboard } from '../backend/public_dashboard_service.js'
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Mocks — Set up before importing the modules under test
+   Mocks
 ───────────────────────────────────────────────────────────────────────────── */
 
-// Mock CSS files
 jest.mock('../pages/public_dashboard/public_dashboard.css', () => ({}))
 jest.mock('leaflet/dist/leaflet.css', () => ({}))
 
 const mockNavigate = jest.fn()
 
-// Mock react-router-dom
 jest.mock('react-router-dom', () => ({
 	...jest.requireActual('react-router-dom'),
 	Link: ({ children, to }) => <a href={to}>{children}</a>,
 	useNavigate: () => mockNavigate,
 }))
 
-// Mock NavBar to prevent its internal useEffects from crashing Dashboard tests
 jest.mock('../components/nav_bar/nav_bar.js', () => {
 	return function DummyNavBar() {
 		return <div data-testid="navbar">Mock Navbar</div>
 	}
 })
 
-// Mock Firebase Config
 jest.mock('../firebase_config.js', () => ({
 	auth: {},
 	db: {},
 }))
 
-// Mock Firebase Auth
 jest.mock('firebase/auth', () => ({
 	getAuth: jest.fn(),
 	onAuthStateChanged: jest.fn(),
 	signOut: jest.fn(),
 }))
 
-// Mock Firestore (in case any child components use onSnapshot)
 jest.mock('firebase/firestore', () => ({
 	...jest.requireActual('firebase/firestore'),
 	getFirestore: jest.fn(),
@@ -62,12 +53,11 @@ jest.mock('firebase/firestore', () => ({
 	getDoc: jest.fn(),
 }))
 
-// Mock the backend service
+// ✅ Mock the live-listener export instead of the old fetchPublicDashboardData
 jest.mock('../backend/public_dashboard_service.js', () => ({
-	fetchPublicDashboardData: jest.fn(),
+	subscribe_to_public_dashboard: jest.fn(),
 }))
 
-// Mock RequestCard to simplify the DOM and isolate dashboard logic
 jest.mock('../components/request_card/request_card.js', () => {
 	return function DummyRequestCard({ request, visibleFields }) {
 		return (
@@ -81,7 +71,6 @@ jest.mock('../components/request_card/request_card.js', () => {
 	}
 })
 
-// Mock Leaflet core to prevent JSDOM canvas/DOM crashes
 jest.mock('leaflet', () => {
 	const LMock = {
 		Icon: class {
@@ -96,7 +85,6 @@ jest.mock('leaflet', () => {
 	return LMock
 })
 
-// Mock esri-leaflet
 jest.mock('esri-leaflet', () => ({
 	featureLayer: jest.fn(() => ({
 		bindPopup: jest.fn().mockReturnThis(),
@@ -106,7 +94,6 @@ jest.mock('esri-leaflet', () => ({
 	})),
 }))
 
-// Mock React-Leaflet components
 jest.mock('react-leaflet', () => ({
 	MapContainer: ({ children }) => (
 		<div data-testid="map-container">{children}</div>
@@ -126,7 +113,7 @@ jest.mock('../backend/public_dashboard_settings_service.js', () => ({
 }))
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Shared Fixtures
+   Fixtures
 ───────────────────────────────────────────────────────────────────────────── */
 
 const mockDashboardData = {
@@ -161,11 +148,49 @@ const mockDashboardData = {
 			ward: 'Ward 10',
 		},
 	],
-	stats: {
-		open_count: 2,
-		resolved_count: 1,
-		wards_affected: 2,
-	},
+	stats: { open_count: 2, resolved_count: 1, wards_affected: 2 },
+}
+
+const defaultVisibility = {
+	category: true,
+	status: true,
+	ward: true,
+	municipality: true,
+	description: true,
+	likes: true,
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Helpers
+───────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Wires subscribe_to_public_dashboard to call on_update synchronously with
+ * the given payload and return a no-op unsubscribe function.
+ */
+const mockLiveData = (payload) => {
+	subscribe_to_public_dashboard.mockImplementation((on_update) => {
+		on_update(payload)
+		return jest.fn() // unsubscribe
+	})
+}
+
+/**
+ * Wires subscribe_to_public_dashboard to call on_error synchronously.
+ */
+const mockLiveError = (error) => {
+	subscribe_to_public_dashboard.mockImplementation((_on_update, on_error) => {
+		on_error(error)
+		return jest.fn()
+	})
+}
+
+/**
+ * Wires subscribe_to_public_dashboard to never call either callback,
+ * keeping the component in the loading state indefinitely.
+ */
+const mockLivePending = () => {
+	subscribe_to_public_dashboard.mockImplementation(() => jest.fn())
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -176,27 +201,17 @@ describe('PublicDashboard Component', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 
-		fetch_public_dashboard_visibility.mockResolvedValue({
-			category: true,
-			status: true,
-			ward: true,
-			municipality: true,
-			description: true,
-			likes: true,
-		})
+		fetch_public_dashboard_visibility.mockResolvedValue(defaultVisibility)
 
-		// 🔥 THE MAGIC FIX: Force the mock to return a dummy unsubscribe function before EVERY test
 		onAuthStateChanged.mockImplementation((auth, callback) => {
-			if (typeof callback === 'function') {
-				callback(null) // Simulate no user logged in
-			}
-			return jest.fn() // Prevent 'unsub is not a function' on unmount
+			if (typeof callback === 'function') callback(null)
+			return jest.fn()
 		})
 	})
 
 	test('renders the loading state initially', () => {
-		// Return a promise that doesn't resolve immediately to keep it in loading state
-		fetchPublicDashboardData.mockReturnValue(new Promise(() => {}))
+		// Listener never fires → component stays in loading state
+		mockLivePending()
 
 		render(<PublicDashboard />)
 
@@ -205,17 +220,15 @@ describe('PublicDashboard Component', () => {
 		).toBeInTheDocument()
 	})
 
-	test('renders the error state if data fetching fails', async () => {
-		// Temporarily silence console.error so our test output stays clean
+	test('renders the error state if the live listener fires an error', async () => {
 		const consoleSpy = jest
 			.spyOn(console, 'error')
 			.mockImplementation(() => {})
 
-		fetchPublicDashboardData.mockRejectedValue(new Error('Network Error'))
+		mockLiveError(new Error('Firestore unavailable'))
 
 		render(<PublicDashboard />)
 
-		// Wait for the error message to appear after the promise rejects
 		await waitFor(() => {
 			expect(
 				screen.getByText(
@@ -228,7 +241,7 @@ describe('PublicDashboard Component', () => {
 	})
 
 	test('renders empty states when there are no active or resolved requests', async () => {
-		fetchPublicDashboardData.mockResolvedValue({
+		mockLiveData({
 			active: [],
 			resolved: [],
 			stats: { open_count: 0, resolved_count: 0, wards_affected: 0 },
@@ -242,7 +255,6 @@ describe('PublicDashboard Component', () => {
 			).not.toBeInTheDocument()
 		})
 
-		// Check for empty state messages – updated to match filter‑aware messages
 		expect(
 			screen.getByText('No active requests match the selected filters.')
 		).toBeInTheDocument()
@@ -250,13 +262,12 @@ describe('PublicDashboard Component', () => {
 			screen.getByText('No resolved requests match the selected filters.')
 		).toBeInTheDocument()
 
-		// Check that stats are zero
 		const statValues = screen.getAllByText('0')
-		expect(statValues.length).toBe(3) // Open, Resolved, Wards
+		expect(statValues.length).toBe(3)
 	})
 
 	test('renders populated data and correctly maps child components', async () => {
-		fetchPublicDashboardData.mockResolvedValue(mockDashboardData)
+		mockLiveData(mockDashboardData)
 
 		render(<PublicDashboard />)
 
@@ -266,47 +277,36 @@ describe('PublicDashboard Component', () => {
 			).not.toBeInTheDocument()
 		})
 
-		// 1. Verify Header and Layout
 		expect(
 			screen.getByText('Community Service Dashboard')
 		).toBeInTheDocument()
 
-		// 2. Verify Stats Panel
 		const twos = screen.getAllByText('2')
 		expect(twos.length).toBe(2)
-		expect(screen.getByText('1')).toBeInTheDocument() // resolved_count
+		expect(screen.getByText('1')).toBeInTheDocument()
 
-		// 3. Verify Active Requests rendering
 		expect(screen.getByTestId('request-card-req_1')).toHaveTextContent(
 			'Pothole'
 		)
 		expect(screen.getByTestId('request-card-req_2')).toHaveTextContent(
 			'Water Leak'
 		)
-
-		// 4. Verify Resolved Requests rendering
 		expect(screen.getByTestId('request-card-req_3')).toHaveTextContent(
 			'Streetlight'
 		)
 
-		// 5. Verify Map Elements
 		expect(screen.getByTestId('map-container')).toBeInTheDocument()
 		expect(screen.getByTestId('tile-layer')).toBeInTheDocument()
 
-		// 3 markers should be rendered (2 active + 1 resolved)
 		const markers = screen.getAllByTestId('marker')
 		expect(markers.length).toBe(3)
 	})
 
 	test('loads public dashboard visibility settings and hides disabled fields', async () => {
-		fetchPublicDashboardData.mockResolvedValue(mockDashboardData)
+		mockLiveData(mockDashboardData)
 		fetch_public_dashboard_visibility.mockResolvedValue({
-			category: true,
-			status: true,
-			ward: true,
-			municipality: true,
+			...defaultVisibility,
 			description: false,
-			likes: true,
 		})
 
 		render(<PublicDashboard />)
@@ -332,5 +332,49 @@ describe('PublicDashboard Component', () => {
 		expect(
 			screen.queryByText('Streetlight repaired')
 		).not.toBeInTheDocument()
+	})
+
+	test('unsubscribes from the live listener on unmount', () => {
+		const mockUnsub = jest.fn()
+		subscribe_to_public_dashboard.mockImplementation((on_update) => {
+			on_update(mockDashboardData)
+			return mockUnsub
+		})
+
+		const { unmount } = render(<PublicDashboard />)
+		unmount()
+
+		expect(mockUnsub).toHaveBeenCalledTimes(1)
+	})
+
+	test('re-renders automatically when the listener pushes a new snapshot', async () => {
+		let capturedOnUpdate
+
+		subscribe_to_public_dashboard.mockImplementation((on_update) => {
+			capturedOnUpdate = on_update
+			// Fire an initial empty payload so loading ends
+			on_update({
+				active: [],
+				resolved: [],
+				stats: { open_count: 0, resolved_count: 0, wards_affected: 0 },
+			})
+			return jest.fn()
+		})
+
+		render(<PublicDashboard />)
+
+		await waitFor(() =>
+			expect(
+				screen.queryByText('Loading service requests…')
+			).not.toBeInTheDocument()
+		)
+
+		// Simulate Firestore pushing a live update
+		act(() => {
+			capturedOnUpdate(mockDashboardData)
+		})
+
+		expect(screen.getByTestId('request-card-req_1')).toBeInTheDocument()
+		expect(screen.getByTestId('request-card-req_2')).toBeInTheDocument()
 	})
 })
