@@ -9,6 +9,7 @@ import {
 } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { subscribe_to_worker_conversations } from '../backend/worker_conversations_service'
+import { subscribe_to_request_lock } from '../backend/admin_messaging_service'
 
 console.log = () => {}
 console.debug = () => {}
@@ -79,6 +80,16 @@ jest.mock('../backend/worker_analytics_service.js', () => ({
 jest.mock('../backend/worker_firebase.js', () => ({
 	update_request_status: (...a) => mock_update_request_status(...a),
 }))
+
+// ── NEW MOCK HERE ────────────────────────────────────────────────────────────
+let lock_update_callback = null
+jest.mock('../backend/admin_messaging_service.js', () => ({
+	subscribe_to_request_lock: jest.fn((uid, cb) => {
+		lock_update_callback = cb
+		return mock_unsub
+	}),
+}))
+// ─────────────────────────────────────────────────────────────────────────────
 
 jest.mock('react-router-dom', () => ({
 	useNavigate: () => jest.fn(),
@@ -186,6 +197,7 @@ const MOCK_CLAIMED = [
 		created_at: '2024-01-15T10:00:00Z',
 		updated_at: '2024-01-16T12:00:00Z',
 		priority: 'High',
+		messaging_enabled: true,
 	},
 	{
 		id: 'req-002',
@@ -346,7 +358,12 @@ beforeEach(() => {
 		conversation_callback = cb
 		return mock_unsub
 	})
+	subscribe_to_request_lock.mockImplementation((uid, cb) => {
+		lock_update_callback = cb
+		return mock_unsub
+	})
 	conversation_callback = null
+	lock_update_callback = null
 	mock_on_auth_state_changed.mockImplementation(() => {
 		return mock_unsub
 	})
@@ -755,6 +772,32 @@ describe('Detail panel content', () => {
 			)
 		)
 	})
+
+	// ── NEW TEST ─────────────────────────────────────────────────────────────
+	test('message thread reacts in real-time to admin locking the request', async () => {
+		await mount_and_load()
+		fireEvent.click(screen.getAllByLabelText(/open request req-001/i)[0])
+
+		await waitFor(() => {
+			expect(screen.getByTestId('message-thread')).toHaveAttribute(
+				'data-enabled',
+				'true'
+			)
+		})
+
+		// Simulate real-time event where admin disables messaging
+		await act(async () => {
+			if (lock_update_callback) {
+				lock_update_callback({ messaging_enabled: false })
+			}
+		})
+
+		expect(screen.getByTestId('message-thread')).toHaveAttribute(
+			'data-enabled',
+			'false'
+		)
+	})
+	// ─────────────────────────────────────────────────────────────────────────
 
 	test('shows no-resident message when user_uid is absent', async () => {
 		const no_uid = [{ ...MOCK_CLAIMED[0], user_uid: null }]
