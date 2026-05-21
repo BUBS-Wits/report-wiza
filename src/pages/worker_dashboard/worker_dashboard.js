@@ -25,6 +25,7 @@ import ClaimBtn from '../request/claim/claim_btn.js'
 import MessageThread from '../../components/message_thread/message_thread.js'
 import WorkerMessages from '../worker_messages/worker_messages.js'
 import { subscribe_to_worker_conversations } from '../../backend/worker_conversations_service.js'
+import { subscribe_to_request_lock } from '../../backend/admin_messaging_service.js'
 import './worker_dashboard.css'
 
 const parse_date = (val) => {
@@ -563,11 +564,34 @@ function RequestDetailPanel({
 	const navigate = useNavigate()
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
+	const [is_messaging_enabled, set_is_messaging_enabled] = useState(
+		req.messaging_enabled !== false
+	)
 
 	const display_date =
 		parse_date(req.updated_at) !== '-'
 			? parse_date(req.updated_at)
 			: parse_date(req.created_at)
+
+	useEffect(() => {
+		if (!req?.id) {
+			return
+		}
+
+		// Set initial state from the request object
+		set_is_messaging_enabled(req.messaging_enabled !== false)
+
+		// Subscribe to real-time changes made by admins
+		const unsub = subscribe_to_request_lock(
+			req.id,
+			(data) => {
+				set_is_messaging_enabled(data.messaging_enabled)
+			},
+			(err) => console.error('Failed to subscribe to lock status:', err)
+		)
+
+		return () => unsub()
+	}, [req.id, req.messaging_enabled])
 
 	useEffect(() => {
 		if (req.status !== STATUS.CLOSED) {
@@ -795,7 +819,7 @@ function RequestDetailPanel({
 								other_uid={req.user_uid}
 								other_name={resident_name}
 								messaging_enabled={
-									req.messaging_enabled !== false &&
+									is_messaging_enabled &&
 									worker.canMessage !== false
 								}
 							/>
