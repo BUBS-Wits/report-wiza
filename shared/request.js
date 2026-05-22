@@ -125,6 +125,9 @@ export class Request {
 	}
 }
 
+/*
+ * Used to make going from a firebase document to our Request Class Object much easier
+ */
 export const request_converter = {
 	to_firestore: function (user_uid, request, created, updated, ustatus) {
 		const municipality = request.get_municipality()
