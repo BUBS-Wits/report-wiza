@@ -1,22 +1,22 @@
 # Report-Wiza — Municipal Service Delivery Reporting Portal
 
-[![codecov](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graph/badge.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
+[![codecov](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/main/graph/badge.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
 
 **Live Application:** [Report-Wiza on Azure](https://report-wiza-heeba2h0cbgacjc6.italynorth-01.azurewebsites.net)  
 **Course:** COMS3009A — Software Design 2026, Wits University  
 **Project Brief:** Project 5  
 
-[![Codecov Sunburst](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/CodeCoverage/graphs/sunburst.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
+[![Codecov Sunburst](https://codecov.io/gh/BUBS-Wits/report-wiza/branch/main/graphs/sunburst.svg)](https://app.codecov.io/gh/BUBS-Wits/report-wiza)
 
 ---
 
-## 📖 Overview
+## Overview
 
 **Report-Wiza** is a web-based service delivery reporting portal designed to bridge the gap between South African residents and local municipalities. Residents can seamlessly submit, track, and escalate service requests (such as potholes, water issues, electricity outages, and waste management) using ward-level geolocation. The platform also provides municipal workers and administrators with the tools needed to manage, resolve, and analyze these requests in an accountable and transparent manner.
 
 ---
 
-## 👥 User Roles & Features
+## User Roles & Features
 
 The system supports 3 authenticated roles (via Google/Microsoft SSO) and 1 unauthenticated access level:
 
@@ -27,44 +27,46 @@ The system supports 3 authenticated roles (via Google/Microsoft SSO) and 1 unaut
 
 ---
 
-## 🛠 Tech Stack & Infrastructure
+## Tech Stack & Infrastructure
 
 - **Frontend:** React (Create React App)
 - **Backend:** Node.js (Express v5 API)
 - **Database:** Firebase Firestore (NoSQL)
 - **Authentication:** Firebase Auth (Google & Microsoft SSO integration)
-- **Storage:** Firebase Storage (for request photo attachments)
+- **Storage:** Backblaze Storage (for request photo attachments)
 - **CI/CD Pipeline:** GitHub Actions
 - **Deployment Environment:** Azure Static Web Apps (via MSDeploy/ZipDeploy)
 - **Testing:** Jest for unit testing and code coverage tracking (Codecov)
 
 ---
 
-## 🌍 Mandatory SA Data Integration
+## Mandatory SA Data Integration
 
 To meet the strict regional rubric requirements, WardWatch integrates real South African geographic datasets:
 
-- **Source:** StatsSA GeoJSON boundary dataset.
+- **Source:** StatsSA GeoJSON boundary dataset from the [ArcGIS REST API](https://services7.arcgis.com/oeoyTUJC8HEeYsRB/arcgis/rest/services/SA_Wards2020/FeatureServer/0) and ward data from the [Electoral Commission of South Africa](https://gisapi.elections.org.za/IECGIS_VSFinder)
 - **Functionality:** Every submitted service request is automatically tagged to the correct municipal ward and municipality based entirely on the user's GPS coordinates.
 - **Visualization:** Real ward boundaries are natively rendered on both the submission map and the public viewing dashboard.
 
 ---
 
-## 🏗 Developer Guidelines & Architecture Rules
+## Developer Guidelines & Architecture Rules
 
-For any developer contributing to the codebase, the following architectural boundaries and rules are strictly enforced to prevent Azure deployment failures:
+For any developer contributing to the codebase, the following architectural boundaries and rules must be adhered to to prevent Azure deployment failures:
+
+> Note: Please use CommonJS and not ESM.
 
 ### 1. API Architecture Flow
 
-The backend must act as the secure data processor; aggregation should not happen on the client.
+The backend must act as the secure data processor.
 
 1.  React frontend components call a local service.
 2.  The service retrieves the Firebase Auth token and issues an HTTP `fetch()` to the backend.
-3.  The Express `server.js` endpoint authenticates the token, queries Firestore securely, performs data aggregations, and returns the final JSON payload.
+3.  The Express `server.js` endpoint authenticates the token, queries Firestore securely, performs data operations, and returns the final JSON payload.
 
-### 2. The "100% No-Nos" in `server.js`
+### 2. Rules of `server.js`
 
-- **Never import React/Frontend logic:** Do not import any files containing JSX or React logic into `server.js`. This will trigger an `ERR_MODULE_NOT_FOUND` error and crash the Azure boot sequence.
+- **Don't Import Frontend Logic:** Do not import any files containing JSX or React logic into `server.js`. This will trigger an `ERR_MODULE_NOT_FOUND` error and crash the Azure boot sequence.
 - **No String Wildcards in Express 5:** Express v5 does not support string wildcards (e.g., `app.get('*', ...)`). You must use native JavaScript Regular Expressions.
 - **No Quotes in Azure Config:** When storing Base64 Firebase credentials in Azure Environment Variables, do not include quotation marks, or `JSON.parse()` will crash.
 
@@ -75,7 +77,80 @@ The backend must act as the secure data processor; aggregation should not happen
 
 ---
 
-## 📋 Course & Assessment Constraints
+## Setup
+
+### Requirements
+
+- [Node.js](https://nodejs.org/)
+- npm (comes with Node.js)
+
+---
+
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/BUBS-Wits/report-wiza.git
+cd report-wiza 
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+Copy the example environment file and fill in your values:
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and update the variables as needed.
+
+### 4. Start the development server
+
+```bash
+npm run dev
+```
+
+The site will be available at `http://localhost:3000` (or whichever port is set in the environment variable PORT).
+
+---
+
+## Available Scripts
+
+| Command                 | Description                                                 |
+|-------------------------|-------------------------------------------------------------|
+| `npm run build`         | Builds the project                                          |
+| `npm run start`         | Starts the server and serves the frontend through localhost |
+| `npm run dev`           | Start the development server with hot reload                |
+| `npm run sync`          | Sync files in `shared/` to their necessary locations        |
+| `npm run lint`          | Run the linter                                              |
+| `npm run format`        | Run the formatter                                           |
+| `npm run test`          | Run the test suite                                          |
+| `npm run test:coverage` | Run test coverage                                           |
+
+---
+
+## Project Structure
+
+The project structure can be outlined as seen below:
+* `src/`: Frontend source code that gets packaged when built by `react-scripts`
+* `src/components`: React components that have been deemed either reusable, or separate enough from being its own page
+* `src/backend`: Frontend code that access the database and performs operations on it using firebase's client server library
+* `src/pages`: React components that use other components to render a full html page
+* `src/tests`: Tests created using Jest
+* `shared/`: Files that have been deemed to be needed in both Frontend code and backend code that are accessed by a script in `scripts/` and copied to their relevant locations during building (custom implementation of a one way sync)
+* `backend/`: A folder that has some backend functions that are used by `server.js`
+* `Documentation/`: Folder with sprint details
+
+---
+
+## Course & Assessment Constraints
 
 | Member       | Role            | Focus Area (User Stories)                                       |
 | :----------- | :-------------- | :-------------------------------------------------------------- |

@@ -1,3 +1,6 @@
+/*
+ * Gets the passed files data uri
+ */
 export async function get_data_uri(file) {
 	if (typeof file !== 'object') {
 		return null
@@ -20,9 +23,14 @@ export async function get_data_uri(file) {
 	}
 }
 
+/*
+ * Valideates whether the passed image is a jpeg, or png using its
+ * data uri representation to check whether it matches the expected
+ * pattern using regex
+ */
 export async function image_validate(image) {
-	if (typeof image === 'string' && image === '') {
-		return true
+	if (image === '') {
+		return false
 	}
 	if (!image) {
 		return false
@@ -44,6 +52,9 @@ export async function image_validate(image) {
 	return image_data_uri_regex.test(image_uri)
 }
 
+/*
+ * Given some natural number, return its bit array
+ */
 function get_bit_array(val) {
 	const bits = []
 	while (val !== 0) {
@@ -58,6 +69,9 @@ function get_bit_array(val) {
 	return bits
 }
 
+/*
+ * Given some bit array, calculate it's natural number representation
+ */
 function get_int(bits) {
 	let val = 0
 	for (let i = bits.length - 1; i >= 0; i--) {
@@ -66,6 +80,9 @@ function get_int(bits) {
 	return val
 }
 
+/*
+ * Get the UInt8Array of the base64 string
+ */
 export function get_uint8array(base64) {
 	if (typeof base64 !== 'string' || base64.length % 4 > 0) {
 		return null
@@ -109,6 +126,10 @@ export function get_date(now) {
 	}
 }
 
+/*
+ * Given longitude and latitude, it queries `gisapi.elections.org.za`
+ * for the locations ward, municipal data, and more.
+ */
 async function gisapi(longitude, latitude) {
 	try {
 		const url = `https://gisapi.elections.org.za/IECGIS_VSFinder/api/VotingDistrict?latitude=${latitude}&longitude=${longitude}`
@@ -165,6 +186,9 @@ export function get_voting_district_info(longitude, latitude) {
 		})
 }
 
+/*
+ * Requests the current users location using the Geolocation API
+ */
 export function get_location() {
 	return new Promise((resolve, reject) => {
 		if (!('geolocation' in navigator)) {
