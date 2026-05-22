@@ -44,7 +44,7 @@ The system supports 3 authenticated roles (via Google/Microsoft SSO) and 1 unaut
 
 To meet the strict regional rubric requirements, WardWatch integrates real South African geographic datasets:
 
-- **Source:** StatsSA GeoJSON boundary dataset and ward data from the [Electoral Commission of South Africa](https://gisapi.elections.org.za/IECGIS_VSFinder)
+- **Source:** StatsSA GeoJSON boundary dataset from the [ArcGIS REST API](https://services7.arcgis.com/oeoyTUJC8HEeYsRB/arcgis/rest/services/SA_Wards2020/FeatureServer/0) and ward data from the [Electoral Commission of South Africa](https://gisapi.elections.org.za/IECGIS_VSFinder)
 - **Functionality:** Every submitted service request is automatically tagged to the correct municipal ward and municipality based entirely on the user's GPS coordinates.
 - **Visualization:** Real ward boundaries are natively rendered on both the submission map and the public viewing dashboard.
 
