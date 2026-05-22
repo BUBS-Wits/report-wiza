@@ -522,7 +522,7 @@ const PRIORITY_META = {
 	Critical: { label: 'Critical', cls: 'rd-priority--critical' },
 }
 
-function RequestDetail({ req, resident, on_back, on_cancel }) {
+function RequestDetail({ req, resident, addMessage, on_back, on_cancel }) {
 	const meta = STATUS_META[req.status] ?? { label: req.status, cls: '' }
 	const has_worker = !!req.worker_uid
 	const priority_meta = PRIORITY_META[req.priority] ?? null
