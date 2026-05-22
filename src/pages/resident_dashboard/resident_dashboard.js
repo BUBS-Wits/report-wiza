@@ -446,6 +446,7 @@ export default function ResidentDashboard() {
 						<RequestDetail
 							req={selected_req}
 							resident={resident}
+							addMessage={addMessage}
 							on_back={() => set_selected_id(null)}
 							on_cancel={cancelRequest} // NEW prop
 						/>
@@ -528,7 +529,6 @@ function RequestDetail({ req, resident, on_back, on_cancel }) {
 	const [close_reason, set_close_reason] = useState(null)
 	const [close_reason_loading, set_close_reason_loading] = useState(false)
 	const [feedback_form, set_feedback_form] = useState(false)
-	const { addMessage } = useMessages()
 	const [messaging_enabled, set_messaging_enabled] = useState(
 		req.messaging_enabled !== false // initialise from request data so there's no flicker
 	)
