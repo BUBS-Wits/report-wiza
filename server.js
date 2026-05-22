@@ -520,7 +520,7 @@ const limiter = rate_limit({
 /*
  * Uses entropy to predict whether or not the string is likely english or not.
  * Frequency is used to calculate the probability passed to the entropy calculation.
- * 
+ *
  * Spaces are also counted separately initially where long strings with more spaces is
  * more likely to be a coherent sentence in comparison to a long string with little to no spaces.
  * It essentially uses the ratio of string length to spaces which has an inverse relationship
@@ -575,7 +575,7 @@ function repetition_check(string) {
 	return unique_ratio < 0.5 ? false : true
 }
 
-/* 
+/*
  * Checks if the submitted description item in a requests body is likely to be spam
  * and returns a response to the request static that it is likely spam and to try
  * again.

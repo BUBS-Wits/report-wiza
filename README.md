@@ -136,6 +136,20 @@ The site will be available at `http://localhost:3000` (or whichever port is set 
 
 ---
 
+## Project Structure
+
+The project structure can be outlined as seen below:
+* `src/`: Frontend source code that gets packaged when built by `react-scripts`
+* `src/components`: React components that have been deemed either reusable, or separate enough from being its own page
+* `src/backend`: Frontend code that access the database and performs operations on it using firebase's client server library
+* `src/pages`: React components that use other components to render a full html page
+* `src/tests`: Tests created using Jest
+* `shared/`: Files that have been deemed to be needed in both Frontend code and backend code that are accessed by a script in `scripts/` and copied to their relevant locations during building (custom implementation of a one way sync)
+* `backend/`: A folder that has some backend functions that are used by `server.js`
+* `Documentation/`: Folder with sprint details
+
+---
+
 ## Course & Assessment Constraints
 
 | Member       | Role            | Focus Area (User Stories)                                       |
