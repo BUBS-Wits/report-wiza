@@ -301,6 +301,10 @@ const authenticate_optional = async (req, res, next) => {
 	}
 }
 
+/*
+ * Returns a unique document id using both the proposed id by firebase
+ * and the time of the creation of the document in the collection.
+ */
 const generate_doc_id = (collection, now) => {
 	const new_doc_ref = db.collection(collection).doc()
 
@@ -315,6 +319,11 @@ const generate_doc_id = (collection, now) => {
 	return `${timestamp}_${new_doc_ref.id}`
 }
 
+/*
+ * Takes an array for the condition parameter in the form [field, operator, value] and
+ * the firebase query object as query.
+ * It returns the query applyed with the condition passed.
+ */
 const apply_query = (query, condition) => {
 	if (!Array.isArray(condition) && condition.length !== 3) {
 		console.debug(
@@ -325,6 +334,11 @@ const apply_query = (query, condition) => {
 	return query.where(condition[0], condition[1], condition[2])
 }
 
+/*
+ * Takes an array of conditions, where each condition is also an array of specifically length 3
+ * in the form [field, operator, value], and builds the query iteratively to get the database
+ * document in the collection that satisfies all of these conditions.
+ */
 const get_db_documents = (collection, conditions) => {
 	if (!Array.isArray(conditions)) {
 		console.error('get_db_documents > conditions not given as array')
@@ -360,6 +374,9 @@ const get_db_documents = (collection, conditions) => {
 		})
 }
 
+/*
+ * Gets the database document from the firebase collection that has the ID/UID passed
+ */
 const get_db_document = (collection, doc_id) => {
 	return db
 		.collection(collection)
@@ -384,6 +401,10 @@ const get_db_document = (collection, doc_id) => {
 		})
 }
 
+/*
+ * Sets the database document in the collection, either creating a new document if the document
+ * does not exist or overwriting the old one if it does exist with the new document `doc`
+ */
 const set_db_document = (collection, doc_id, doc) => {
 	return db
 		.collection(collection)
@@ -397,6 +418,10 @@ const set_db_document = (collection, doc_id, doc) => {
 		})
 }
 
+/*
+ * Updates the currently existing document in the collection. `fields` is an array of arrays
+ * where each array in the array comes in the form [field, value]
+ */
 const update_db_document = (collection, doc_id, fields) => {
 	const replacements = {}
 	for (const field of fields) {
@@ -460,6 +485,10 @@ const exists_db_document = async (collection, doc) => {
 	return false
 }
 
+/*
+ * checks whether the user with the uid passed has the requested role assigned
+ * in the database
+ */
 const has_role = (uid, role) => {
 	return get_db_document('users', uid).then((ret) => {
 		if (!ret.ok) {
@@ -488,6 +517,15 @@ const limiter = rate_limit({
 	message: { error: 'Too many submissions, please try again later.' },
 })
 
+/*
+ * Uses entropy to predict whether or not the string is likely english or not.
+ * Frequency is used to calculate the probability passed to the entropy calculation.
+ * 
+ * Spaces are also counted separately initially where long strings with more spaces is
+ * more likely to be a coherent sentence in comparison to a long string with little to no spaces.
+ * It essentially uses the ratio of string length to spaces which has an inverse relationship
+ * to the frequency total.
+ */
 const entropy_check = (string, threshold = 0.9) => {
 	const character_dictionary = {}
 	let space_count = 0
@@ -524,6 +562,11 @@ const entropy_check = (string, threshold = 0.9) => {
 	return frequency_total < threshold ? false : true
 }
 
+/*
+ * Checks that the string passed to it doesn't have too many repeated words
+ * compared to it's total word count.
+ * It uses a ratio of number of unique words to the total number of words
+ */
 function repetition_check(string) {
 	const words = string.toLowerCase().split(/\s+/).filter(Boolean)
 	const unique = new Set(words)
@@ -532,6 +575,11 @@ function repetition_check(string) {
 	return unique_ratio < 0.5 ? false : true
 }
 
+/* 
+ * Checks if the submitted description item in a requests body is likely to be spam
+ * and returns a response to the request static that it is likely spam and to try
+ * again.
+ */
 const spam_middleware = (req, res, next) => {
 	const body = req.body
 	if (!body || !body.description) {
@@ -554,6 +602,11 @@ const spam_middleware = (req, res, next) => {
 
 /********************* Backend Routes *********************/
 
+/* Claim a service request.
+ *
+ * Usage: '/api/submit-request'
+ * 	- Body: {image, .*}
+ */
 app.post(
 	'/api/submit-request',
 	limiter,
@@ -648,6 +701,10 @@ app.post(
 	}
 )
 
+/* Get requests
+ *
+ * Usage: '/api/get-requests?all={true|false}'
+ */
 app.get('/api/claim-request', authenticate, async (req, res) => {
 	try {
 		const uid = req.user.uid
@@ -699,7 +756,14 @@ app.get('/api/claim-request', authenticate, async (req, res) => {
 	}
 })
 
-/* /api/get-requests?all={true|false} */
+/* Get requests
+ *
+ * Usage: '/api/get-requests?all={true|false}'
+ *
+ * If `all == "false"`, then it will assume
+ * this is a signed in user's http request and
+ * they only need service requests they submitted.
+ */
 app.get('/api/get-requests', async (req, res) => {
 	try {
 		const conditions = []
@@ -708,7 +772,7 @@ app.get('/api/get-requests', async (req, res) => {
 				if (!authenticate(req, res, () => {})) {
 					return respond.unauthorized(res)
 				}
-				conditions.push(['service_requests', '==', req.user.uid])
+				conditions.push(['__name__', '==', req.user.uid])
 			} else if (
 				req.query.all !== 'true' ||
 				Object.keys(req.query).length !== 1
@@ -744,6 +808,10 @@ app.get('/api/get-requests', async (req, res) => {
 	}
 })
 
+/* Get requests that the worker themselves has already claimed
+ *
+ * Usage: '/api/get-claimed-requests'
+ */
 app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 	try {
 		const uid = req.user.uid
@@ -814,6 +882,10 @@ app.get('/api/get-claimed-requests', authenticate, async (req, res) => {
 	}
 })
 
+/* Get requests that are unclaimed as a worker/admin.
+ *
+ * Usage: '/api/get-unclaimed-requests'
+ */
 app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 	try {
 		const uid = req.user.uid
@@ -869,6 +941,11 @@ app.get('/api/get-unclaimed-requests', authenticate, async (req, res) => {
 	}
 })
 
+/* Get the updated signed url of the image uploaded for the request,
+ * refreshing the link if the previous one expired at some point.
+ *
+ * Usage: '/api/get-unclaimed-requests?request_uid={request_uid}'
+ */
 app.get('/api/get-signed-url', async (req, res) => {
 	try {
 		const request_uid = req.query.request_uid
@@ -906,6 +983,11 @@ app.get('/api/get-signed-url', async (req, res) => {
 	}
 })
 
+/* Submit a review to a resolved/closed request as the resident that opened it.
+ *
+ * Usage: '/api/submit-review'
+ * 	- Body: {comment: ".*", rating: [0-9]*, request_uid: ".*"}
+ */
 app.post('/api/submit-review', authenticate, async (req, res) => {
 	try {
 		const body = req.body
@@ -957,7 +1039,11 @@ app.post('/api/submit-review', authenticate, async (req, res) => {
 	}
 })
 
-// Cancel an unassigned request (resident only)
+/* Cancel an unassigned request (resident only)
+ *
+ * Usage: '/api/cancel-request'
+ * 	- Body: {requestId: ".*"}
+ */
 app.post('/api/cancel-request', authenticate, async (req, res) => {
 	try {
 		const userId = req.user.uid
